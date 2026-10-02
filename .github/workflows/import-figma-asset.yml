@@ -2,8 +2,6 @@ name: Import Figma Assets
 
 on:
   push:
-    paths:
-      - ".github/workflows/import-figma-asset.yml"
 
 permissions:
   contents: write
