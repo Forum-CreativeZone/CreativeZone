@@ -40,7 +40,7 @@ function App(){const[open,setOpen]=useState(false),[menu,setMenu]=useState(false
 const filtered=useMemo(()=>topics.filter(t=>(category==='Todos'||t.category===category)&&(t.title+' '+t.user+' '+t.category).toLowerCase().includes(query.toLowerCase())),[topics,query,category]);
 const publish=t=>setTopics(v=>[{...t,id:Date.now()},...v]);
 return <div className="app">
-<header><div className="headerinner"><button className="menubtn" onClick={()=>setMenu(!menu)}><Menu/></button><div className="brand"><span>FÓRUM</span><b>ADRENALINE</b></div><div className={'left '+(menu?'show':'')}><a className="active"><Pencil/>Fórum</a><a><Users/>Membros</a><a><Globe/>Portal</a></div><nav><button className="newtopic" onClick={()=>setOpen(true)}><Pencil/>Novo Tópico</button><label className="search"><Search/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar"/></label><button className="iconbtn"><Bell/></button><button className="profile">V</button></nav></div></header>
+<header><div className="headerinner"><button className="menubtn" onClick={()=>setMenu(!menu)}><Menu/></button><div className="brand"><img className="brandlogo" src={asset(18)} alt="Adrenaline 20 anos"/></div><div className={'left '+(menu?'show':'')}><a className="active"><Pencil/>Fórum</a><a><Users/>Membros</a><a><Globe/>Portal</a></div><nav><button className="newtopic" onClick={()=>setOpen(true)}><Pencil/>Novo Tópico</button><label className="search"><Search/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar"/></label><button className="iconbtn"><Bell/></button><button className="profile">V</button></nav></div></header>
 <div className="crumb"><div><span>Fórum</span><ChevronRight/> <strong>Inicial</strong></div></div>
 
 <div className="pagehero"><div className="heroinner"><div><span className="heroeyebrow">COMUNIDADE ADRENALINE</span><h1>Fórum</h1><p>Discussões, dúvidas e experiências sobre tecnologia, hardware, games e muito mais.</p></div><div className="heroactions"><div><strong>1.284</strong><span>Membros</span></div><div><strong>18.592</strong><span>Tópicos</span></div><div><strong>64.210</strong><span>Respostas</span></div></div></div></div>
@@ -53,7 +53,7 @@ return <div className="app">
 <div className="sectionhead popularhead"><div><span className="eyebrow">POPULAR</span><h2>Mais Visualizados</h2></div><button className="viewall">Ver ranking <TrendingUp/></button></div>
 <div className="populargrid">{[...filtered].sort((a,b)=>b.views-a.views).slice(0,3).map((t,i)=><MiniTopic key={t.id} topic={t} rank={i+1}/>)}</div>
 
-<div className="pagination"><button disabled={page===1} onClick={()=>setPage(Math.max(1,page-1))}>‹</button><button className="active">1</button><button>2</button><button>3</button><span>...</span><button>24</button><button onClick={()=>setPage(page+1)}>›</button></div>
+<div className="pagination"><button disabled={page===1} onClick={()=>setPage(Math.max(1,page-1))}>‹</button><button className="active">1</button><button>2</button><button>3</button><span>...</span><button>24</button><button onClick={()=>setPage(page+1)}>›</button></div><div className="mobile-news"><img src={asset(1)} alt=""/><div><b>Nvidea anuncia a 3090 Ti! Confira a matéria no portal Adrenaline.</b></div></div>
 </section>
 
 <aside>
