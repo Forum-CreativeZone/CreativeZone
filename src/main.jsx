@@ -3,7 +3,11 @@ import{createRoot}from'react-dom/client';
 import{Search,Bell,Pencil,Users,Globe,Star,MessageCircle,ChevronDown,Plus,X,Paperclip,Image as ImageIcon,Link as LinkIcon,Smile,Send,Save,Menu,Clock3,TrendingUp,ChevronRight,MoreHorizontal,Pin,Eye}from'lucide-react';
 import'./styles.css';
 
-const asset=(n)=>`/assets/figma/0-1/raw-${String(n).padStart(2,'0')}.png`;
+const FIGMA_ASSET_EXTENSIONS={
+  1:'png',2:'png',3:'png',4:'jpeg',5:'png',6:'png',7:'jpeg',8:'jpeg',9:'jpeg',10:'jpeg',
+  11:'jpeg',12:'png',13:'jpeg',14:'png',15:'jpeg',16:'png',17:'jpeg',18:'png',19:'jpeg',20:'png'
+};
+const asset=(n)=>`/assets/figma/223-2/raw-${String(n).padStart(2,'0')}.${FIGMA_ASSET_EXTENSIONS[n]||'png'}`;
 const initialTopics=[
 {id:1,user:'DanielMFR',title:'Socorro explodi o PC!!!',desc:'Meu computador simplesmente parou depois de um estalo. Alguém já passou por isso?',views:68,replies:15,category:'Hardware',time:'há 12 min',avatar:8},
 {id:2,user:'Riba_X?X',title:'Como faz pra imprimir colorido na impressora HP?',desc:'Estou tentando imprimir fotos e preciso acertar as configurações de papel e cor.',views:12,replies:4,category:'Hardware',time:'há 24 min',avatar:9},
