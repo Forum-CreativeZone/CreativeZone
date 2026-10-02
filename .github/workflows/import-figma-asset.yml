@@ -2,6 +2,8 @@ name: Import Figma Assets
 
 on:
   push:
+    paths:
+      - ".github/workflows/import-figma-asset.yml"
 
 permissions:
   contents: write
@@ -11,17 +13,148 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Download Figma asset
+      - name: Download Figma assets
         run: |
           set -euo pipefail
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/export.png "https://www.figma.com/api/mcp/asset/46133282-d51b-4054-b685-d8f7ba80446d.png"
+          test -s assets/figma/0-1/export.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-01.png "https://www.figma.com/api/mcp/asset/a5d6126d-e25a-4c9d-8625-28ea0cdd2b6a"
+          test -s assets/figma/0-1/raw-01.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-02.png "https://www.figma.com/api/mcp/asset/7f5752bc-26b6-443b-b0ba-b2ced7afb053"
+          test -s assets/figma/0-1/raw-02.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-03.png "https://www.figma.com/api/mcp/asset/66f573c0-efc2-4abb-aad0-a892a679c780"
+          test -s assets/figma/0-1/raw-03.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-04.png "https://www.figma.com/api/mcp/asset/28c46920-dc2e-4513-b0b1-484b9e4ae293"
+          test -s assets/figma/0-1/raw-04.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-05.png "https://www.figma.com/api/mcp/asset/5f03665f-7f87-4053-814f-9ccab760f2b1"
+          test -s assets/figma/0-1/raw-05.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-06.png "https://www.figma.com/api/mcp/asset/a2e8a0e7-95c6-4608-9d26-c6a34200b688"
+          test -s assets/figma/0-1/raw-06.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-07.png "https://www.figma.com/api/mcp/asset/aaec09e1-74cc-47d8-8435-6eb000ae5322"
+          test -s assets/figma/0-1/raw-07.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-08.png "https://www.figma.com/api/mcp/asset/c2b123a5-8898-4c3a-92a5-804be939ab23"
+          test -s assets/figma/0-1/raw-08.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-09.png "https://www.figma.com/api/mcp/asset/48fa4ac5-999f-42b4-9063-b009f7dbbcff"
+          test -s assets/figma/0-1/raw-09.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-10.jpeg "https://www.figma.com/api/mcp/asset/8d6b2e27-75f0-4279-93cd-29c39e21e034"
+          test -s assets/figma/0-1/raw-10.jpeg
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-11.png "https://www.figma.com/api/mcp/asset/920ee96e-d859-4c28-a632-031dee09f995"
+          test -s assets/figma/0-1/raw-11.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-12.png "https://www.figma.com/api/mcp/asset/ef003bf2-c048-43e0-9d10-00ca09aaac8d"
+          test -s assets/figma/0-1/raw-12.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-13.png "https://www.figma.com/api/mcp/asset/f67a3123-c352-4596-bbc9-0d3a365889fe"
+          test -s assets/figma/0-1/raw-13.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-14.png "https://www.figma.com/api/mcp/asset/377d187b-b0e9-4e21-af43-972e96c26ef6"
+          test -s assets/figma/0-1/raw-14.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-15.png "https://www.figma.com/api/mcp/asset/17ee8d3a-df65-462e-9e1e-837de0906aad"
+          test -s assets/figma/0-1/raw-15.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-16.png "https://www.figma.com/api/mcp/asset/b4b96035-9b45-4d76-8273-29a5ee43e28f"
+          test -s assets/figma/0-1/raw-16.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-17.png "https://www.figma.com/api/mcp/asset/65f48f2b-38e4-4b57-a0ea-9f59396d494d"
+          test -s assets/figma/0-1/raw-17.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-18.png "https://www.figma.com/api/mcp/asset/3399c359-af2c-4a70-8f44-fcd356fc99f0"
+          test -s assets/figma/0-1/raw-18.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-19.png "https://www.figma.com/api/mcp/asset/ee397b69-5f68-4cc6-b116-feb167a8785c"
+          test -s assets/figma/0-1/raw-19.png
+          mkdir -p assets/figma/0-1
+          curl -L --fail --retry 3 --output assets/figma/0-1/raw-20.png "https://www.figma.com/api/mcp/asset/fcb028af-de4b-4292-ac4c-33190a31ee6a"
+          test -s assets/figma/0-1/raw-20.png
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/export.png "https://www.figma.com/api/mcp/asset/839eca46-723c-4b70-ad26-fc73fcf4dd82.png"
+          test -s assets/figma/223-2/export.png
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-01.png "https://www.figma.com/api/mcp/asset/0c81f427-8233-420d-aed4-e2a4a641df2c"
+          test -s assets/figma/223-2/raw-01.png
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-02.png "https://www.figma.com/api/mcp/asset/481ee18f-3d3b-406a-b46d-9da42e710594"
+          test -s assets/figma/223-2/raw-02.png
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-03.png "https://www.figma.com/api/mcp/asset/ff61550e-9049-4f0a-967d-8a047a19bdb0"
+          test -s assets/figma/223-2/raw-03.png
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-04.jpeg "https://www.figma.com/api/mcp/asset/148200ec-777b-416a-bdee-5501feb02c2d"
+          test -s assets/figma/223-2/raw-04.jpeg
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-05.png "https://www.figma.com/api/mcp/asset/8fd00066-0475-43ff-999f-64e6749504e3"
+          test -s assets/figma/223-2/raw-05.png
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-06.png "https://www.figma.com/api/mcp/asset/c8e418c4-6098-4835-8dd4-8f1d603bc2bb"
+          test -s assets/figma/223-2/raw-06.png
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-07.jpeg "https://www.figma.com/api/mcp/asset/14125a76-1d2b-45d4-b6c8-4f8d161427b0"
+          test -s assets/figma/223-2/raw-07.jpeg
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-08.jpeg "https://www.figma.com/api/mcp/asset/d4a25ac5-bf27-4d6c-a6a8-6ce358b3d0ec"
+          test -s assets/figma/223-2/raw-08.jpeg
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-09.jpeg "https://www.figma.com/api/mcp/asset/1e35e441-4a1c-44c8-9204-9cae3b246edd"
+          test -s assets/figma/223-2/raw-09.jpeg
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-10.jpeg "https://www.figma.com/api/mcp/asset/d8198584-f248-43b3-ae5d-3ff6309f6cc4"
+          test -s assets/figma/223-2/raw-10.jpeg
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-11.jpeg "https://www.figma.com/api/mcp/asset/48f71029-f698-403a-b1ec-8a0e9ebead7e"
+          test -s assets/figma/223-2/raw-11.jpeg
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-12.png "https://www.figma.com/api/mcp/asset/26096e01-710a-4547-8aa0-ef0782e30442"
+          test -s assets/figma/223-2/raw-12.png
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-13.jpeg "https://www.figma.com/api/mcp/asset/3705b21c-75cf-4625-bb87-b0d088445dc5"
+          test -s assets/figma/223-2/raw-13.jpeg
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-14.png "https://www.figma.com/api/mcp/asset/65429b87-5c91-4d75-ba0f-92a7dcfca6b4"
+          test -s assets/figma/223-2/raw-14.png
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-15.jpeg "https://www.figma.com/api/mcp/asset/30660259-26a2-46d1-8100-8ccc18e9de7e"
+          test -s assets/figma/223-2/raw-15.jpeg
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-16.png "https://www.figma.com/api/mcp/asset/d703e1c8-58ba-4105-917f-c80e753fa5d2"
+          test -s assets/figma/223-2/raw-16.png
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-17.png "https://www.figma.com/api/mcp/asset/bd9c60c4-1097-4c15-820f-4765c3275d36"
+          test -s assets/figma/223-2/raw-17.png
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-18.png "https://www.figma.com/api/mcp/asset/f50b76d6-a871-48c4-9982-a72548365e33"
+          test -s assets/figma/223-2/raw-18.png
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-19.jpeg "https://www.figma.com/api/mcp/asset/ffcea666-24f0-4895-a9af-1735c29c2424"
+          test -s assets/figma/223-2/raw-19.jpeg
+          mkdir -p assets/figma/223-2
+          curl -L --fail --retry 3 --output assets/figma/223-2/raw-20.png "https://www.figma.com/api/mcp/asset/e001576d-e471-47e8-8d87-beefd6102aeb"
+          test -s assets/figma/223-2/raw-20.png
           mkdir -p assets/figma/601-3
           curl -L --fail --retry 3 --output assets/figma/601-3/export.png "https://www.figma.com/api/mcp/asset/318a0aa4-a0c5-4959-9d90-6b83dd55884f.png"
           test -s assets/figma/601-3/export.png
-          file assets/figma/601-3/export.png
-      - name: Commit asset
+          mkdir -p assets/figma/601-2
+          curl -L --fail --retry 3 --output assets/figma/601-2/export.png "https://www.figma.com/api/mcp/asset/47969d87-658e-4b1d-9ae3-eadedf6406f4.png"
+          test -s assets/figma/601-2/export.png
+      - name: Commit imported assets
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/figma/601-3/export.png
-          git commit -m "assets: import Figma 601-3" || exit 0
+          git add assets/figma/0-1/export.png assets/figma/0-1/raw-01.png assets/figma/0-1/raw-02.png assets/figma/0-1/raw-03.png assets/figma/0-1/raw-04.png assets/figma/0-1/raw-05.png assets/figma/0-1/raw-06.png assets/figma/0-1/raw-07.png assets/figma/0-1/raw-08.png assets/figma/0-1/raw-09.png assets/figma/0-1/raw-10.jpeg assets/figma/0-1/raw-11.png assets/figma/0-1/raw-12.png assets/figma/0-1/raw-13.png assets/figma/0-1/raw-14.png assets/figma/0-1/raw-15.png assets/figma/0-1/raw-16.png assets/figma/0-1/raw-17.png assets/figma/0-1/raw-18.png assets/figma/0-1/raw-19.png assets/figma/0-1/raw-20.png assets/figma/223-2/export.png assets/figma/223-2/raw-01.png assets/figma/223-2/raw-02.png assets/figma/223-2/raw-03.png assets/figma/223-2/raw-04.jpeg assets/figma/223-2/raw-05.png assets/figma/223-2/raw-06.png assets/figma/223-2/raw-07.jpeg assets/figma/223-2/raw-08.jpeg assets/figma/223-2/raw-09.jpeg assets/figma/223-2/raw-10.jpeg assets/figma/223-2/raw-11.jpeg assets/figma/223-2/raw-12.png assets/figma/223-2/raw-13.jpeg assets/figma/223-2/raw-14.png assets/figma/223-2/raw-15.jpeg assets/figma/223-2/raw-16.png assets/figma/223-2/raw-17.png assets/figma/223-2/raw-18.png assets/figma/223-2/raw-19.jpeg assets/figma/223-2/raw-20.png assets/figma/601-3/export.png assets/figma/601-2/export.png
+          git diff --cached --quiet && exit 0
+          git commit -m "assets: import Figma visual assets"
+          git pull --rebase origin main
           git push
