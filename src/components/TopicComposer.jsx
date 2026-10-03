@@ -19,3 +19,5 @@ export function TopicComposer({ onSubmit }) {
     </form>
   )
 }
+
+export default TopicComposer;

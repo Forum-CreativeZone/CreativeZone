@@ -9,3 +9,5 @@ export function ProfileCard({ profile }) {
     </section>
   )
 }
+
+export default ProfileCard;

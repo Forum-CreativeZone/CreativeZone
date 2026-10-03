@@ -7,3 +7,5 @@ export function TopicCard({ topic, onOpen }) {
     </article>
   )
 }
+
+export default TopicCard;
