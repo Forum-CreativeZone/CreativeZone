@@ -257,8 +257,8 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
         <span><b>{stats.posts}</b>Respostas</span>
         <span><b>{stats.reactions}</b>Reações</span>
         <span><b>{stats.reputation}</b>Reputação</span>
-        <span><b>{stats.followers}</b>Seguidores</span>
-        <span><b>{stats.following}</b>Seguindo</span>
+        <span><b>{profile.show_followers ? stats.followers : '—'}</b>Seguidores</span>
+        <span><b>{profile.show_followers ? stats.following : '—'}</b>Seguindo</span>
       </div>
 
       <nav className="community-tabs">
@@ -382,6 +382,7 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
         allow_follow: Boolean(draft.allow_follow),
         show_followers: Boolean(draft.show_followers),
         allow_dm: draft.allow_dm || 'members',
+        profile_visibility: draft.profile_visibility || 'public',
       }
       const result = await saveAccountProfile(userId, {
         profile: payload,
@@ -455,6 +456,7 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
 
           {section === 'privacidade' && (
             <form className="account-form option-form" onSubmit={save}>
+              <label>Quem pode ver meu perfil<select value={draft.profile_visibility || 'public'} onChange={(e) => setProfileField('profile_visibility', e.target.value)}><option value="public">Todos</option><option value="members">Somente membros logados</option><option value="private">Somente eu</option></select></label>
               <label><input type="checkbox" checked={draft.show_activity ?? true} onChange={(e) => setProfileField('show_activity', e.target.checked)} /> Mostrar minha atividade no perfil público</label>
               <label><input type="checkbox" checked={draft.show_online ?? true} onChange={(e) => setProfileField('show_online', e.target.checked)} /> Mostrar última atividade/status online</label>
               <label><input type="checkbox" checked={draft.allow_follow ?? true} onChange={(e) => setProfileField('allow_follow', e.target.checked)} /> Permitir que membros me sigam</label>
