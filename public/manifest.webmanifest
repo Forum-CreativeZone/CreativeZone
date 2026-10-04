@@ -1,0 +1,11 @@
+{
+  "name": "CreativeZone",
+  "short_name": "CreativeZone",
+  "description": "Comunidade CreativeZone",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#1a1919",
+  "theme_color": "#1a1919",
+  "lang": "pt-BR"
+}
