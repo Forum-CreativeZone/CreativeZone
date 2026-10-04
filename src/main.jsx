@@ -578,7 +578,7 @@ function App() {
     }
     getBookmarkIds(user.id).then(setFavorites).catch(() => setFavorites([]))
     getIgnored(user.id)
-      .then((rows) => setIgnoredIds(rows.map((row) => row.profile?.id).filter(Boolean)))
+      .then((rows) => setIgnoredIds(rows.map((row) => row.ignored_id || row.profile?.id).filter(Boolean)))
       .catch(() => setIgnoredIds([]))
     touchLastSeen(user.id).catch(() => {})
   }, [user?.id])
