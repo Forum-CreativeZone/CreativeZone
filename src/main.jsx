@@ -817,23 +817,6 @@ function App() {
   function renderHome() {
     return (
       <>
-        {!authLoading && !session && (
-          <section className="guest-welcome">
-            <div>
-              <strong>Participe da CreativeZone</strong>
-              <span>Entre para responder e publicar ou crie sua conta gratuitamente.</span>
-            </div>
-            <div className="guest-welcome-actions">
-              <button className="action" onClick={() => navigate('/entrar')}>
-                <LogIn /> Entrar
-              </button>
-              <button className="action primary-action" onClick={() => navigate('/cadastro')}>
-                <UserPlus /> Criar conta
-              </button>
-            </div>
-          </section>
-        )}
-
         <main>
           <div className="maincolumn">
             <section>
