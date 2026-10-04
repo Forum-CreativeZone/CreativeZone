@@ -44,3 +44,20 @@ export async function getSession() {
   const { data } = await supabase.auth.getSession()
   return data.session
 }
+
+
+export async function signInWithOAuthProvider(provider) {
+  const client = requireSupabase()
+  const redirectTo =
+    typeof window !== 'undefined' ? `${window.location.origin}/` : undefined
+
+  const { data, error } = await client.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo,
+    },
+  })
+
+  if (error) throw error
+  return data
+}
