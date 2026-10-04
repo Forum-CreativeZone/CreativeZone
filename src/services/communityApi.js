@@ -243,14 +243,32 @@ export async function toggleIgnore(userId, targetId) {
 
 export async function getNotifications(userId, limit = 50) {
   const client = requireSupabase()
-  const { data, error } = await client
-    .from('notifications')
-    .select('*,actor:profiles!notifications_actor_id_fkey(id,username,display_name,avatar_url)')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(limit)
+  const [{ data, error }, { data: settings }] = await Promise.all([
+    client
+      .from('notifications')
+      .select('*,actor:profiles!notifications_actor_id_fkey(id,username,display_name,avatar_url)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit),
+    client
+      .from('account_settings')
+      .select('inapp_reply,inapp_mention,inapp_quote,inapp_reaction,inapp_follower,inapp_dm,inapp_moderation')
+      .eq('user_id', userId)
+      .maybeSingle(),
+  ])
   if (error) throw error
-  return data ?? []
+
+  const pref = {
+    new_reply: settings?.inapp_reply ?? true,
+    mention: settings?.inapp_mention ?? true,
+    quote: settings?.inapp_quote ?? true,
+    reaction: settings?.inapp_reaction ?? true,
+    new_follower: settings?.inapp_follower ?? true,
+    direct_message: settings?.inapp_dm ?? true,
+    moderation: settings?.inapp_moderation ?? true,
+  }
+
+  return (data ?? []).filter((item) => pref[item.type] ?? true)
 }
 
 export async function markNotificationRead(notificationId) {
