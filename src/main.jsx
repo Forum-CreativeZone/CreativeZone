@@ -18,7 +18,6 @@ import {
   LogIn,
   LogOut,
   UserPlus,
-  Github,
 } from 'lucide-react'
 import '@fontsource-variable/dm-sans'
 import * as A from './design-assets'
@@ -406,7 +405,7 @@ function AuthPage({ mode, navigate, notify }) {
           disabled={Boolean(socialBusy || busy)}
           onClick={() => socialLogin('github')}
         >
-          <Github aria-hidden="true" />
+          <span className="github-mark" aria-hidden="true">GH</span>
           {socialBusy === 'github' ? 'Conectando...' : 'Continuar com GitHub'}
         </button>
       </div>
