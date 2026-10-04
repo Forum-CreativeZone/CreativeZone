@@ -48,7 +48,7 @@ import {
   ReactionButton,
   UserQuickMenu,
 } from './CommunityPages'
-import { getBookmarkIds, getIgnored, toggleBookmark, touchLastSeen } from './services/communityApi'
+import { getAccountSettings, getBookmarkIds, getIgnored, toggleBookmark, touchLastSeen } from './services/communityApi'
 import './styles.css'
 
 const news = [
@@ -677,6 +677,27 @@ function App() {
       .then(setProfile)
       .catch((error) => console.error('Falha ao carregar perfil:', error))
   }, [user])
+
+  useEffect(() => {
+    if (!user?.id) return
+    getAccountSettings(user.id)
+      .then((settings) => {
+        const nextTheme =
+          settings.theme === 'system'
+            ? (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+            : settings.theme
+        if (nextTheme) setAppearance(nextTheme)
+        document.documentElement.dataset.density = settings.density || 'comfortable'
+      })
+      .catch(() => {})
+  }, [user?.id])
+
+  useEffect(() => {
+    if (authLoading || !session?.user || !profile || profile.profile_completed) return
+    if (path === '/conta/perfil' || path === '/perfil') return
+    setToast('Complete os campos obrigatórios do seu perfil para continuar.')
+    navigate('/conta/perfil')
+  }, [authLoading, session?.user?.id, profile?.profile_completed, path, navigate])
 
   const topicMatch = path.match(/^\/topico\/([^/]+)$/)
   const routeTopicId = topicMatch ? decodeURIComponent(topicMatch[1]) : null
