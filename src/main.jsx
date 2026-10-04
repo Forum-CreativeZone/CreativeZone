@@ -18,6 +18,7 @@ import {
   LogIn,
   LogOut,
   UserPlus,
+  X,
 } from 'lucide-react'
 import '@fontsource-variable/dm-sans'
 import * as A from './design-assets'
@@ -171,6 +172,36 @@ function Pagination({ page, setPage, total }) {
   )
 }
 
+function OverlayPanel({ title, onClose, children, wide = false }) {
+  useEffect(() => {
+    const handleKey = (event) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [onClose])
+
+  return (
+    <div className="overlay-backdrop" onMouseDown={onClose}>
+      <section
+        className={'overlay-panel ' + (wide ? 'wide' : '')}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="overlay-head">
+          <h2>{title}</h2>
+          <button aria-label="Fechar" onClick={onClose}>
+            <X />
+          </button>
+        </div>
+        {children}
+      </section>
+    </div>
+  )
+}
+
 function PageShell({ title, children, onBack, wide = false }) {
   return (
     <section className={'standalone-page ' + (wide ? 'wide-page' : '')}>
@@ -223,20 +254,6 @@ function ComposerPage({ onPublish, notify, categories, navigate }) {
     const el = editor.current
     const selection = description.slice(el.selectionStart, el.selectionEnd)
     insert(mark + (selection || 'texto') + mark)
-  }
-
-  async function socialLogin(provider) {
-    setSocialBusy(provider)
-    setError('')
-    try {
-      await signInWithOAuthProvider(provider)
-    } catch (authError) {
-      setError(
-        authError?.message ||
-          `Não foi possível entrar com ${provider === 'google' ? 'Google' : 'GitHub'}.`
-      )
-      setSocialBusy('')
-    }
   }
 
   async function submit(event) {
@@ -332,6 +349,20 @@ function AuthPage({ mode, navigate, notify }) {
   const [busy, setBusy] = useState(false)
   const [socialBusy, setSocialBusy] = useState('')
   const [error, setError] = useState('')
+
+  async function socialLogin(provider) {
+    setSocialBusy(provider)
+    setError('')
+    try {
+      await signInWithOAuthProvider(provider)
+    } catch (authError) {
+      setError(
+        authError?.message ||
+          `Não foi possível entrar com ${provider === 'google' ? 'Google' : 'GitHub'}.`
+      )
+      setSocialBusy('')
+    }
+  }
 
   async function submit(event) {
     event.preventDefault()
@@ -491,6 +522,7 @@ function App() {
   const [page, setPage] = useState(1)
   const [popularPage, setPopularPage] = useState(1)
   const [toast, setToast] = useState('')
+  const [overlay, setOverlay] = useState(null)
   const [reply, setReply] = useState('')
   const [topics, setTopics] = useState([])
   const [categories, setCategories] = useState([])
@@ -1229,7 +1261,7 @@ function App() {
             Novo Tópico
           </button>
 
-          <button className="search-trigger" onClick={() => navigate('/buscar')}>
+          <button className="search-trigger" onClick={() => setOverlay('search')}>
             <Icon name="search" />
             Buscar
           </button>
@@ -1246,7 +1278,7 @@ function App() {
           <button
             className="notifications"
             aria-label="Últimas publicações"
-            onClick={() => navigate('/notificacoes')}
+            onClick={() => setOverlay('notifications')}
           >
             <Icon name="bell" />
           </button>
@@ -1323,6 +1355,65 @@ function App() {
       )}
 
       {isHome ? renderHome() : renderRoutePage()}
+
+      {overlay === 'search' && (
+        <OverlayPanel title="Buscar no fórum" onClose={() => setOverlay(null)}>
+          <form
+            className="panel-content overlay-search-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              setPage(1)
+              setPopularPage(1)
+              setOverlay(null)
+              navigate('/')
+            }}
+          >
+            <label htmlFor="overlay-search-field">Palavra-chave ou membro</label>
+            <input
+              id="overlay-search-field"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              autoFocus
+              placeholder="O que você procura?"
+            />
+            <button className="action" type="submit">
+              <Icon name="search" />
+              Buscar
+            </button>
+          </form>
+        </OverlayPanel>
+      )}
+
+      {overlay === 'notifications' && (
+        <OverlayPanel
+          title="Últimas publicações"
+          onClose={() => setOverlay(null)}
+          wide
+        >
+          <div className="panel-content notification-list overlay-notifications">
+            {activity.map((item) => {
+              const topic = topics.find((candidate) => candidate.id === item.topicId)
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setOverlay(null)
+                    if (topic) openTopic(topic)
+                  }}
+                >
+                  <Avatar src={item.avatarUrl} small />
+                  <span>
+                    <strong>{item.user} &gt; {item.topicTitle}</strong>
+                    <br />
+                    {item.text}
+                  </span>
+                </button>
+              )
+            })}
+            {!activity.length && <p>Ainda não há publicações recentes.</p>}
+          </div>
+        </OverlayPanel>
+      )}
     </div>
   )
 }
