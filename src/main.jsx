@@ -28,7 +28,7 @@ import logo from '../assets/logo.png'
 import googleIcon from '../assets/google.png'
 import githubIcon from '../assets/github.png'
 import { hasSupabaseConfig, supabase } from './services/supabaseClient'
-import { signIn, signInWithOAuthProvider, signOut, signUp } from './services/authApi'
+import { getAuthErrorMessage, signIn, signInWithOAuthProvider, signOut, signUp } from './services/authApi'
 import { getProfile } from './services/profileApi'
 import {
   createPost,
@@ -403,7 +403,7 @@ function AuthPage({ mode, navigate, notify }) {
         navigate('/')
       }
     } catch (authError) {
-      setError(authError?.message || 'Não foi possível concluir a autenticação.')
+      setError(getAuthErrorMessage(authError))
     } finally {
       setBusy(false)
     }
