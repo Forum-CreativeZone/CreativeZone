@@ -145,3 +145,23 @@
 @media(max-width:760px){
   .site-logo img{width:34px;height:34px;border-radius:7px}
 }
+
+/* Social authentication */
+.social-auth{max-width:580px;margin:20px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 24px}
+.social-auth-button{height:46px;border:1px solid #444;border-radius:6px;background:#171717;display:flex;align-items:center;justify-content:center;gap:9px;font-size:14px;font-weight:600}
+.social-auth-button:hover{background:#222}
+.social-auth-button:disabled{opacity:.55;cursor:default}
+.social-auth-button svg{width:20px;height:20px}
+.google-mark{display:grid;place-items:center;width:21px;height:21px;border-radius:50%;background:#fff;color:#4285f4;font-weight:800;font-family:Arial,sans-serif;font-size:15px}
+.auth-divider{max-width:580px;margin:18px auto 0;padding:0 24px;display:flex;align-items:center;gap:12px;color:#888;font-size:12px}
+.auth-divider:before,.auth-divider:after{content:"";height:1px;background:#333;flex:1}
+.auth-divider span{white-space:nowrap}
+:root[data-theme="light"] .social-auth-button{background:#fff;border-color:#d5d5d5;color:#191919}
+:root[data-theme="light"] .social-auth-button:hover{background:#f4f4f4}
+:root[data-theme="light"] .auth-divider{color:#666}
+:root[data-theme="light"] .auth-divider:before,
+:root[data-theme="light"] .auth-divider:after{background:#ddd}
+@media(max-width:760px){
+  .social-auth{grid-template-columns:1fr;padding:0 18px}
+  .auth-divider{padding:0 18px}
+}
