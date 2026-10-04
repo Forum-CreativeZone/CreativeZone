@@ -1,6 +1,15 @@
-# Fórum Adrenaline — frontend
+# CreativeZone — fórum React + Supabase
 
-Frontend React/Vite baseado no arquivo Figma `dqa1NQghqO58z4rYt79NGE`.
+Frontend React/Vite da comunidade **CreativeZone**, publicado via Cloudflare Workers Static Assets e conectado ao Supabase.
+
+## Stack
+
+- React + Vite
+- Supabase Auth
+- Supabase Postgres + Row Level Security (RLS)
+- Supabase Realtime
+- Cloudflare Workers Static Assets
+- GitHub Actions para validação de build
 
 ## Executar
 
@@ -9,31 +18,46 @@ npm ci
 npm run dev
 ```
 
+Para usar o backend real, configure no ambiente de build:
+
+```text
+VITE_SUPABASE_URL
+VITE_SUPABASE_PUBLISHABLE_KEY
+```
+
+A chave publishable é a recomendada. Por compatibilidade, o projeto também aceita:
+
+```text
+VITE_SUPABASE_ANON_KEY
+```
+
+Essas chaves são de cliente e podem ser expostas no bundle do frontend quando o banco está protegido por RLS. **Nunca coloque service_role ou uma secret key no frontend/Cloudflare Build.**
+
+## Funcionalidades conectadas ao Supabase
+
+- cadastro por e-mail e senha;
+- login, sessão persistente e logout;
+- criação automática de perfil ao cadastrar;
+- membros e perfis públicos;
+- categorias reais;
+- criação de tópicos por usuários autenticados;
+- leitura pública de tópicos;
+- respostas persistidas em `posts`;
+- Realtime para tópicos e respostas;
+- notificações geradas pelo banco quando alguém responde a um tópico;
+- RLS para autoria e edição/exclusão do próprio conteúdo;
+- tema escuro/claro persistente;
+- busca e filtros no frontend;
+- favoritos e rascunho permanecem locais por enquanto.
+
+## Banco
+
+As migrations do projeto Supabase devem ser mantidas em `supabase/migrations/`.
+
 ## Publicar
 
 ```sh
 npm run build
 ```
 
-O diretório `dist/` contém o site de produção. A configuração Cloudflare existente usa esse diretório. Node.js 20.19+ ou 22.12+.
-
-## Referências implementadas
-
-- Início desktop: frame `4:123`, 1440 × 1024.
-- Início mobile: frame `223:737`, 375 × 813.
-- Composição de tópico: frame `82:2376`, adaptado também para celular.
-- Os demais painéis são interações locais de demonstração, não uma reprodução completa de todas as telas do arquivo Figma.
-
-Os PNGs e SVGs em `src/assets/figma/` foram exportados das camadas originais e são importados pelo Vite, incluindo os recortes específicos mobile. A fonte DM Sans também integra o build. Nenhum asset depende de URL temporária do Figma. As exportações anteriores em `assets/` permanecem como referência.
-
-## Teste sem backend
-
-Busca, paginação, filtros de tema, favoritos, rascunhos, criação de tópicos e respostas funcionam no navegador. Tópicos, respostas e favoritos são locais via localStorage; não há autenticação nem compartilhamento entre usuários. A paginação reflete a quantidade real de dados de demonstração, em vez dos números ilustrativos do Figma. Os atalhos de notícias levam ao portal Adrenaline.
-
-## Validação
-
-- Build de produção concluído.
-- Sem erros de JavaScript ou imagens quebradas.
-- Geometria desktop conferida contra o Figma para listas, coluna lateral e notícias.
-- Testes de busca, favoritos, salvar/restaurar rascunho, criar/recarregar tópico, responder e fechar por Escape.
-- Responsividade conferida em 375, 390, 760, 768, 1024 e 1440 px.
+O diretório `dist/` contém o site de produção e é usado pela configuração do Cloudflare.
