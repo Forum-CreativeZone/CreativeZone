@@ -44,6 +44,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
   saveAccountProfile,
+  searchDirectMessages,
   sendDirectMessage,
   toggleFollow,
   toggleIgnore,
@@ -657,6 +658,7 @@ export function MessagesPage({ username, session, members, navigate, notify }) {
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
   const [search, setSearch] = useState('')
+  const [messageSearchResults, setMessageSearchResults] = useState([])
 
   async function loadInbox() {
     if (!userId) return
@@ -674,6 +676,21 @@ export function MessagesPage({ username, session, members, navigate, notify }) {
 
   useEffect(() => { loadInbox() }, [userId])
   useEffect(() => { loadPartner() }, [username, userId])
+
+  useEffect(() => {
+    if (!userId || search.trim().length < 2) {
+      setMessageSearchResults([])
+      return undefined
+    }
+
+    const timer = setTimeout(() => {
+      searchDirectMessages(userId, search)
+        .then(setMessageSearchResults)
+        .catch(() => setMessageSearchResults([]))
+    }, 250)
+
+    return () => clearTimeout(timer)
+  }, [userId, search])
 
   useEffect(() => {
     if (!supabase || !userId) return undefined
@@ -740,6 +757,23 @@ export function MessagesPage({ username, session, members, navigate, notify }) {
           <input className="dm-search" value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Buscar pessoa ou mensagem..." />
           <h3>Conversas</h3>
           {filteredInbox.map((item) => <button className={partner?.id===item.partner?.id?'active':''} key={item.partner?.id} onClick={()=>navigate(`/mensagens/${item.partner?.username}`)}><Avatar profile={item.partner} size={42}/><span><strong>{item.partner?.display_name || item.partner?.username}</strong><small>{item.lastMessage.content.slice(0,50)}</small></span>{item.unread>0&&<b>{item.unread}</b>}</button>)}
+          {messageSearchResults.length > 0 && (
+            <>
+              <h3>Resultados em mensagens</h3>
+              {messageSearchResults.slice(0,20).map((result) => {
+                const other = result.sender_id === userId ? result.recipient : result.sender
+                return (
+                  <button key={result.id} onClick={()=>other?.username && navigate(`/mensagens/${other.username}`)}>
+                    <Avatar profile={other} size={36}/>
+                    <span>
+                      <strong>{other?.display_name || other?.username || 'Membro'}</strong>
+                      <small>{result.content.slice(0,70)}</small>
+                    </span>
+                  </button>
+                )
+              })}
+            </>
+          )}
           <h3>Nova conversa</h3>
           {filteredMembers.filter((m)=>m.id!==userId).slice(0,20).map((member)=><button key={member.id} onClick={()=>navigate(`/mensagens/${member.username}`)}><Avatar profile={member} size={36}/><span><strong>{member.display_name||member.username}</strong><small>@{member.username}</small></span></button>)}
         </aside>
