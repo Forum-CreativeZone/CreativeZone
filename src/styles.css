@@ -189,3 +189,157 @@
   .overlay-panel{width:100%;max-height:86dvh}
   .overlay-head{min-height:52px}
 }
+
+
+/* Community account system */
+.community-page{margin:24px 44px 70px}
+.community-page-card{max-width:1180px;margin:0 auto;background:var(--surface);border-radius:8px;overflow:hidden}
+.community-page-head{padding:18px 24px;border-bottom:1px solid var(--line)}
+.community-page-head button{display:flex;align-items:center;gap:5px;color:#aaa;font-size:13px;margin-bottom:8px}
+.community-page-head button svg{width:16px}
+.community-page-head h1{margin:0;color:var(--red);font-size:26px;font-weight:500}
+.community-empty{padding:24px;color:#aaa}
+.community-avatar{display:block;object-fit:cover;border-radius:8px;flex:none}
+.community-avatar-fallback{display:grid;place-items:center;background:#333;font-weight:700}
+.user-menu-dismiss{position:fixed;inset:0;z-index:79;cursor:default}
+.user-quick-menu{position:absolute;z-index:80;right:22px;top:62px;width:330px;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 18px 50px #0008;overflow:hidden}
+.user-quick-profile{display:flex;gap:12px;padding:16px}
+.user-quick-profile>div{display:grid;align-content:center}
+.user-quick-profile strong{font-size:17px}
+.user-quick-profile span,.user-quick-profile small{font-size:12px;color:#aaa}
+.user-status{margin:0 16px 12px;padding:9px 10px;background:#ffffff08;border-radius:5px;font-size:12px}
+.quick-stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.quick-stats span{padding:10px 5px;text-align:center;font-size:10px;color:#aaa}
+.quick-stats b{display:block;color:inherit;font-size:17px}
+.quick-links{display:grid;padding:7px}
+.quick-links button{display:flex;align-items:center;gap:9px;padding:10px;border-radius:5px;text-align:left;font-size:13px}
+.quick-links button:hover{background:#ffffff0c}
+.quick-links svg{width:17px;height:17px}
+.quick-email{display:block;padding:10px 16px 14px;color:#777;border-top:1px solid var(--line);overflow:hidden;text-overflow:ellipsis}
+.public-profile-hero{display:flex;gap:22px;padding:24px;align-items:flex-start}
+.public-profile-main{flex:1;min-width:0}
+.public-profile-main h2{font-size:28px;margin:0}
+.profile-handle{color:#999;font-size:13px}
+.profile-status{margin-top:8px;font-size:14px}
+.profile-meta{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:16px;color:#aaa;font-size:12px}
+.profile-meta span{display:flex;align-items:center;gap:5px}
+.profile-meta svg{width:15px;height:15px}
+.profile-actions-public{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.action.subtle{border-color:#555}
+.profile-statbar{display:grid;grid-template-columns:repeat(6,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.profile-statbar span{text-align:center;padding:12px 6px;color:#aaa;font-size:11px}
+.profile-statbar b{display:block;font-size:20px;color:inherit}
+.community-tabs{display:flex;gap:3px;padding:12px 18px 0}
+.community-tabs button{padding:10px 13px;border-bottom:2px solid transparent;font-size:13px}
+.community-tabs button.active{color:var(--red);border-color:var(--red)}
+.community-section{padding:20px 24px 28px}
+.activity-feed,.simple-list,.account-list{display:grid;gap:8px}
+.activity-feed button,.simple-list button,.account-list>button:not(.action){text-align:left;padding:12px;background:#ffffff08;border-radius:6px;display:grid;gap:3px}
+.activity-feed span,.simple-list small,.account-list span,.account-list small{color:#aaa;font-size:12px}
+.profile-about{display:grid;gap:10px;line-height:1.6}
+.profile-about h3{color:var(--red);margin-top:10px}
+.interest-chips{display:flex;gap:7px;flex-wrap:wrap}
+.interest-chips span{background:#ffffff0d;border:1px solid #ffffff14;border-radius:20px;padding:5px 9px;font-size:12px}
+.signature-preview,.post-signature{margin-top:12px;padding:10px 12px;border-top:1px solid var(--line);font-size:12px;color:#aaa;font-style:italic}
+.badge-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.badge-grid>div{display:grid;gap:5px;padding:14px;border:1px solid #ffffff14;border-radius:7px}
+.badge-grid>div>span{font-size:28px}
+.badge-grid small{color:#aaa}
+.account-layout{display:grid;grid-template-columns:230px minmax(0,1fr)}
+.account-nav{border-right:1px solid var(--line);padding:12px}
+.account-nav button{width:100%;display:flex;align-items:center;gap:9px;text-align:left;padding:10px;border-radius:5px;font-size:13px}
+.account-nav button.active,.account-nav button:hover{background:#ffffff0d}
+.account-nav svg{width:17px;height:17px}
+.account-content{padding:24px;min-width:0}
+.account-form{display:grid;gap:14px;max-width:760px}
+.account-form label{display:grid;gap:7px;font-size:13px}
+.account-form input:not([type=checkbox]),.account-form select,.account-form textarea{width:100%;background:#393939;color:#fff;border:1px solid transparent;border-radius:6px;padding:11px 13px;outline-color:var(--red)}
+.account-form textarea{min-height:100px;resize:vertical}
+.account-form .inline-check,.option-form>label:not(:has(select)){display:flex;align-items:center;gap:9px}
+.account-form input[type=checkbox]{width:16px;height:16px}
+.avatar-editor{display:flex;align-items:center;gap:16px}
+.profile-required-note{padding:10px 12px;border:1px solid #d58a22;background:#d58a2212;border-radius:6px;color:#ffbf67;font-size:13px}
+.connected-list{display:grid;gap:10px}
+.connected-list>div{display:grid;grid-template-columns:150px 1fr auto;gap:12px;align-items:center;padding:14px;border:1px solid #ffffff14;border-radius:6px}
+.connected-list span{color:#aaa;font-size:13px}
+.account-list h2{color:var(--red);font-size:17px;margin:15px 0 3px}
+.account-list .unread,.personal-notifications .unread{border-left:3px solid var(--red)}
+.account-list .mark-all{justify-self:start;margin-bottom:10px}
+.people-grid{display:grid;gap:9px}
+.people-grid>button,.ignored-person{display:flex;align-items:center;gap:12px;padding:10px;border:1px solid #ffffff12;border-radius:6px;text-align:left}
+.people-grid span{display:grid}
+.people-grid small{color:#aaa}
+.ignored-person{justify-content:space-between}
+.ignored-person>button:first-child{display:flex;gap:12px;align-items:center}
+.thread-engagement,.reply-engagement{display:flex;gap:8px;margin-top:10px}
+.reaction-button{display:inline-flex;align-items:center;gap:5px;border:1px solid #555;border-radius:20px;padding:4px 9px;font-size:12px}
+.reaction-button svg{width:15px;height:15px}
+.reaction-button.active{color:#ff6b6b;border-color:#ff6b6b}
+.reply-author-link{display:flex;align-items:baseline;gap:8px}
+.reply-author-link small{color:#aaa}
+.personal-notifications{padding:12px}
+.personal-notifications>button:not(.mark-all-overlay){width:100%;display:flex;gap:10px;padding:11px;text-align:left;border-bottom:1px solid var(--line)}
+.personal-notifications>button>span{display:grid}
+.personal-notifications small{color:#aaa}
+.mark-all-overlay{margin:3px 6px 10px;font-size:12px;color:#aaa}
+.messages-layout{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:560px}
+.conversation-list{border-right:1px solid var(--line);padding:12px;overflow:auto}
+.conversation-list h3{font-size:12px;color:#aaa;text-transform:uppercase;margin:8px}
+.conversation-list>button{width:100%;display:flex;align-items:center;gap:10px;padding:9px;border-radius:6px;text-align:left}
+.conversation-list>button.active,.conversation-list>button:hover{background:#ffffff0d}
+.conversation-list>button>span{display:grid;min-width:0;flex:1}
+.conversation-list small{color:#aaa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conversation-list b{background:var(--red);border-radius:20px;padding:2px 6px;font-size:10px}
+.conversation-pane{display:flex;flex-direction:column;min-width:0}
+.conversation-pane>header{padding:12px 16px;border-bottom:1px solid var(--line)}
+.conversation-pane>header button{display:flex;align-items:center;gap:10px;text-align:left}
+.conversation-pane>header span{display:grid}
+.conversation-pane>header small{color:#aaa}
+.message-stream{flex:1;padding:18px;overflow:auto;display:flex;flex-direction:column;gap:9px;max-height:500px}
+.message-stream>div{max-width:72%;display:grid;gap:3px}
+.message-stream>div span{padding:9px 12px;border-radius:12px;background:#292929;white-space:pre-wrap}
+.message-stream>div small{color:#777;font-size:10px}
+.message-stream .mine{align-self:flex-end;text-align:right}
+.message-stream .mine span{background:var(--red);color:#fff}
+.message-composer{display:flex;gap:10px;padding:12px;border-top:1px solid var(--line)}
+.message-composer textarea{flex:1;min-height:58px;max-height:140px;background:#393939;color:#fff;border:0;border-radius:6px;padding:10px;resize:vertical}
+:root[data-theme="light"] .community-page-card,
+:root[data-theme="light"] .user-quick-menu{background:#fff}
+:root[data-theme="light"] .account-form input:not([type=checkbox]),
+:root[data-theme="light"] .account-form select,
+:root[data-theme="light"] .account-form textarea,
+:root[data-theme="light"] .message-composer textarea{background:#f0f0f0;color:#191919}
+:root[data-theme="light"] .activity-feed button,
+:root[data-theme="light"] .simple-list button,
+:root[data-theme="light"] .account-list>button:not(.action),
+:root[data-theme="light"] .account-nav button.active,
+:root[data-theme="light"] .account-nav button:hover,
+:root[data-theme="light"] .conversation-list>button.active,
+:root[data-theme="light"] .conversation-list>button:hover{background:#f4f4f4}
+:root[data-density="compact"] .topic{height:78px}
+:root[data-density="compact"] .topic-open{padding-top:4px;padding-bottom:6px}
+:root[data-density="compact"] .community-section,
+:root[data-density="compact"] .account-content{padding-top:14px;padding-bottom:14px}
+
+@media(max-width:760px){
+  .community-page{margin:12px 12px 80px}
+  .community-page-head{padding:14px 16px}
+  .community-page-head h1{font-size:20px}
+  .user-quick-menu{position:fixed;right:10px;left:10px;top:68px;width:auto}
+  .public-profile-hero{display:grid;padding:16px}
+  .public-profile-hero .community-avatar{width:88px!important;height:88px!important}
+  .profile-actions-public{justify-content:flex-start}
+  .profile-statbar{grid-template-columns:repeat(3,1fr)}
+  .community-tabs{overflow:auto;padding-left:10px}
+  .community-section{padding:14px}
+  .badge-grid{grid-template-columns:1fr}
+  .account-layout{display:block}
+  .account-nav{display:flex;overflow:auto;border-right:0;border-bottom:1px solid var(--line);padding:8px}
+  .account-nav button{width:auto;flex:none;white-space:nowrap}
+  .account-content{padding:16px}
+  .connected-list>div{grid-template-columns:1fr}
+  .messages-layout{display:block}
+  .conversation-list{border-right:0;border-bottom:1px solid var(--line);max-height:230px}
+  .message-stream{max-height:42dvh}
+  .message-stream>div{max-width:88%}
+}
