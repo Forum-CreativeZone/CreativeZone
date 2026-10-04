@@ -135,3 +135,13 @@
   .guest-auth .signup-link{padding:4px 5px}
   .rightnav{left:12px;right:12px;justify-content:flex-end;gap:10px}
 }
+
+/* CreativeZone brand assets */
+.forum-home-group{display:flex;align-items:center;gap:10px}
+.site-logo{display:flex!important;align-items:center;justify-content:center;flex:none}
+.site-logo img{width:42px;height:42px;object-fit:contain;border-radius:8px}
+.leftnav .forum-home-group .active{color:#e80000}
+:root[data-theme="light"] .site-logo img{filter:none}
+@media(max-width:760px){
+  .site-logo img{width:34px;height:34px;border-radius:7px}
+}
