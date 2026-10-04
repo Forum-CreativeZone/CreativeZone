@@ -47,7 +47,14 @@ export async function saveAccountProfile(userId, { profile, settings }) {
     .single()
   if (settingsError) throw settingsError
 
-  return { profile: nextProfile, settings: nextSettings }
+  const { data: refreshedProfile, error: refreshError } = await client
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single()
+  if (refreshError) throw refreshError
+
+  return { profile: refreshedProfile, settings: nextSettings }
 }
 
 export async function uploadAvatar(userId, file) {
