@@ -424,3 +424,124 @@ export async function linkIdentity(provider) {
   if (error) throw error
   return data
 }
+
+
+export async function logAccountEvent(eventType, metadata = {}) {
+  const client = requireSupabase()
+  const { error } = await client.rpc('log_account_event', {
+    p_event_type: eventType,
+    p_metadata: metadata,
+  })
+  if (error) throw error
+}
+
+export async function registerLoginDay() {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('register_login_day')
+  if (error) throw error
+  return Array.isArray(data) ? data[0] : data
+}
+
+function getOrCreateDeviceId() {
+  const key = 'creativezone-device-id'
+  let value = localStorage.getItem(key)
+  if (!value) {
+    value = crypto.randomUUID()
+    localStorage.setItem(key, value)
+  }
+  return value
+}
+
+export function getCurrentDeviceId() {
+  try {
+    return getOrCreateDeviceId()
+  } catch {
+    return 'unknown-device'
+  }
+}
+
+function inferDeviceName() {
+  const ua = navigator.userAgent || ''
+  const mobile = /Android|iPhone|iPad|Mobile/i.test(ua)
+  let browser = 'Navegador'
+  if (/Edg\//.test(ua)) browser = 'Edge'
+  else if (/Chrome\//.test(ua) && !/Edg\//.test(ua)) browser = 'Chrome'
+  else if (/Firefox\//.test(ua)) browser = 'Firefox'
+  else if (/Safari\//.test(ua) && !/Chrome\//.test(ua)) browser = 'Safari'
+  return `${browser} · ${mobile ? 'Celular/Tablet' : 'Computador'}`
+}
+
+export async function registerDeviceSession(userId) {
+  const client = requireSupabase()
+  const deviceId = getCurrentDeviceId()
+  const payload = {
+    user_id: userId,
+    device_id: deviceId,
+    device_name: inferDeviceName(),
+    user_agent: navigator.userAgent || '',
+    last_seen_at: new Date().toISOString(),
+    ended_at: null,
+  }
+  const { data, error } = await client
+    .from('device_sessions')
+    .upsert(payload, { onConflict: 'user_id,device_id' })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function getDeviceSessions(userId) {
+  const client = requireSupabase()
+  const { data, error } = await client
+    .from('device_sessions')
+    .select('*')
+    .eq('user_id', userId)
+    .order('last_seen_at', { ascending: false })
+  if (error) throw error
+  return data ?? []
+}
+
+export async function markOtherDeviceSessionsEnded(userId) {
+  const client = requireSupabase()
+  const currentDeviceId = getCurrentDeviceId()
+  const { error } = await client
+    .from('device_sessions')
+    .update({ ended_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .neq('device_id', currentDeviceId)
+    .is('ended_at', null)
+  if (error) throw error
+}
+
+export async function getAccountAuditLog(userId, limit = 100) {
+  const client = requireSupabase()
+  const { data, error } = await client
+    .from('account_audit_log')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return data ?? []
+}
+
+export async function setAccountActive(active) {
+  const client = requireSupabase()
+  const { error } = await client.rpc('set_account_active', { p_active: active })
+  if (error) throw error
+}
+
+export async function deleteMyAccount(confirmation) {
+  const client = requireSupabase()
+  const { data, error } = await client.functions.invoke('delete-account', {
+    body: { confirmation },
+  })
+  if (error) throw error
+  if (data?.error) {
+    const nextError = new Error(data.message || data.error)
+    nextError.code = data.error
+    throw nextError
+  }
+  return data
+}
