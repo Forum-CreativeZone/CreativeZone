@@ -18,6 +18,7 @@ import {
   LogIn,
   LogOut,
   UserPlus,
+  Github,
 } from 'lucide-react'
 import '@fontsource-variable/dm-sans'
 import * as A from './design-assets'
@@ -25,7 +26,7 @@ import banner from '../assets/banner.png'
 import bannerLight from '../assets/bannerB.png'
 import logo from '../assets/logo.png'
 import { hasSupabaseConfig, supabase } from './services/supabaseClient'
-import { signIn, signOut, signUp } from './services/authApi'
+import { signIn, signInWithOAuthProvider, signOut, signUp } from './services/authApi'
 import { getProfile } from './services/profileApi'
 import {
   createPost,
@@ -223,6 +224,20 @@ function ComposerPage({ onPublish, notify, categories, navigate }) {
     insert(mark + (selection || 'texto') + mark)
   }
 
+  async function socialLogin(provider) {
+    setSocialBusy(provider)
+    setError('')
+    try {
+      await signInWithOAuthProvider(provider)
+    } catch (authError) {
+      setError(
+        authError?.message ||
+          `Não foi possível entrar com ${provider === 'google' ? 'Google' : 'GitHub'}.`
+      )
+      setSocialBusy('')
+    }
+  }
+
   async function submit(event) {
     event.preventDefault()
     setPublishing(true)
@@ -314,6 +329,7 @@ function AuthPage({ mode, navigate, notify }) {
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [busy, setBusy] = useState(false)
+  const [socialBusy, setSocialBusy] = useState('')
   const [error, setError] = useState('')
 
   async function submit(event) {
@@ -373,6 +389,28 @@ function AuthPage({ mode, navigate, notify }) {
           <UserPlus /> Criar conta
         </button>
       </div>
+
+      <div className="social-auth">
+        <button
+          className="social-auth-button google-auth"
+          type="button"
+          disabled={Boolean(socialBusy || busy)}
+          onClick={() => socialLogin('google')}
+        >
+          <span className="google-mark" aria-hidden="true">G</span>
+          {socialBusy === 'google' ? 'Conectando...' : 'Continuar com Google'}
+        </button>
+        <button
+          className="social-auth-button github-auth"
+          type="button"
+          disabled={Boolean(socialBusy || busy)}
+          onClick={() => socialLogin('github')}
+        >
+          <Github aria-hidden="true" />
+          {socialBusy === 'github' ? 'Conectando...' : 'Continuar com GitHub'}
+        </button>
+      </div>
+      <div className="auth-divider"><span>ou use e-mail e senha</span></div>
 
       <form className="panel-content auth-form standalone-auth-form" onSubmit={submit}>
         {isSignup && (
