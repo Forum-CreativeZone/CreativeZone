@@ -24,6 +24,8 @@ import * as A from './design-assets'
 import banner from '../assets/banner.png'
 import bannerLight from '../assets/bannerB.png'
 import logo from '../assets/logo.png'
+import googleIcon from '../assets/google.png'
+import githubIcon from '../assets/github.png'
 import { hasSupabaseConfig, supabase } from './services/supabaseClient'
 import { signIn, signInWithOAuthProvider, signOut, signUp } from './services/authApi'
 import { getProfile } from './services/profileApi'
@@ -396,7 +398,7 @@ function AuthPage({ mode, navigate, notify }) {
           disabled={Boolean(socialBusy || busy)}
           onClick={() => socialLogin('google')}
         >
-          <span className="google-mark" aria-hidden="true">G</span>
+          <img className="social-auth-icon" src={googleIcon} alt="" aria-hidden="true" />
           {socialBusy === 'google' ? 'Conectando...' : 'Continuar com Google'}
         </button>
         <button
@@ -405,7 +407,7 @@ function AuthPage({ mode, navigate, notify }) {
           disabled={Boolean(socialBusy || busy)}
           onClick={() => socialLogin('github')}
         >
-          <span className="github-mark" aria-hidden="true">GH</span>
+          <img className="social-auth-icon" src={githubIcon} alt="" aria-hidden="true" />
           {socialBusy === 'github' ? 'Conectando...' : 'Continuar com GitHub'}
         </button>
       </div>
