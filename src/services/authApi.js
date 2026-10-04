@@ -1,7 +1,15 @@
 import { supabase } from './supabaseClient'
 
+function requireSupabase() {
+  if (!supabase) {
+    throw new Error('Supabase não configurado. Defina VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY.')
+  }
+  return supabase
+}
+
 export async function signUp(email, password, profile = {}) {
-  const { data, error } = await supabase.auth.signUp({
+  const client = requireSupabase()
+  const { data, error } = await client.auth.signUp({
     email,
     password,
     options: {
@@ -14,7 +22,8 @@ export async function signUp(email, password, profile = {}) {
 }
 
 export async function signIn(email, password) {
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const client = requireSupabase()
+  const { data, error } = await client.auth.signInWithPassword({
     email,
     password,
   })
@@ -24,11 +33,14 @@ export async function signIn(email, password) {
 }
 
 export async function signOut() {
-  const { error } = await supabase.auth.signOut()
+  const client = requireSupabase()
+  const { error } = await client.auth.signOut()
   if (error) throw error
 }
 
 export async function getSession() {
+  if (!supabase) return null
+
   const { data } = await supabase.auth.getSession()
   return data.session
 }
