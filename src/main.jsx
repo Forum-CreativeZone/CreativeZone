@@ -40,6 +40,15 @@ import {
   getTopics,
 } from './services/forumApi'
 import { useAuth } from './hooks/useAuth'
+import {
+  AccountPage,
+  MessagesPage,
+  NotificationsPanel,
+  PublicProfilePage,
+  ReactionButton,
+  UserQuickMenu,
+} from './CommunityPages'
+import { getBookmarkIds, toggleBookmark, touchLastSeen } from './services/communityApi'
 import './styles.css'
 
 const news = [
@@ -516,13 +525,14 @@ function App() {
     }
   })
   const [path, setPath] = useState(() => window.location.pathname || '/')
-  const [favorites, setFavorites] = useState(() => readLocal('creativezone-favorites', []))
+  const [favorites, setFavorites] = useState([])
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('')
   const [page, setPage] = useState(1)
   const [popularPage, setPopularPage] = useState(1)
   const [toast, setToast] = useState('')
   const [overlay, setOverlay] = useState(null)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [reply, setReply] = useState('')
   const [topics, setTopics] = useState([])
   const [categories, setCategories] = useState([])
@@ -536,6 +546,7 @@ function App() {
   const { session, user, loading: authLoading } = useAuth()
 
   const navigate = useCallback((nextPath) => {
+    setUserMenuOpen(false)
     if (window.location.pathname !== nextPath) {
       window.history.pushState({}, '', nextPath)
     }
@@ -559,8 +570,13 @@ function App() {
   }, [appearance])
 
   useEffect(() => {
-    localStorage.setItem('creativezone-favorites', JSON.stringify(favorites))
-  }, [favorites])
+    if (!user?.id) {
+      setFavorites([])
+      return
+    }
+    getBookmarkIds(user.id).then(setFavorites).catch(() => setFavorites([]))
+    touchLastSeen(user.id).catch(() => {})
+  }, [user?.id])
 
   useEffect(() => {
     if (!toast) return undefined
@@ -603,6 +619,8 @@ function App() {
           locked: topic.locked,
           pinned: topic.pinned,
           authorId: topic.author_id,
+          authorUsername: topic.profiles?.username || '',
+          signature: topic.profiles?.signature || '',
           createdAt: topic.created_at,
         }))
       )
@@ -657,6 +675,12 @@ function App() {
   const topicMatch = path.match(/^\/topico\/([^/]+)$/)
   const routeTopicId = topicMatch ? decodeURIComponent(topicMatch[1]) : null
   const routeTopic = routeTopicId ? topics.find((topic) => topic.id === routeTopicId) : null
+  const memberMatch = path.match(/^\/membro\/([^/]+)$/)
+  const routeMemberUsername = memberMatch ? decodeURIComponent(memberMatch[1]) : null
+  const accountMatch = path.match(/^\/conta(?:\/([^/]+))?$/)
+  const accountSection = accountMatch ? (accountMatch[1] || 'perfil') : null
+  const messagesMatch = path.match(/^\/mensagens(?:\/([^/]+))?$/)
+  const messageUsername = messagesMatch?.[1] ? decodeURIComponent(messagesMatch[1]) : null
 
   useEffect(() => {
     if (!routeTopicId) {
@@ -692,10 +716,20 @@ function App() {
     currentPopularPage * 3
   )
 
-  function favorite(id) {
-    setFavorites((items) =>
-      items.includes(id) ? items.filter((item) => item !== id) : [...items, id]
-    )
+  async function favorite(id) {
+    if (!user?.id) {
+      setToast('Entre para salvar tópicos.')
+      navigate('/entrar')
+      return
+    }
+    try {
+      const saved = await toggleBookmark(user.id, id)
+      setFavorites((items) =>
+        saved ? [...new Set([...items, id])] : items.filter((item) => item !== id)
+      )
+    } catch (error) {
+      setToast(error?.message || 'Não foi possível alterar os favoritos.')
+    }
   }
 
   function reset() {
@@ -813,6 +847,8 @@ function App() {
   const isThemes = path === '/temas'
   const isProfile = path === '/perfil'
   const isAbout = path === '/creativezone'
+  const isAccount = Boolean(accountMatch)
+  const isMessages = Boolean(messagesMatch)
 
   function renderHome() {
     return (
@@ -928,6 +964,44 @@ function App() {
   }
 
   function renderRoutePage() {
+    if (routeMemberUsername) {
+      return (
+        <PublicProfilePage
+          username={routeMemberUsername}
+          session={session}
+          navigate={navigate}
+          notify={setToast}
+        />
+      )
+    }
+
+    if (isAccount || isProfile) {
+      return (
+        <AccountPage
+          section={isProfile ? 'perfil' : accountSection}
+          session={session}
+          profile={profile}
+          setProfile={setProfile}
+          navigate={navigate}
+          notify={setToast}
+          appearance={appearance}
+          setAppearance={setAppearance}
+        />
+      )
+    }
+
+    if (isMessages) {
+      return (
+        <MessagesPage
+          username={messageUsername}
+          session={session}
+          members={members}
+          navigate={navigate}
+          notify={setToast}
+        />
+      )
+    }
+
     if (isLogin) {
       if (session) {
         return (
@@ -1016,13 +1090,20 @@ function App() {
         <PageShell title="Membros" onBack={() => navigate('/')} wide>
           <div className="panel-content members standalone-members">
             {members.map((member) => (
-              <div className="member-row" key={member.id}>
+              <button
+                className="member-row"
+                key={member.id}
+                onClick={() => navigate('/membro/' + encodeURIComponent(member.username))}
+              >
                 <Avatar src={member.avatar_url} />
                 <span>
                   <strong>{member.display_name || member.username || 'Membro'}</strong>
-                  <small>{member.role === 'member' ? 'Membro' : member.role}</small>
+                  <small>
+                    {member.role === 'member' ? 'Membro' : member.role}
+                    {member.occupation ? ' · ' + member.occupation : ''}
+                  </small>
                 </span>
-              </div>
+              </button>
             ))}
             {!members.length && <p>Ainda não há membros cadastrados.</p>}
           </div>
@@ -1150,14 +1231,28 @@ function App() {
             </div>
 
             <p>{routeTopic.description}</p>
+            <div className="thread-engagement">
+              <ReactionButton session={session} topicId={routeTopic.id} notify={setToast} />
+            </div>
+            {routeTopic.signature && <div className="post-signature">{routeTopic.signature}</div>}
 
             <div className="thread-replies">
               {threadReplies.map((post) => (
                 <div key={post.id}>
-                  <strong>
-                    {post.profiles?.display_name || post.profiles?.username || 'Membro'}
-                  </strong>
+                  <button
+                    className="reply-author-link"
+                    onClick={() => post.profiles?.username && navigate('/membro/' + encodeURIComponent(post.profiles.username))}
+                  >
+                    <strong>
+                      {post.profiles?.display_name || post.profiles?.username || 'Membro'}
+                    </strong>
+                    {post.profiles?.occupation && <small>{post.profiles.occupation}</small>}
+                  </button>
                   <p>{post.content}</p>
+                  <div className="reply-engagement">
+                    <ReactionButton session={session} postId={post.id} notify={setToast} />
+                  </div>
+                  {post.profiles?.signature && <div className="post-signature">{post.profiles.signature}</div>}
                 </div>
               ))}
               {!threadReplies.length && (
@@ -1270,7 +1365,8 @@ function App() {
             <button
               className="profile"
               aria-label={profileName}
-              onClick={() => navigate('/perfil')}
+              aria-expanded={userMenuOpen}
+              onClick={() => setUserMenuOpen((value) => !value)}
             >
               <img src={profileImage} alt="" />
               <ChevronDown />
@@ -1283,6 +1379,16 @@ function App() {
           ) : null}
         </nav>
       </header>
+
+      {userMenuOpen && session && profile && (
+        <UserQuickMenu
+          profile={profile}
+          session={session}
+          onClose={() => setUserMenuOpen(false)}
+          navigate={navigate}
+          onSignOut={leaveAccount}
+        />
+      )}
 
       {isHome && (
         <button className="forum-banner" onClick={reset} aria-label="CreativeZone — início">
@@ -1394,32 +1500,40 @@ function App() {
 
       {overlay === 'notifications' && (
         <OverlayPanel
-          title="Últimas publicações"
+          title={session ? 'Notificações' : 'Últimas publicações'}
           onClose={() => setOverlay(null)}
           wide
         >
-          <div className="panel-content notification-list overlay-notifications">
-            {activity.map((item) => {
-              const topic = topics.find((candidate) => candidate.id === item.topicId)
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setOverlay(null)
-                    if (topic) openTopic(topic)
-                  }}
-                >
-                  <Avatar src={item.avatarUrl} small />
-                  <span>
-                    <strong>{item.user} &gt; {item.topicTitle}</strong>
-                    <br />
-                    {item.text}
-                  </span>
-                </button>
-              )
-            })}
-            {!activity.length && <p>Ainda não há publicações recentes.</p>}
-          </div>
+          {session ? (
+            <NotificationsPanel
+              session={session}
+              navigate={navigate}
+              onClose={() => setOverlay(null)}
+            />
+          ) : (
+            <div className="panel-content notification-list overlay-notifications">
+              {activity.map((item) => {
+                const topic = topics.find((candidate) => candidate.id === item.topicId)
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setOverlay(null)
+                      if (topic) openTopic(topic)
+                    }}
+                  >
+                    <Avatar src={item.avatarUrl} small />
+                    <span>
+                      <strong>{item.user} &gt; {item.topicTitle}</strong>
+                      <br />
+                      {item.text}
+                    </span>
+                  </button>
+                )
+              })}
+              {!activity.length && <p>Ainda não há publicações recentes.</p>}
+            </div>
+          )}
         </OverlayPanel>
       )}
     </div>
