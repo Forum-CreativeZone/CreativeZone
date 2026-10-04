@@ -30,6 +30,7 @@ import {
   getBookmarks,
   getConversation,
   getFollowState,
+  getFollowers,
   getFollowing,
   getIgnored,
   getInbox,
@@ -49,6 +50,7 @@ import {
   toggleReaction,
   uploadAvatar,
 } from './services/communityApi'
+import { supabase } from './services/supabaseClient'
 
 function Avatar({ profile, size = 56 }) {
   const name = profile?.display_name || profile?.username || 'Membro'
@@ -317,6 +319,7 @@ const accountSections = [
   ['conteudo','Seu conteúdo', FileText],
   ['favoritos','Favoritos', Bookmark],
   ['reacoes','Reações recebidas', Heart],
+  ['seguidores','Seguidores', Users],
   ['seguindo','Seguindo', Users],
   ['ignorados','Ignorados', UserX],
 ]
@@ -343,6 +346,7 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
       if (section === 'conteudo') setExtra(await getMyContent(userId))
       else if (section === 'favoritos') setExtra(await getBookmarks(userId))
       else if (section === 'reacoes') setExtra(await getReceivedReactions(userId))
+      else if (section === 'seguidores') setExtra(await getFollowers(userId))
       else if (section === 'seguindo') setExtra(await getFollowing(userId))
       else if (section === 'ignorados') setExtra(await getIgnored(userId))
       else if (section === 'notificacoes') setExtra(await getNotifications(userId))
@@ -493,6 +497,7 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
           {section === 'conteudo' && <ContentSection data={extra} navigate={navigate} />}
           {section === 'favoritos' && <BookmarksSection data={extra} navigate={navigate} />}
           {section === 'reacoes' && <ReactionsSection data={extra} navigate={navigate} />}
+          {section === 'seguidores' && <PeopleSection data={extra} navigate={navigate} />}
           {section === 'seguindo' && <PeopleSection data={extra} navigate={navigate} />}
           {section === 'ignorados' && <IgnoredSection data={extra} userId={userId} reload={loadExtra} notify={notify} navigate={navigate} />}
           {section === 'notificacoes' && <AccountNotifications data={extra} reload={loadExtra} userId={userId} navigate={navigate} />}
@@ -540,10 +545,37 @@ function notificationTitle(item) {
 
 export function NotificationsPanel({ session, navigate, onClose }) {
   const [items, setItems] = useState([])
+  const userId = session?.user?.id
+
+  async function refreshNotifications() {
+    if (!userId) return
+    try {
+      setItems(await getNotifications(userId))
+    } catch {
+      setItems([])
+    }
+  }
+
   useEffect(() => {
-    if (!session?.user?.id) return
-    getNotifications(session.user.id).then(setItems).catch(() => setItems([]))
-  }, [session?.user?.id])
+    refreshNotifications()
+  }, [userId])
+
+  useEffect(() => {
+    if (!supabase || !userId) return undefined
+    const channel = supabase
+      .channel('creativezone-personal-notifications-' + userId)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+        refreshNotifications
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [userId])
+
   if (!session) return <p className="community-empty">Entre para ver suas notificações.</p>
   return <div className="overlay-notifications personal-notifications"><button className="mark-all-overlay" onClick={async()=>{await markAllNotificationsRead(session.user.id); setItems(await getNotifications(session.user.id))}}>Marcar todas como lidas</button>{items.map((item)=><button key={item.id} className={item.read?'':'unread'} onClick={async()=>{await markNotificationRead(item.id); onClose(); if(item.data?.topic_id) navigate(`/topico/${item.data.topic_id}`); else if(item.type==='direct_message' && item.actor?.username) navigate(`/mensagens/${item.actor.username}`)}}><Avatar profile={item.actor} size={40}/><span><strong>{notificationTitle(item)}</strong><small>{item.actor?.display_name || item.actor?.username || 'CreativeZone'} · {formatRelative(item.created_at)}</small></span></button>)}{!items.length&&<p className="community-empty">Nenhuma notificação.</p>}</div>
 }
@@ -571,6 +603,30 @@ export function MessagesPage({ username, session, members, navigate, notify }) {
 
   useEffect(() => { loadInbox() }, [userId])
   useEffect(() => { loadPartner() }, [username, userId])
+
+  useEffect(() => {
+    if (!supabase || !userId) return undefined
+    const channel = supabase
+      .channel('creativezone-direct-message-alerts-' + userId)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+        async (payload) => {
+          if (payload.new?.type !== 'direct_message') return
+          await loadInbox()
+          if (partner?.id) {
+            try {
+              setMessages(await getConversation(userId, partner.id))
+            } catch {}
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [userId, partner?.id])
 
   if (!session) return <CommunityShell title="Mensagens" onBack={()=>navigate('/')}><p className="community-empty">Entre para usar mensagens diretas.</p></CommunityShell>
 
