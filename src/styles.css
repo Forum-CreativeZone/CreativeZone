@@ -67,3 +67,64 @@
   .theme-toggle{display:grid!important}
   .members{grid-template-columns:1fr}
 }
+
+/* Dedicated page navigation: no forum screen uses modal/dialog overlays. */
+.standalone-page{margin:24px 44px 48px;min-height:520px}
+.standalone-page.wide-page .page-card{max-width:1180px}
+.page-card{max-width:760px;margin:0 auto;background:var(--surface);border-radius:8px;overflow:hidden}
+.page-titlebar{min-height:82px;border-bottom:1px solid var(--line);padding:16px 24px;display:flex;align-items:center}
+.page-titlebar>div{display:grid;gap:8px}
+.page-titlebar h1{margin:0;color:var(--red);font-size:24px;line-height:30px}
+.page-back{display:inline-flex;align-items:center;gap:4px;width:max-content;font-size:13px;color:#aaa}
+.page-back svg{width:15px;height:15px}
+.guest-auth{display:flex;align-items:center;gap:12px}
+.guest-auth button{display:flex;align-items:center;gap:5px;font-size:14px!important}
+.guest-auth svg{width:17px;height:17px}
+.guest-auth .signup-link{border:1px solid var(--red);border-radius:4px;padding:5px 8px}
+.guest-welcome{margin:16px 44px 0;background:var(--surface);border:1px solid #303030;border-radius:8px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.guest-welcome>div:first-child{display:grid;gap:3px}
+.guest-welcome strong{font-size:15px}
+.guest-welcome span{font-size:12px;color:#aaa}
+.guest-welcome-actions,.route-actions{display:flex;gap:9px;flex-wrap:wrap}
+.primary-action{background:var(--red);color:#fff}
+.standalone-auth-form{max-width:580px;margin:0 auto}
+.page-auth-tabs{max-width:580px;margin:20px auto 0;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.standalone-form{max-width:650px;margin:0 auto}
+.standalone-members{grid-template-columns:repeat(2,minmax(0,1fr))}
+.standalone-notifications{max-width:900px;margin:0 auto}
+.standalone-notifications button{padding:12px;border-bottom:1px solid var(--line)}
+.standalone-notifications button:last-of-type{border-bottom:0}
+.standalone-themes{max-width:760px;margin:0 auto}
+.standalone-thread{max-width:1000px;margin:0 auto}
+.standalone-composer{max-width:1000px;margin:0 auto}
+.standalone-composer>label{display:block;margin:18px 0 8px}
+.standalone-composer>label:first-child{margin-top:0}
+.guest-page{display:grid;gap:18px}
+.reply-login-box{margin-top:24px;padding:18px;border:1px solid var(--line);border-radius:6px;display:grid;gap:12px}
+.about-page{display:grid;gap:14px;line-height:1.6}
+.profile-page-head{align-items:center}
+.toast{position:static;left:auto;bottom:auto;transform:none;margin:12px 44px 0;max-width:none;pointer-events:auto}
+:root[data-theme="light"] .page-card,
+:root[data-theme="light"] .guest-welcome{box-shadow:0 1px 0 #ddd}
+:root[data-theme="light"] .guest-welcome{border-color:#ddd}
+:root[data-theme="light"] .guest-welcome span,
+:root[data-theme="light"] .page-back{color:#666}
+@media(max-width:1100px){
+  .rightnav{gap:18px}
+  .guest-auth{gap:7px}
+  .guest-auth .signup-link{padding:4px 6px}
+}
+@media(max-width:760px){
+  .standalone-page{margin:14px 15px 88px}
+  .page-titlebar{padding:14px 18px;min-height:72px}
+  .page-titlebar h1{font-size:20px;line-height:25px}
+  .page-card{border-radius:6px}
+  .guest-welcome{margin:10px 18px 0;display:grid}
+  .guest-welcome-actions{width:100%}
+  .guest-welcome-actions .action{flex:1;justify-content:center}
+  .toast{margin:8px 18px 0}
+  .standalone-members{grid-template-columns:1fr}
+  .guest-auth{position:fixed;left:18px;right:18px;bottom:54px;z-index:9;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px;justify-content:center}
+  .guest-auth button{flex:1;justify-content:center}
+  .rightnav{right:17px}
+}
