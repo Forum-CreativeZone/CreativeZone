@@ -102,8 +102,50 @@ export async function signIn(email, password) {
 
 export async function signOut() {
   const client = requireSupabase()
-  const { error } = await client.auth.signOut()
+  const { error } = await client.auth.signOut({ scope: 'local' })
   if (error) throw error
+}
+
+export async function signOutOtherSessions() {
+  const client = requireSupabase()
+  const { error } = await client.auth.signOut({ scope: 'others' })
+  if (error) throw error
+}
+
+export async function requestReauthentication() {
+  const client = requireSupabase()
+  const { error } = await client.auth.reauthenticate()
+  if (error) throw error
+}
+
+export async function updateAccountEmail(email, nonce) {
+  const client = requireSupabase()
+  const { data, error } = await client.auth.updateUser({
+    email,
+    ...(nonce ? { nonce } : {}),
+  })
+  if (error) throw error
+  return data
+}
+
+export async function updateAccountPassword(password, nonce) {
+  const client = requireSupabase()
+  const passwordCheck = await checkLeakedPassword(password)
+
+  if (passwordCheck.leaked) {
+    const error = new Error(
+      'Esta senha foi bloqueada porque já apareceu em vazamentos de dados conhecidos. Escolha uma senha nova, exclusiva e que você não use em outros sites.'
+    )
+    error.code = 'creativezone_leaked_password'
+    throw error
+  }
+
+  const { data, error } = await client.auth.updateUser({
+    password,
+    ...(nonce ? { nonce } : {}),
+  })
+  if (error) throw error
+  return data
 }
 
 export async function getSession() {
