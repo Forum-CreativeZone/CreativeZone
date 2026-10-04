@@ -1339,6 +1339,31 @@ function App() {
 
       {isHome ? renderHome() : renderRoutePage()}
 
+      <nav className="bottomnav" aria-label="Navegação mobile">
+        <button aria-label="Início" onClick={reset}>
+          <Icon name="home" />
+        </button>
+        <button aria-label="Buscar" onClick={() => setOverlay('search')}>
+          <Icon name="mobilesearch" />
+        </button>
+        <button
+          className="add-topic"
+          aria-label="Novo tópico"
+          onClick={() => requireAuth('/novo-topico')}
+        >
+          <Icon name="add" />
+        </button>
+        <button aria-label="Membros" onClick={() => navigate('/membros')}>
+          <Icon name="mobilemembers" />
+        </button>
+        <button
+          aria-label="Últimas publicações"
+          onClick={() => setOverlay('notifications')}
+        >
+          <Icon name="feed" />
+        </button>
+      </nav>
+
       {overlay === 'search' && (
         <OverlayPanel title="Buscar no fórum" onClose={() => setOverlay(null)}>
           <form
