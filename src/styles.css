@@ -128,3 +128,10 @@
   .guest-auth button{flex:1;justify-content:center}
   .rightnav{right:17px}
 }
+
+@media(max-width:760px){
+  .guest-auth{position:static;left:auto;right:auto;bottom:auto;z-index:auto;background:transparent;border:0;border-radius:0;padding:0;gap:6px;justify-content:flex-end}
+  .guest-auth button{flex:0 0 auto;font-size:12px!important;padding:4px 5px}
+  .guest-auth .signup-link{padding:4px 5px}
+  .rightnav{left:12px;right:12px;justify-content:flex-end;gap:10px}
+}
