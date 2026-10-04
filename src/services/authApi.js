@@ -92,3 +92,41 @@ export async function signInWithOAuthProvider(provider) {
   if (error) throw error
   return data
 }
+
+
+export function getAuthErrorMessage(error) {
+  if (!error) return 'Não foi possível concluir a autenticação.'
+
+  if (error.code === 'weak_password' || error.name === 'AuthWeakPasswordError') {
+    const reasons = Array.isArray(error.reasons) ? error.reasons.map(String) : []
+    const reasonText = [
+      ...reasons,
+      error.message || '',
+    ].join(' ').toLowerCase()
+
+    const leaked =
+      reasonText.includes('pwned') ||
+      reasonText.includes('leak') ||
+      reasonText.includes('compromis')
+
+    if (leaked) {
+      return 'Esta senha foi bloqueada porque já apareceu em vazamentos de dados conhecidos. Escolha uma senha nova, exclusiva e que você não use em outros sites.'
+    }
+
+    return 'Esta senha foi bloqueada por não atender aos critérios de segurança. Escolha uma senha mais forte e exclusiva.'
+  }
+
+  if (error.code === 'invalid_credentials') {
+    return 'E-mail ou senha inválidos.'
+  }
+
+  if (error.code === 'email_not_confirmed') {
+    return 'Este e-mail ainda não está confirmado.'
+  }
+
+  if (error.code === 'over_request_rate_limit') {
+    return 'Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.'
+  }
+
+  return error.message || 'Não foi possível concluir a autenticação.'
+}
