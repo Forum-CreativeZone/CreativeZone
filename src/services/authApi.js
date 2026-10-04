@@ -46,8 +46,39 @@ export async function getSession() {
 }
 
 
+async function getExternalProviders() {
+  const url = import.meta.env.VITE_SUPABASE_URL
+  const key =
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    import.meta.env.VITE_SUPABASE_ANON_KEY
+
+  if (!url || !key) return {}
+
+  const response = await fetch(`${url}/auth/v1/settings`, {
+    headers: {
+      apikey: key,
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error('Não foi possível verificar os provedores de login do Supabase.')
+  }
+
+  const settings = await response.json()
+  return settings.external || {}
+}
+
 export async function signInWithOAuthProvider(provider) {
   const client = requireSupabase()
+  const label = provider === 'google' ? 'Google' : 'GitHub'
+  const providers = await getExternalProviders()
+
+  if (!providers[provider]) {
+    throw new Error(
+      `Login com ${label} ainda não está habilitado no Supabase. Ative o provedor em Authentication > Providers.`
+    )
+  }
+
   const redirectTo =
     typeof window !== 'undefined' ? `${window.location.origin}/` : undefined
 
