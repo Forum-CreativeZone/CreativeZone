@@ -29,7 +29,6 @@ export async function saveAccountProfile(userId, { profile, settings }) {
     public_birth_day: showDay && birth ? birth.getUTCDate() : null,
     public_birth_month: showDay && birth ? birth.getUTCMonth() + 1 : null,
     public_birth_year: showYear && birth ? birth.getUTCFullYear() : null,
-    profile_completed: Boolean(settings.birth_date && profile.occupation?.trim()),
   }
 
   const { data: nextProfile, error: profileError } = await client
