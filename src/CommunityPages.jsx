@@ -51,6 +51,12 @@ import {
   uploadAvatar,
 } from './services/communityApi'
 import { supabase } from './services/supabaseClient'
+import {
+  AccountUpdatesSection,
+  AppearanceSection,
+  NotificationPreferencesSection,
+  SecuritySection,
+} from './AdvancedAccountSections'
 
 function Avatar({ profile, size = 56 }) {
   const name = profile?.display_name || profile?.username || 'Membro'
@@ -243,6 +249,7 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
             {profile.occupation && <span><Briefcase /> {profile.occupation}</span>}
             {profile.location && <span><MapPin /> {profile.location}</span>}
             {birthParts.length > 0 && <span><Calendar /> {birthParts.join('/')}</span>}
+            {profile.login_streak > 0 && <span>🔥 Sequência de {profile.login_streak} dia{profile.login_streak === 1 ? '' : 's'}</span>}
           </div>
         </div>
         {!isSelf && currentId && (
@@ -296,6 +303,17 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
             <p>{profile.bio || 'Este membro ainda não escreveu uma apresentação.'}</p>
             <h3>Áreas de interesse</h3>
             <div className="interest-chips">{(profile.interests ?? []).map((interest) => <span key={interest}>{interest}</span>)}</div>
+            {(profile.website_url || profile.github_url || profile.linkedin_url || profile.discord_handle) && (
+              <>
+                <h3>Links e redes</h3>
+                <div className="public-links">
+                  {profile.website_url && <a href={profile.website_url} target="_blank" rel="noreferrer">Website</a>}
+                  {profile.github_url && <a href={profile.github_url} target="_blank" rel="noreferrer">GitHub</a>}
+                  {profile.linkedin_url && <a href={profile.linkedin_url} target="_blank" rel="noreferrer">LinkedIn</a>}
+                  {profile.discord_handle && <span>Discord: {profile.discord_handle}</span>}
+                </div>
+              </>
+            )}
             {profile.signature && <><h3>Assinatura</h3><div className="signature-preview">{profile.signature}</div></>}
           </div>
         )}
@@ -312,10 +330,14 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
 
 const accountSections = [
   ['perfil','Detalhes da conta', User],
+  ['seguranca','Senha e segurança', Shield],
   ['privacidade','Privacidade', Shield],
-  ['preferencias','Preferências', Palette],
+  ['aparencia','Aparência', Palette],
+  ['preferencias','Preferências', Settings],
   ['conectadas','Contas conectadas', Link2],
+  ['alertas','Alertas e e-mails', Bell],
   ['notificacoes','Notificações', Bell],
+  ['atualizacoes','Atualizações da conta', FileText],
   ['conteudo','Seu conteúdo', FileText],
   ['favoritos','Favoritos', Bookmark],
   ['reacoes','Reações recebidas', Heart],
@@ -387,6 +409,10 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
         show_followers: Boolean(draft.show_followers),
         allow_dm: draft.allow_dm || 'members',
         profile_visibility: draft.profile_visibility || 'public',
+        website_url: draft.website_url?.trim() || null,
+        github_url: draft.github_url?.trim() || null,
+        linkedin_url: draft.linkedin_url?.trim() || null,
+        discord_handle: draft.discord_handle?.trim() || null,
       }
       const result = await saveAccountProfile(userId, {
         profile: payload,
@@ -447,10 +473,24 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
               </div>
               <label>Nome de usuário *<input required minLength={3} maxLength={30} value={draft.username || ''} onChange={(e) => setProfileField('username', e.target.value)} /></label>
               <label>Nome exibido<input maxLength={60} value={draft.display_name || ''} onChange={(e) => setProfileField('display_name', e.target.value)} /></label>
-              <label>Data de nascimento *<input required type="date" value={settings.birth_date || ''} onChange={(e) => setSetting('birth_date', e.target.value)} /></label>
+              <label>
+                Data de nascimento *
+                <input
+                  required
+                  type="date"
+                  value={settings.birth_date || ''}
+                  disabled={Boolean(settings.birth_date)}
+                  onChange={(e) => setSetting('birth_date', e.target.value)}
+                />
+                {settings.birth_date && <small className="field-help">A data de nascimento já foi definida e não pode mais ser alterada. Em caso de erro, fale com a administração.</small>}
+              </label>
               <label>Localização (opcional)<input maxLength={100} value={settings.location_private || ''} onChange={(e) => setSetting('location_private', e.target.value)} placeholder="Cidade, estado ou país" /></label>
               <label>Ocupação *<input required maxLength={100} value={draft.occupation || ''} onChange={(e) => setProfileField('occupation', e.target.value)} placeholder="Ex.: Desenvolvedor, Designer, Estudante" /></label>
               <label>Áreas de interesse<input value={(draft.interests || []).join(', ')} onChange={(e) => setProfileField('interests', e.target.value.split(',').map((v) => v.trim()).filter(Boolean).slice(0,20))} placeholder="IA, programação, hardware, games..." /></label>
+              <label>Site / Portfólio<input type="url" maxLength={250} value={draft.website_url || ''} onChange={(e) => setProfileField('website_url', e.target.value)} placeholder="https://seusite.com" /></label>
+              <label>GitHub público<input type="url" maxLength={250} value={draft.github_url || ''} onChange={(e) => setProfileField('github_url', e.target.value)} placeholder="https://github.com/usuario" /></label>
+              <label>LinkedIn<input type="url" maxLength={250} value={draft.linkedin_url || ''} onChange={(e) => setProfileField('linkedin_url', e.target.value)} placeholder="https://linkedin.com/in/usuario" /></label>
+              <label>Discord<input maxLength={100} value={draft.discord_handle || ''} onChange={(e) => setProfileField('discord_handle', e.target.value)} placeholder="@usuario" /></label>
               <label>Status<input maxLength={120} value={draft.status_message || ''} onChange={(e) => setProfileField('status_message', e.target.value)} placeholder="Uma frase curta sobre você" /></label>
               <label>Sobre você<textarea maxLength={1200} value={draft.bio || ''} onChange={(e) => setProfileField('bio', e.target.value)} /></label>
               <label>Assinatura do fórum<textarea maxLength={500} value={draft.signature || ''} onChange={(e) => setProfileField('signature', e.target.value)} placeholder="Aparecerá abaixo das suas respostas." /></label>
@@ -473,15 +513,44 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
             </form>
           )}
 
+          {section === 'seguranca' && (
+            <SecuritySection
+              session={session}
+              profile={draft}
+              setProfile={setProfile}
+              navigate={navigate}
+              notify={notify}
+            />
+          )}
+
+          {section === 'aparencia' && (
+            <AppearanceSection
+              userId={userId}
+              settings={settings}
+              setSettings={setSettings}
+              setAppearance={setAppearance}
+              notify={notify}
+            />
+          )}
+
           {section === 'preferencias' && (
             <form className="account-form" onSubmit={save}>
-              <label>Tema<select value={settings.theme} onChange={(e) => setSetting('theme', e.target.value)}><option value="dark">Escuro</option><option value="light">Claro</option><option value="system">Sistema</option></select></label>
-              <label>Idioma<select value={settings.language} onChange={(e) => setSetting('language', e.target.value)}><option value="pt-BR">Português (Brasil)</option><option value="en-US">English (preferência salva; interface PT-BR por enquanto)</option></select></label>
-              <label>Densidade<select value={settings.density} onChange={(e) => setSetting('density', e.target.value)}><option value="comfortable">Confortável</option><option value="compact">Compacta</option></select></label>
               <label>Filtro de conteúdo<select value={settings.content_filter} onChange={(e) => setSetting('content_filter', e.target.value)}><option value="standard">Padrão</option><option value="strict">Mais restrito</option></select></label>
-              <label className="inline-check"><input type="checkbox" checked={settings.email_updates} onChange={(e) => setSetting('email_updates', e.target.checked)} /> Quero receber atualizações por e-mail quando esse recurso estiver habilitado.</label>
               <button className="action primary-action" disabled={busy}><Save /> Salvar preferências</button>
             </form>
+          )}
+
+          {section === 'alertas' && (
+            <NotificationPreferencesSection
+              userId={userId}
+              settings={settings}
+              setSettings={setSettings}
+              notify={notify}
+            />
+          )}
+
+          {section === 'atualizacoes' && (
+            <AccountUpdatesSection userId={userId} />
           )}
 
           {section === 'conectadas' && (
@@ -536,6 +605,7 @@ function notificationTitle(item) {
   return {
     new_reply: 'Nova resposta no seu tópico',
     mention: 'Você foi mencionado',
+    quote: 'Sua publicação foi citada',
     reaction: 'Você recebeu uma reação',
     new_follower: 'Novo seguidor',
     direct_message: 'Nova mensagem direta',
@@ -586,6 +656,7 @@ export function MessagesPage({ username, session, members, navigate, notify }) {
   const [partner, setPartner] = useState(null)
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
+  const [search, setSearch] = useState('')
 
   async function loadInbox() {
     if (!userId) return
@@ -641,19 +712,41 @@ export function MessagesPage({ username, session, members, navigate, notify }) {
     } catch (error) { notify(error?.message || 'Não foi possível enviar a mensagem.') }
   }
 
+  const normalizedSearch = search.trim().toLowerCase()
+  const filteredInbox = normalizedSearch
+    ? inbox.filter((item) =>
+        ((item.partner?.display_name || '') + ' ' +
+          (item.partner?.username || '') + ' ' +
+          (item.lastMessage?.content || ''))
+          .toLowerCase()
+          .includes(normalizedSearch)
+      )
+    : inbox
+  const filteredMembers = normalizedSearch
+    ? (members || []).filter((member) =>
+        ((member.display_name || '') + ' ' + (member.username || ''))
+          .toLowerCase()
+          .includes(normalizedSearch)
+      )
+    : (members || [])
+  const filteredMessages = normalizedSearch
+    ? messages.filter((message) => message.content.toLowerCase().includes(normalizedSearch))
+    : messages
+
   return (
     <CommunityShell title="Mensagens diretas" onBack={()=>navigate('/')}>
       <div className="messages-layout">
         <aside className="conversation-list">
+          <input className="dm-search" value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Buscar pessoa ou mensagem..." />
           <h3>Conversas</h3>
-          {inbox.map((item) => <button className={partner?.id===item.partner?.id?'active':''} key={item.partner?.id} onClick={()=>navigate(`/mensagens/${item.partner?.username}`)}><Avatar profile={item.partner} size={42}/><span><strong>{item.partner?.display_name || item.partner?.username}</strong><small>{item.lastMessage.content.slice(0,50)}</small></span>{item.unread>0&&<b>{item.unread}</b>}</button>)}
+          {filteredInbox.map((item) => <button className={partner?.id===item.partner?.id?'active':''} key={item.partner?.id} onClick={()=>navigate(`/mensagens/${item.partner?.username}`)}><Avatar profile={item.partner} size={42}/><span><strong>{item.partner?.display_name || item.partner?.username}</strong><small>{item.lastMessage.content.slice(0,50)}</small></span>{item.unread>0&&<b>{item.unread}</b>}</button>)}
           <h3>Nova conversa</h3>
-          {(members||[]).filter((m)=>m.id!==userId).slice(0,20).map((member)=><button key={member.id} onClick={()=>navigate(`/mensagens/${member.username}`)}><Avatar profile={member} size={36}/><span><strong>{member.display_name||member.username}</strong><small>@{member.username}</small></span></button>)}
+          {filteredMembers.filter((m)=>m.id!==userId).slice(0,20).map((member)=><button key={member.id} onClick={()=>navigate(`/mensagens/${member.username}`)}><Avatar profile={member} size={36}/><span><strong>{member.display_name||member.username}</strong><small>@{member.username}</small></span></button>)}
         </aside>
         <section className="conversation-pane">
           {!partner ? <p className="community-empty">Escolha um membro para iniciar uma conversa.</p> : <>
             <header><button onClick={()=>navigate(`/membro/${partner.username}`)}><Avatar profile={partner} size={44}/><span><strong>{partner.display_name||partner.username}</strong><small>@{partner.username}</small></span></button></header>
-            <div className="message-stream">{messages.map((message)=><div key={message.id} className={message.sender_id===userId?'mine':'theirs'}><span>{message.content}</span><small>{formatRelative(message.created_at)}</small></div>)}</div>
+            <div className="message-stream">{filteredMessages.map((message)=><div key={message.id} className={message.sender_id===userId?'mine':'theirs'}><span>{message.content}</span><small>{formatRelative(message.created_at)}</small></div>)}</div>
             <form className="message-composer" onSubmit={send}><textarea required maxLength={5000} value={text} onChange={(e)=>setText(e.target.value)} placeholder="Escreva uma mensagem..."/><button className="action primary-action"><Send/>Enviar</button></form>
           </>}
         </section>
