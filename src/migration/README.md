@@ -2,25 +2,32 @@
 
 ## Completed
 
-- Supabase services created
-- Auth service created
-- Forum API created
-- Media upload service created
-- Realtime hook created
-- React components separated from the original prototype
+- Supabase Auth integrado à interface publicada
+- Sessão persistente e listener de mudanças de autenticação
+- Profiles reais vinculados a `auth.users`
+- Categories reais
+- Topics reais
+- Posts/respostas reais
+- RLS para leitura pública e autoria de tópicos/respostas
+- Edição e exclusão do próprio conteúdo permitidas por RLS
+- Realtime para topics/posts
+- Listagem real de membros e últimas respostas
+- Dados mock removidos do feed principal
+- Persistência de tópicos/respostas deixou de usar localStorage
 
-## Current migration
+## Ainda local
 
-The original `main.jsx` still contains prototype state and mock data. The next refactor replaces:
+- favoritos/salvos
+- rascunho de composição
+- preferência de tema claro/escuro
 
-- `initialTopics`
-- `mobilePopular`
-- localStorage persistence
-- local reply state
+## Próximas etapas
 
-with:
-
-- `useForumData`
-- `useAuth`
-- `useForumRealtime`
-- Supabase topics/posts/profiles
+- UI de edição/exclusão de tópico e resposta
+- bookmarks persistidos no Supabase
+- reações persistidas
+- notificações pessoais com contador e marcar como lida
+- upload de avatar e mídia associado a tópicos/respostas
+- moderação e denúncias
+- URLs/rotas próprias para tópicos, categorias e perfis
+- testes automatizados
