@@ -576,3 +576,21 @@ export async function updateAccountSettings(userId, payload) {
   if (error) throw error
   return data
 }
+
+
+export async function searchDirectMessages(userId, term, limit = 100) {
+  const client = requireSupabase()
+  const clean = String(term || '').trim()
+  if (clean.length < 2) return []
+
+  const { data, error } = await client
+    .from('direct_messages')
+    .select('id,sender_id,recipient_id,content,created_at,sender:profiles!direct_messages_sender_id_fkey(id,username,display_name,avatar_url),recipient:profiles!direct_messages_recipient_id_fkey(id,username,display_name,avatar_url)')
+    .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
+    .ilike('content', `%${clean}%`)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw error
+  return data ?? []
+}
