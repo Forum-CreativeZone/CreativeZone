@@ -212,7 +212,7 @@ export async function getIgnored(userId) {
   const client = requireSupabase()
   const { data, error } = await client
     .from('ignores')
-    .select('created_at,profile:profiles!ignores_ignored_id_fkey(*)')
+    .select('ignored_id,created_at,profile:profiles!ignores_ignored_id_fkey(*)')
     .eq('blocker_id', userId)
     .order('created_at', { ascending: false })
   if (error) throw error
