@@ -7,8 +7,76 @@ function requireSupabase() {
   return supabase
 }
 
+async function sha1Hex(value) {
+  if (!globalThis.crypto?.subtle) {
+    throw new Error('Seu navegador não oferece suporte à verificação segura de senha.')
+  }
+
+  const bytes = new TextEncoder().encode(value)
+  const digest = await crypto.subtle.digest('SHA-1', bytes)
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase()
+}
+
+export async function checkLeakedPassword(password) {
+  const hash = await sha1Hex(password)
+  const prefix = hash.slice(0, 5)
+  const suffix = hash.slice(5)
+
+  let response
+  try {
+    response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+      headers: {
+        'Add-Padding': 'true',
+      },
+    })
+  } catch {
+    throw new Error(
+      'Não foi possível verificar a segurança da senha agora. Tente novamente em instantes.'
+    )
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      'Não foi possível verificar a segurança da senha agora. Tente novamente em instantes.'
+    )
+  }
+
+  const body = await response.text()
+  const match = body
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [candidateSuffix, count] = line.split(':')
+      return {
+        suffix: candidateSuffix?.trim().toUpperCase(),
+        count: Number(count || 0),
+      }
+    })
+    .find((entry) => entry.suffix === suffix && entry.count > 0)
+
+  return {
+    leaked: Boolean(match),
+    count: match?.count || 0,
+  }
+}
+
 export async function signUp(email, password, profile = {}) {
   const client = requireSupabase()
+  const passwordCheck = await checkLeakedPassword(password)
+
+  if (passwordCheck.leaked) {
+    const error = new Error(
+      'Esta senha foi bloqueada porque já apareceu em vazamentos de dados conhecidos. Escolha uma senha nova, exclusiva e que você não use em outros sites.'
+    )
+    error.code = 'creativezone_leaked_password'
+    error.exposureCount = passwordCheck.count
+    throw error
+  }
+
   const { data, error } = await client.auth.signUp({
     email,
     password,
@@ -96,6 +164,10 @@ export async function signInWithOAuthProvider(provider) {
 
 export function getAuthErrorMessage(error) {
   if (!error) return 'Não foi possível concluir a autenticação.'
+
+  if (error.code === 'creativezone_leaked_password') {
+    return 'Esta senha foi bloqueada porque já apareceu em vazamentos de dados conhecidos. Escolha uma senha nova, exclusiva e que você não use em outros sites.'
+  }
 
   if (error.code === 'weak_password' || error.name === 'AuthWeakPasswordError') {
     const reasons = Array.isArray(error.reasons) ? error.reasons.map(String) : []
