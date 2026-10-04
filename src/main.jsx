@@ -18,6 +18,7 @@ import {
   LogIn,
   LogOut,
   UserPlus,
+  Quote,
   X,
 } from 'lucide-react'
 import '@fontsource-variable/dm-sans'
@@ -48,7 +49,15 @@ import {
   ReactionButton,
   UserQuickMenu,
 } from './CommunityPages'
-import { getAccountSettings, getBookmarkIds, getIgnored, toggleBookmark, touchLastSeen } from './services/communityApi'
+import {
+  getAccountSettings,
+  getBookmarkIds,
+  getIgnored,
+  registerDeviceSession,
+  registerLoginDay,
+  toggleBookmark,
+  touchLastSeen,
+} from './services/communityApi'
 import './styles.css'
 
 const news = [
@@ -101,6 +110,42 @@ function Avatar({ name, mobileName, src, status, mobileStatus, small = false }) 
       {status && <i />}
     </span>
   )
+}
+
+function ForumText({ content = '' }) {
+  const parts = []
+  const regex = /\[quote=@([^\]]+)\]([\s\S]*?)\[\/quote\]/g
+  let lastIndex = 0
+  let match
+  let index = 0
+
+  while ((match = regex.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(
+        <span className="forum-text-plain" key={'text-' + index++}>
+          {content.slice(lastIndex, match.index)}
+        </span>
+      )
+    }
+
+    parts.push(
+      <blockquote className="forum-quote" key={'quote-' + index++}>
+        <strong>@{match[1]} escreveu:</strong>
+        <span>{match[2].trim()}</span>
+      </blockquote>
+    )
+    lastIndex = regex.lastIndex
+  }
+
+  if (lastIndex < content.length) {
+    parts.push(
+      <span className="forum-text-plain" key={'text-' + index++}>
+        {content.slice(lastIndex)}
+      </span>
+    )
+  }
+
+  return <div className="forum-rendered-text">{parts.length ? parts : content}</div>
 }
 
 function Topic({ topic, onOpen, onFavorite, favorites, onMenu }) {
@@ -690,14 +735,34 @@ function App() {
         document.documentElement.dataset.density = settings.density || 'comfortable'
       })
       .catch(() => {})
+
+    registerLoginDay().catch(() => {})
+    registerDeviceSession(user.id).catch(() => {})
   }, [user?.id])
 
   useEffect(() => {
-    if (authLoading || !session?.user || !profile || profile.profile_completed) return
+    if (authLoading || !session?.user || !profile) return
+
+    if (profile.account_status === 'deactivated') {
+      if (path !== '/conta/seguranca') {
+        setToast('Sua conta está desativada. Reative-a para voltar a usar a CreativeZone.')
+        navigate('/conta/seguranca')
+      }
+      return
+    }
+
+    if (profile.profile_completed) return
     if (path === '/conta/perfil' || path === '/perfil') return
     setToast('Complete os campos obrigatórios do seu perfil para continuar.')
     navigate('/conta/perfil')
-  }, [authLoading, session?.user?.id, profile?.profile_completed, path, navigate])
+  }, [
+    authLoading,
+    session?.user?.id,
+    profile?.profile_completed,
+    profile?.account_status,
+    path,
+    navigate,
+  ])
 
   const topicMatch = path.match(/^\/topico\/([^/]+)$/)
   const routeTopicId = topicMatch ? decodeURIComponent(topicMatch[1]) : null
@@ -842,6 +907,24 @@ function App() {
     } catch (error) {
       setToast(error?.message || 'Não foi possível publicar a resposta.')
     }
+  }
+
+  function quoteToReply(username, content) {
+    if (!session?.user) {
+      setToast('Entre para citar e responder.')
+      navigate('/entrar')
+      return
+    }
+    if (!username) return
+
+    const quoted = String(content || '').slice(0, 1800)
+    const block = `[quote=@${username}]${quoted}[/quote]\n\n`
+    setReply((current) => current ? current + '\n' + block : block)
+    queueMicrotask(() => {
+      const field = document.getElementById('reply')
+      field?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      field?.focus()
+    })
   }
 
   async function leaveAccount() {
@@ -1259,9 +1342,14 @@ function App() {
               <span>{routeTopic.category}</span>
             </div>
 
-            <p>{routeTopic.description}</p>
+            <ForumText content={routeTopic.description} />
             <div className="thread-engagement">
               <ReactionButton session={session} topicId={routeTopic.id} notify={setToast} />
+              {routeTopic.authorUsername && (
+                <button className="action quote-action" onClick={() => quoteToReply(routeTopic.authorUsername, routeTopic.description)}>
+                  <Quote /> Citar
+                </button>
+              )}
             </div>
             {routeTopic.signature && <div className="post-signature">{routeTopic.signature}</div>}
 
@@ -1277,9 +1365,14 @@ function App() {
                     </strong>
                     {post.profiles?.occupation && <small>{post.profiles.occupation}</small>}
                   </button>
-                  <p>{post.content}</p>
+                  <ForumText content={post.content} />
                   <div className="reply-engagement">
                     <ReactionButton session={session} postId={post.id} notify={setToast} />
+                    {post.profiles?.username && (
+                      <button className="action quote-action" onClick={() => quoteToReply(post.profiles.username, post.content)}>
+                        <Quote /> Citar
+                      </button>
+                    )}
                   </div>
                   {post.profiles?.signature && <div className="post-signature">{post.profiles.signature}</div>}
                 </div>
