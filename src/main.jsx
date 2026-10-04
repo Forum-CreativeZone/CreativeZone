@@ -22,6 +22,8 @@ import {
 import '@fontsource-variable/dm-sans'
 import * as A from './design-assets'
 import banner from '../assets/banner.png'
+import bannerLight from '../assets/bannerB.png'
+import logo from '../assets/logo.png'
 import { hasSupabaseConfig, supabase } from './services/supabaseClient'
 import { signIn, signOut, signUp } from './services/authApi'
 import { getProfile } from './services/profileApi'
@@ -1148,10 +1150,15 @@ function App() {
     <div className="app">
       <header className="header">
         <nav className="leftnav" aria-label="Principal">
-          <button className={isHome ? 'active' : ''} onClick={reset}>
-            <Icon name="forum" />
-            Fórum
-          </button>
+          <div className="forum-home-group">
+            <button className="site-logo" onClick={reset} aria-label="CreativeZone — início">
+              <img src={logo} alt="CreativeZone" />
+            </button>
+            <button className={isHome ? 'active' : ''} onClick={reset}>
+              <Icon name="forum" />
+              Fórum
+            </button>
+          </div>
           <button className={isMembers ? 'active' : ''} onClick={() => navigate('/membros')}>
             <Icon name="members" />
             Membros
@@ -1210,7 +1217,10 @@ function App() {
 
       {isHome && (
         <button className="forum-banner" onClick={reset} aria-label="CreativeZone — início">
-          <img src={banner} alt="CreativeZone" />
+          <img
+            src={appearance === 'light' ? bannerLight : banner}
+            alt={appearance === 'light' ? 'CreativeZone — tema claro' : 'CreativeZone — tema escuro'}
+          />
         </button>
       )}
 
