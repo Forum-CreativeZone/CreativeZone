@@ -1150,15 +1150,30 @@ function App() {
     <div className="app">
       <header className="header">
         <nav className="leftnav" aria-label="Principal">
-          <div className="forum-home-group">
-            <button className="site-logo" onClick={reset} aria-label="CreativeZone — início">
-              <img src={logo} alt="CreativeZone" />
-            </button>
-            <button className={isHome ? 'active' : ''} onClick={reset}>
-              <Icon name="forum" />
-              Fórum
-            </button>
-          </div>
+          <button
+            className={'forum-home-link ' + (isHome ? 'active' : '')}
+            onClick={reset}
+            aria-label="CreativeZone — Fórum"
+          >
+            <img
+              src={logo}
+              alt=""
+              width="30"
+              height="30"
+              style={{
+                display: 'block',
+                width: '30px',
+                height: '30px',
+                maxWidth: '30px',
+                maxHeight: '30px',
+                minWidth: '30px',
+                minHeight: '30px',
+                objectFit: 'contain',
+                flex: '0 0 30px',
+              }}
+            />
+            <span>Fórum</span>
+          </button>
           <button className={isMembers ? 'active' : ''} onClick={() => navigate('/membros')}>
             <Icon name="members" />
             Membros
