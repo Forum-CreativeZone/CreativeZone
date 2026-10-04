@@ -169,3 +169,23 @@
 .github-mark{display:grid;place-items:center;width:21px;height:21px;border-radius:50%;border:1px solid currentColor;font-size:9px;font-weight:800;letter-spacing:-.4px}
 
 .social-auth-icon{display:block;width:22px;height:22px;object-fit:contain;flex:0 0 22px}
+
+/* Search + notifications are intentional overlays; the rest of the forum remains page-based. */
+.overlay-backdrop{position:fixed;inset:0;z-index:1000;background:#000b;display:grid;place-items:center;padding:20px}
+.overlay-panel{width:min(620px,100%);max-height:min(82vh,760px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 18px 60px #0008}
+.overlay-panel.wide{width:min(900px,100%)}
+.overlay-head{min-height:56px;padding:0 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--red)}
+.overlay-head h2{font-size:18px;font-weight:500;color:var(--red)}
+.overlay-head>button{width:28px;height:28px;display:grid;place-items:center;border-radius:50%;border:1px solid currentColor}
+.overlay-head svg{width:16px;height:16px}
+.overlay-search-form{max-width:none}
+.overlay-notifications{display:grid;gap:0}
+.overlay-notifications button{display:flex;gap:12px;text-align:left;padding:12px;border-bottom:1px solid var(--line)}
+.overlay-notifications button:last-of-type{border-bottom:0}
+.overlay-notifications strong{color:var(--red);font-weight:500}
+:root[data-theme="light"] .overlay-panel{box-shadow:0 18px 60px #0003}
+@media(max-width:760px){
+  .overlay-backdrop{padding:12px}
+  .overlay-panel{width:100%;max-height:86dvh}
+  .overlay-head{min-height:52px}
+}
