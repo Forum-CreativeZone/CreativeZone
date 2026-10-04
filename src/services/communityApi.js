@@ -545,3 +545,16 @@ export async function deleteMyAccount(confirmation) {
   }
   return data
 }
+
+
+export async function updateAccountSettings(userId, payload) {
+  const client = requireSupabase()
+  const { data, error } = await client
+    .from('account_settings')
+    .update(payload)
+    .eq('user_id', userId)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
