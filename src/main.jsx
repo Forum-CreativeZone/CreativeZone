@@ -48,7 +48,7 @@ import {
   ReactionButton,
   UserQuickMenu,
 } from './CommunityPages'
-import { getBookmarkIds, toggleBookmark, touchLastSeen } from './services/communityApi'
+import { getBookmarkIds, getIgnored, toggleBookmark, touchLastSeen } from './services/communityApi'
 import './styles.css'
 
 const news = [
@@ -542,6 +542,7 @@ function App() {
   const [forumLoading, setForumLoading] = useState(true)
   const [forumError, setForumError] = useState('')
   const [profile, setProfile] = useState(null)
+  const [ignoredIds, setIgnoredIds] = useState([])
   const mobileThemes = useRef()
   const { session, user, loading: authLoading } = useAuth()
 
@@ -572,9 +573,13 @@ function App() {
   useEffect(() => {
     if (!user?.id) {
       setFavorites([])
+      setIgnoredIds([])
       return
     }
     getBookmarkIds(user.id).then(setFavorites).catch(() => setFavorites([]))
+    getIgnored(user.id)
+      .then((rows) => setIgnoredIds(rows.map((row) => row.profile?.id).filter(Boolean)))
+      .catch(() => setIgnoredIds([]))
     touchLastSeen(user.id).catch(() => {})
   }, [user?.id])
 
@@ -629,6 +634,7 @@ function App() {
           id: post.id,
           topicId: post.topic_id,
           user: post.profiles?.display_name || post.profiles?.username || 'Membro',
+          authorId: post.profiles?.id || null,
           avatarUrl: post.profiles?.avatar_url || '',
           topicTitle: post.topics?.title || 'Tópico',
           text: post.content,
@@ -698,6 +704,7 @@ function App() {
 
   const searched = topics.filter(
     (topic) =>
+      !ignoredIds.includes(topic.authorId) &&
       (!filter || topic.category === filter) &&
       (!query ||
         (topic.title + ' ' + topic.user + ' ' + topic.description)
@@ -715,6 +722,7 @@ function App() {
     (currentPopularPage - 1) * 3,
     currentPopularPage * 3
   )
+  const visibleActivity = activity.filter((item) => !ignoredIds.includes(item.authorId))
 
   async function favorite(id) {
     if (!user?.id) {
@@ -920,7 +928,7 @@ function App() {
             <section className="activity">
               <h2>Últimas publicações</h2>
               {activity.length ? (
-                activity.map((item) => {
+                visibleActivity.map((item) => {
                   const topic = topics.find((candidate) => candidate.id === item.topicId)
                   return (
                     <button
@@ -1115,7 +1123,7 @@ function App() {
       return (
         <PageShell title="Últimas publicações" onBack={() => navigate('/')} wide>
           <div className="panel-content notification-list standalone-notifications">
-            {activity.map((item) => {
+            {visibleActivity.map((item) => {
               const topic = topics.find((candidate) => candidate.id === item.topicId)
               return (
                 <button key={item.id} onClick={() => topic && openTopic(topic)}>
@@ -1128,7 +1136,7 @@ function App() {
                 </button>
               )
             })}
-            {!activity.length && <p>Ainda não há publicações recentes.</p>}
+            {!visibleActivity.length && <p>Ainda não há publicações recentes.</p>}
           </div>
         </PageShell>
       )
@@ -1512,7 +1520,7 @@ function App() {
             />
           ) : (
             <div className="panel-content notification-list overlay-notifications">
-              {activity.map((item) => {
+              {visibleActivity.map((item) => {
                 const topic = topics.find((candidate) => candidate.id === item.topicId)
                 return (
                   <button
@@ -1531,7 +1539,7 @@ function App() {
                   </button>
                 )
               })}
-              {!activity.length && <p>Ainda não há publicações recentes.</p>}
+              {!visibleActivity.length && <p>Ainda não há publicações recentes.</p>}
             </div>
           )}
         </OverlayPanel>
