@@ -51,19 +51,13 @@ export async function enableWebPush(userId) {
   }
 
   const json = subscription.toJSON()
-  const payload = {
-    user_id: userId,
-    device_id: getCurrentDeviceId(),
-    endpoint: subscription.endpoint,
-    p256dh: json.keys?.p256dh,
-    auth: json.keys?.auth,
-    user_agent: navigator.userAgent || '',
-    updated_at: new Date().toISOString(),
-  }
-
-  const { error } = await supabase
-    .from('push_subscriptions')
-    .upsert(payload, { onConflict: 'endpoint' })
+  const { error } = await supabase.rpc('register_push_subscription', {
+    p_endpoint: subscription.endpoint,
+    p_p256dh: json.keys?.p256dh,
+    p_auth: json.keys?.auth,
+    p_device_id: getCurrentDeviceId(),
+    p_user_agent: navigator.userAgent || '',
+  })
   if (error) throw error
 
   await supabase
