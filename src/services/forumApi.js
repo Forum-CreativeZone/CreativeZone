@@ -104,7 +104,7 @@ export async function getMembers(limit = 50) {
   const client = requireSupabase()
   const { data, error } = await client
     .from('profiles')
-    .select('id, username, display_name, avatar_url, bio, role, created_at')
+    .select('id, username, display_name, avatar_url, bio, role, occupation, interests, status_message, reputation, last_seen_at, location, show_online, allow_dm, allow_follow, created_at')
     .order('created_at', { ascending: false })
     .limit(limit)
 
