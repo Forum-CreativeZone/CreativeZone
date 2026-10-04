@@ -4,7 +4,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  X,
   Send,
   Save,
   Link as LinkIcon,
@@ -126,7 +125,7 @@ function Topic({ topic, onOpen, onFavorite, favorites, onMenu }) {
       </div>
       <button
         className="topicmore"
-        aria-label={'Opções de ' + topic.title}
+        aria-label={'Abrir ' + topic.title}
         onClick={() => onMenu(topic)}
       >
         <Icon name="more" />
@@ -168,37 +167,26 @@ function Pagination({ page, setPage, total }) {
   )
 }
 
-function Modal({ title, onClose, children, wide = false }) {
-  const ref = useRef()
-  useEffect(() => {
-    const before = document.activeElement
-    ref.current?.showModal()
-    return () => before?.focus()
-  }, [])
-
+function PageShell({ title, children, onBack, wide = false }) {
   return (
-    <dialog
-      ref={ref}
-      className={'dialog ' + (wide ? 'wide' : '')}
-      onCancel={(event) => {
-        event.preventDefault()
-        onClose()
-      }}
-      onClick={(event) => event.target === ref.current && onClose()}
-      aria-label={title}
-    >
-      <div className="dialoghead">
-        <h2>{title}</h2>
-        <button aria-label="Fechar" onClick={onClose}>
-          <X />
-        </button>
+    <section className={'standalone-page ' + (wide ? 'wide-page' : '')}>
+      <div className="page-card">
+        <div className="page-titlebar">
+          <div>
+            <button className="page-back" onClick={onBack}>
+              <ChevronLeft />
+              Voltar
+            </button>
+            <h1>{title}</h1>
+          </div>
+        </div>
+        {children}
       </div>
-      {children}
-    </dialog>
+    </section>
   )
 }
 
-function Composer({ onClose, onPublish, notify, categories }) {
+function ComposerPage({ onPublish, notify, categories, navigate }) {
   const draft = useMemo(() => readLocal('creativezone-draft', {}), [])
   const firstCategory = categories[0]?.id || ''
   const [title, setTitle] = useState(draft.title || '')
@@ -243,18 +231,15 @@ function Composer({ onClose, onPublish, notify, categories }) {
         description: description.trim(),
       })
       localStorage.removeItem('creativezone-draft')
-      onClose()
     } finally {
       setPublishing(false)
     }
   }
 
   return (
-    <Modal title="Adicionar novo tópico" onClose={onClose} wide>
-      <form className="composer" onSubmit={submit}>
-        <label className="sr-only" htmlFor="topic-category">
-          Tema
-        </label>
+    <PageShell title="Adicionar novo tópico" onBack={() => navigate('/')} wide>
+      <form className="composer standalone-composer" onSubmit={submit}>
+        <label htmlFor="topic-category">Tema</label>
         <select
           id="topic-category"
           required
@@ -267,9 +252,8 @@ function Composer({ onClose, onPublish, notify, categories }) {
             </option>
           ))}
         </select>
-        <label className="sr-only" htmlFor="topic-title">
-          Título
-        </label>
+
+        <label htmlFor="topic-title">Título</label>
         <input
           id="topic-title"
           required
@@ -278,6 +262,8 @@ function Composer({ onClose, onPublish, notify, categories }) {
           value={title}
           onChange={(event) => setTitle(event.target.value)}
         />
+
+        <label htmlFor="topic-description">Mensagem</label>
         <div className="editor">
           <div className="toolbar">
             {[
@@ -296,14 +282,15 @@ function Composer({ onClose, onPublish, notify, categories }) {
             ))}
           </div>
           <textarea
+            id="topic-description"
             ref={editor}
             required
-            aria-label="Descrição"
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="Escreva sua publicação..."
           />
         </div>
+
         <div className="composer-actions">
           <button
             type="submit"
@@ -314,12 +301,12 @@ function Composer({ onClose, onPublish, notify, categories }) {
           </button>
         </div>
       </form>
-    </Modal>
+    </PageShell>
   )
 }
 
-function AuthPanel({ initialMode = 'login', onClose, notify }) {
-  const [mode, setMode] = useState(initialMode)
+function AuthPage({ mode, navigate, notify }) {
+  const isSignup = mode === 'signup'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
@@ -331,26 +318,30 @@ function AuthPanel({ initialMode = 'login', onClose, notify }) {
     event.preventDefault()
     setBusy(true)
     setError('')
+
     try {
-      if (mode === 'signup') {
+      if (isSignup) {
         const cleanUsername = username.trim().replace(/\s+/g, '_')
         if (cleanUsername.length < 3) {
           throw new Error('O nome de usuário precisa ter pelo menos 3 caracteres.')
         }
+
         const data = await signUp(email.trim(), password, {
           username: cleanUsername,
           display_name: displayName.trim() || cleanUsername,
         })
+
         if (!data.session) {
           notify('Cadastro criado. Confira seu e-mail para confirmar a conta.')
+          navigate('/entrar')
         } else {
           notify('Conta criada e sessão iniciada.')
+          navigate('/')
         }
-        onClose()
       } else {
         await signIn(email.trim(), password)
         notify('Login realizado com sucesso.')
-        onClose()
+        navigate('/')
       }
     } catch (authError) {
       setError(authError?.message || 'Não foi possível concluir a autenticação.')
@@ -360,17 +351,29 @@ function AuthPanel({ initialMode = 'login', onClose, notify }) {
   }
 
   return (
-    <Modal title={mode === 'signup' ? 'Criar conta' : 'Entrar na CreativeZone'} onClose={onClose}>
-      <div className="auth-tabs">
-        <button className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>
+    <PageShell
+      title={isSignup ? 'Criar conta na CreativeZone' : 'Entrar na CreativeZone'}
+      onBack={() => navigate('/')}
+    >
+      <div className="auth-tabs page-auth-tabs">
+        <button
+          className={!isSignup ? 'active' : ''}
+          onClick={() => navigate('/entrar')}
+          type="button"
+        >
           <LogIn /> Entrar
         </button>
-        <button className={mode === 'signup' ? 'active' : ''} onClick={() => setMode('signup')}>
+        <button
+          className={isSignup ? 'active' : ''}
+          onClick={() => navigate('/cadastro')}
+          type="button"
+        >
           <UserPlus /> Criar conta
         </button>
       </div>
-      <form className="panel-content auth-form" onSubmit={submit}>
-        {mode === 'signup' && (
+
+      <form className="panel-content auth-form standalone-auth-form" onSubmit={submit}>
+        {isSignup && (
           <>
             <label htmlFor="auth-username">Nome de usuário</label>
             <input
@@ -382,6 +385,7 @@ function AuthPanel({ initialMode = 'login', onClose, notify }) {
               onChange={(event) => setUsername(event.target.value)}
               placeholder="ex.: miguel"
             />
+
             <label htmlFor="auth-display-name">Nome exibido</label>
             <input
               id="auth-display-name"
@@ -392,6 +396,7 @@ function AuthPanel({ initialMode = 'login', onClose, notify }) {
             />
           </>
         )}
+
         <label htmlFor="auth-email">E-mail</label>
         <input
           id="auth-email"
@@ -402,24 +407,31 @@ function AuthPanel({ initialMode = 'login', onClose, notify }) {
           onChange={(event) => setEmail(event.target.value)}
           placeholder="voce@exemplo.com"
         />
+
         <label htmlFor="auth-password">Senha</label>
         <input
           id="auth-password"
           type="password"
-          autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+          autoComplete={isSignup ? 'new-password' : 'current-password'}
           required
           minLength={6}
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           placeholder="Mínimo de 6 caracteres"
         />
-        {error && <p className="auth-error" role="alert">{error}</p>}
+
+        {error && (
+          <p className="auth-error" role="alert">
+            {error}
+          </p>
+        )}
+
         <button className="action auth-submit" type="submit" disabled={busy}>
-          {mode === 'signup' ? <UserPlus /> : <LogIn />}
-          {busy ? 'Aguarde...' : mode === 'signup' ? 'Criar conta' : 'Entrar'}
+          {isSignup ? <UserPlus /> : <LogIn />}
+          {busy ? 'Aguarde...' : isSignup ? 'Criar conta' : 'Entrar'}
         </button>
       </form>
-    </Modal>
+    </PageShell>
   )
 }
 
@@ -431,13 +443,12 @@ function App() {
       return 'dark'
     }
   })
+  const [path, setPath] = useState(() => window.location.pathname || '/')
   const [favorites, setFavorites] = useState(() => readLocal('creativezone-favorites', []))
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('')
   const [page, setPage] = useState(1)
   const [popularPage, setPopularPage] = useState(1)
-  const [modal, setModal] = useState(null)
-  const [selected, setSelected] = useState(null)
   const [toast, setToast] = useState('')
   const [reply, setReply] = useState('')
   const [topics, setTopics] = useState([])
@@ -450,6 +461,20 @@ function App() {
   const [profile, setProfile] = useState(null)
   const mobileThemes = useRef()
   const { session, user, loading: authLoading } = useAuth()
+
+  const navigate = useCallback((nextPath) => {
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({}, '', nextPath)
+    }
+    setPath(nextPath)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [])
+
+  useEffect(() => {
+    const onPopState = () => setPath(window.location.pathname || '/')
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
 
   useEffect(() => {
     document.documentElement.dataset.theme = appearance
@@ -466,7 +491,7 @@ function App() {
 
   useEffect(() => {
     if (!toast) return undefined
-    const timer = setTimeout(() => setToast(''), 3500)
+    const timer = setTimeout(() => setToast(''), 4500)
     return () => clearTimeout(timer)
   }, [toast])
 
@@ -479,6 +504,7 @@ function App() {
 
     setForumLoading(true)
     setForumError('')
+
     try {
       const [rawTopics, nextCategories, recentPosts, nextMembers] = await Promise.all([
         getTopics(),
@@ -532,6 +558,7 @@ function App() {
 
   useEffect(() => {
     if (!supabase) return undefined
+
     const channel = supabase
       .channel('creativezone-forum')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'topics' }, refreshForum)
@@ -548,10 +575,29 @@ function App() {
       setProfile(null)
       return
     }
+
     getProfile(user.id)
       .then(setProfile)
       .catch((error) => console.error('Falha ao carregar perfil:', error))
   }, [user])
+
+  const topicMatch = path.match(/^\/topico\/([^/]+)$/)
+  const routeTopicId = topicMatch ? decodeURIComponent(topicMatch[1]) : null
+  const routeTopic = routeTopicId ? topics.find((topic) => topic.id === routeTopicId) : null
+
+  useEffect(() => {
+    if (!routeTopicId) {
+      setThreadReplies([])
+      return
+    }
+
+    getPosts(routeTopicId)
+      .then(setThreadReplies)
+      .catch(() => {
+        setThreadReplies([])
+        setToast('Não foi possível carregar as respostas.')
+      })
+  }, [routeTopicId])
 
   const searched = topics.filter(
     (topic) =>
@@ -573,18 +619,6 @@ function App() {
     currentPopularPage * 3
   )
 
-  async function open(topic) {
-    setSelected(topic)
-    setReply('')
-    setModal('topic')
-    try {
-      setThreadReplies(await getPosts(topic.id))
-    } catch (error) {
-      setThreadReplies([])
-      setToast('Não foi possível carregar as respostas.')
-    }
-  }
-
   function favorite(id) {
     setFavorites((items) =>
       items.includes(id) ? items.filter((item) => item !== id) : [...items, id]
@@ -596,30 +630,53 @@ function App() {
     setFilter('')
     setPage(1)
     setPopularPage(1)
-    setModal(null)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    navigate('/')
+  }
+
+  function openTopic(topic) {
+    setReply('')
+    navigate('/topico/' + encodeURIComponent(topic.id))
+  }
+
+  function chooseTheme(name) {
+    setFilter(name)
+    setPage(1)
+    setPopularPage(1)
+    navigate('/')
+  }
+
+  function requireAuth(pathAfterLogin) {
+    if (!session?.user) {
+      setToast('Entre ou crie uma conta para continuar.')
+      navigate('/entrar')
+      return false
+    }
+    navigate(pathAfterLogin)
+    return true
   }
 
   async function publish(topic) {
     if (!session?.user) {
       setToast('Entre ou crie uma conta para publicar.')
-      setModal('auth')
+      navigate('/entrar')
       throw new Error('Autenticação necessária')
     }
 
     try {
-      await createTopic({
+      const created = await createTopic({
         title: topic.title,
         content: topic.description,
         category_id: topic.categoryId,
         author_id: session.user.id,
         slug: slugify(topic.title) + '-' + Date.now().toString(36),
       })
+
       setFilter('')
       setQuery('')
       setPage(1)
       await refreshForum()
       setToast('Tópico publicado na CreativeZone.')
+      navigate('/topico/' + encodeURIComponent(created.id))
     } catch (error) {
       setToast(error?.message || 'Não foi possível publicar o tópico.')
       throw error
@@ -628,22 +685,22 @@ function App() {
 
   async function submitReply(event) {
     event.preventDefault()
-    if (!reply.trim() || !selected) return
+    if (!reply.trim() || !routeTopicId) return
 
     if (!session?.user) {
-      setModal('auth')
       setToast('Entre ou crie uma conta para responder.')
+      navigate('/entrar')
       return
     }
 
     try {
       await createPost({
-        topic_id: selected.id,
+        topic_id: routeTopicId,
         author_id: session.user.id,
         content: reply.trim(),
       })
       setReply('')
-      setThreadReplies(await getPosts(selected.id))
+      setThreadReplies(await getPosts(routeTopicId))
       await refreshForum()
       setToast('Resposta publicada.')
     } catch (error) {
@@ -655,268 +712,230 @@ function App() {
     try {
       await signOut()
       setProfile(null)
-      setModal(null)
       setToast('Você saiu da sua conta.')
+      navigate('/')
     } catch (error) {
       setToast(error?.message || 'Não foi possível sair.')
     }
-  }
-
-  function chooseTheme(name) {
-    setFilter(name)
-    setPage(1)
-    setPopularPage(1)
-    setModal(null)
-  }
-
-  function requireAuthForComposer() {
-    if (!session?.user) {
-      setModal('auth')
-      setToast('Entre ou crie uma conta para abrir um tópico.')
-      return
-    }
-    setModal('compose')
   }
 
   const profileName =
     profile?.display_name || profile?.username || user?.email?.split('@')[0] || 'Meu perfil'
   const profileImage = profile?.avatar_url || A.fbm
 
-  const props = {
-    onOpen: open,
+  const topicProps = {
+    onOpen: openTopic,
     onFavorite: favorite,
     favorites,
-    onMenu: (topic) => {
-      setSelected(topic)
-      setModal('options')
-    },
+    onMenu: openTopic,
   }
 
-  return (
-    <div className="app">
-      <header className="header">
-        <nav className="leftnav" aria-label="Principal">
-          <button className="active" onClick={reset}>
-            <Icon name="forum" />
-            Fórum
-          </button>
-          <button onClick={() => setModal('members')}>
-            <Icon name="members" />
-            Membros
-          </button>
-          <button onClick={() => setModal('about')}>
-            <Icon name="portal" />
-            CreativeZone
-          </button>
-        </nav>
+  const isHome = path === '/'
+  const isLogin = path === '/entrar'
+  const isSignup = path === '/cadastro'
+  const isComposer = path === '/novo-topico'
+  const isSearch = path === '/buscar'
+  const isMembers = path === '/membros'
+  const isNotifications = path === '/notificacoes'
+  const isThemes = path === '/temas'
+  const isProfile = path === '/perfil'
+  const isAbout = path === '/creativezone'
 
-        <nav className="rightnav" aria-label="Ações">
-          <button className="newtopic" onClick={requireAuthForComposer}>
-            <Icon name="pencil" />
-            Novo Tópico
-          </button>
-          <button className="search-trigger" onClick={() => setModal('search')}>
-            <Icon name="search" />
-            Buscar
-          </button>
-          <button
-            className="theme-toggle"
-            aria-label={appearance === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
-            title={appearance === 'dark' ? 'Tema claro' : 'Tema escuro'}
-            onClick={() => setAppearance((value) => (value === 'dark' ? 'light' : 'dark'))}
-          >
-            {appearance === 'dark' ? <Sun /> : <Moon />}
-          </button>
-          <button
-            className="notifications"
-            aria-label="Últimas publicações"
-            onClick={() => setModal('notifications')}
-          >
-            <Icon name="bell" />
-          </button>
-          <button
-            className="profile"
-            aria-label={session ? profileName : 'Entrar'}
-            onClick={() => setModal(session ? 'profile' : 'auth')}
-          >
-            <img src={profileImage} alt="" />
-            <ChevronDown />
-          </button>
-        </nav>
-      </header>
-
-      <button className="forum-banner" onClick={reset} aria-label="CreativeZone — início">
-        <img src={banner} alt="CreativeZone" />
-      </button>
-
-      <div className="mobile-themes">
-        <div ref={mobileThemes}>
-          {categories.map((category) => (
-            <button key={category.id} onClick={() => chooseTheme(category.name)}>
-              {category.name}
-            </button>
-          ))}
-        </div>
-        <button
-          aria-label="Ver mais temas"
-          onClick={() => mobileThemes.current?.scrollBy({ left: 180, behavior: 'smooth' })}
-        >
-          <ChevronRight />
-        </button>
-      </div>
-
-      <div className="crumb">
-        <button onClick={reset}>Fórum</button>
-        <ChevronRight />
-        <span>{filter || 'Inicial'}</span>
-      </div>
-
-      {!hasSupabaseConfig && (
-        <div className="backend-warning" role="alert">
-          O build não recebeu as variáveis do Supabase.
-        </div>
-      )}
-      {forumError && <div className="backend-warning" role="alert">{forumError}</div>}
-
-      <main>
-        <div className="maincolumn">
-          <section>
-            <h1>{query ? 'Resultados da busca' : filter || 'Tópicos Recentes'}</h1>
-            {(query || filter) && (
-              <button className="clear-filter" onClick={reset}>
-                Limpar filtros ×
-              </button>
-            )}
-
-            <div className="topiclist">
-              {forumLoading ? (
-                <p className="empty">Carregando tópicos...</p>
-              ) : (
-                recent.map((topic) => <Topic topic={topic} key={topic.id} {...props} />)
-              )}
-              {!forumLoading && !recent.length && (
-                <p className="empty">
-                  Ainda não há tópicos nesta área.{' '}
-                  <button onClick={requireAuthForComposer}>Crie o primeiro tópico</button>.
-                </p>
-              )}
+  function renderHome() {
+    return (
+      <>
+        {!authLoading && !session && (
+          <section className="guest-welcome">
+            <div>
+              <strong>Participe da CreativeZone</strong>
+              <span>Entre para responder e publicar ou crie sua conta gratuitamente.</span>
             </div>
-            <Pagination page={currentPage} setPage={setPage} total={total} />
+            <div className="guest-welcome-actions">
+              <button className="action" onClick={() => navigate('/entrar')}>
+                <LogIn /> Entrar
+              </button>
+              <button className="action primary-action" onClick={() => navigate('/cadastro')}>
+                <UserPlus /> Criar conta
+              </button>
+            </div>
           </section>
+        )}
 
-          <section className="popular">
-            <h2>Mais Visualizados</h2>
-            <div className="desktop-topics">
-              {displayedPopular.map((topic) => (
-                <Topic topic={topic} key={topic.id} {...props} />
+        <main>
+          <div className="maincolumn">
+            <section>
+              <h1>{query ? 'Resultados da busca' : filter || 'Tópicos Recentes'}</h1>
+              {(query || filter) && (
+                <button
+                  className="clear-filter"
+                  onClick={() => {
+                    setQuery('')
+                    setFilter('')
+                  }}
+                >
+                  Limpar filtros ×
+                </button>
+              )}
+
+              <div className="topiclist">
+                {forumLoading ? (
+                  <p className="empty">Carregando tópicos...</p>
+                ) : (
+                  recent.map((topic) => <Topic topic={topic} key={topic.id} {...topicProps} />)
+                )}
+
+                {!forumLoading && !recent.length && (
+                  <p className="empty">
+                    Ainda não há tópicos nesta área.{' '}
+                    <button onClick={() => requireAuth('/novo-topico')}>Crie o primeiro tópico</button>.
+                  </p>
+                )}
+              </div>
+
+              <Pagination page={currentPage} setPage={setPage} total={total} />
+            </section>
+
+            <section className="popular">
+              <h2>Mais Visualizados</h2>
+              <div className="desktop-topics">
+                {displayedPopular.map((topic) => (
+                  <Topic topic={topic} key={topic.id} {...topicProps} />
+                ))}
+              </div>
+              <div className="mobile-topics">
+                {displayedPopular.map((topic) => (
+                  <Topic topic={topic} key={topic.id} {...topicProps} />
+                ))}
+              </div>
+              <Pagination
+                page={currentPopularPage}
+                setPage={setPopularPage}
+                total={popularTotal}
+              />
+            </section>
+
+            <div className="news-grid">
+              {news.map((title, index) => (
+                <button key={title} onClick={() => chooseTheme(categories[index]?.name || '')}>
+                  <img src={A['news' + (index + 1)]} alt="" />
+                  <b>{title}</b>
+                </button>
               ))}
             </div>
-            <div className="mobile-topics">
-              {displayedPopular.map((topic) => (
-                <Topic topic={topic} key={topic.id} {...props} />
-              ))}
-            </div>
-            <Pagination
-              page={currentPopularPage}
-              setPage={setPopularPage}
-              total={popularTotal}
-            />
-          </section>
-
-          <div className="news-grid">
-            {news.map((title, index) => (
-              <button key={title} onClick={() => chooseTheme(categories[index]?.name || '')}>
-                <img src={A['news' + (index + 1)]} alt="" />
-                <b>{title}</b>
-              </button>
-            ))}
           </div>
-        </div>
 
-        <aside>
-          <section className="activity">
-            <h2>Últimas publicações</h2>
-            {activity.length ? (
-              activity.map((item) => {
-                const topic = topics.find((candidate) => candidate.id === item.topicId)
-                return (
-                  <button
-                    className="activityitem"
-                    key={item.id}
-                    onClick={() => topic && open(topic)}
-                  >
-                    <Avatar src={item.avatarUrl} small />
-                    <span>
-                      <strong>{item.user}</strong> &gt; <strong>{item.topicTitle}</strong>
-                      <br />
-                      “{item.text.slice(0, 62)}{item.text.length > 62 ? '...' : ''}”
-                    </span>
-                  </button>
-                )
-              })
-            ) : (
-              <p className="side-empty">As respostas da comunidade aparecerão aqui.</p>
-            )}
-          </section>
+          <aside>
+            <section className="activity">
+              <h2>Últimas publicações</h2>
+              {activity.length ? (
+                activity.map((item) => {
+                  const topic = topics.find((candidate) => candidate.id === item.topicId)
+                  return (
+                    <button
+                      className="activityitem"
+                      key={item.id}
+                      onClick={() => topic && openTopic(topic)}
+                    >
+                      <Avatar src={item.avatarUrl} small />
+                      <span>
+                        <strong>{item.user}</strong> &gt; <strong>{item.topicTitle}</strong>
+                        <br />
+                        “{item.text.slice(0, 62)}{item.text.length > 62 ? '...' : ''}”
+                      </span>
+                    </button>
+                  )
+                })
+              ) : (
+                <p className="side-empty">As respostas da comunidade aparecerão aqui.</p>
+              )}
+            </section>
 
-          <section className="themes">
-            <h2>
-              Temas
-              <button aria-label="Ver temas" onClick={() => setModal('themes')}>
-                <Icon name="plus" />
-              </button>
-            </h2>
-            {categories.map((category) => (
-              <button key={category.id} onClick={() => chooseTheme(category.name)}>
-                {category.name}
-              </button>
-            ))}
-          </section>
-        </aside>
-      </main>
+            <section className="themes">
+              <h2>
+                Temas
+                <button aria-label="Ver temas" onClick={() => navigate('/temas')}>
+                  <Icon name="plus" />
+                </button>
+              </h2>
+              {categories.map((category) => (
+                <button key={category.id} onClick={() => chooseTheme(category.name)}>
+                  {category.name}
+                </button>
+              ))}
+            </section>
+          </aside>
+        </main>
 
-      <footer />
+        <footer />
+      </>
+    )
+  }
 
-      <nav className="bottomnav" aria-label="Navegação mobile">
-        <button aria-label="Início" onClick={reset}>
-          <Icon name="home" />
-        </button>
-        <button aria-label="Buscar" onClick={() => setModal('search')}>
-          <Icon name="mobilesearch" />
-        </button>
-        <button className="add-topic" aria-label="Novo tópico" onClick={requireAuthForComposer}>
-          <Icon name="add" />
-        </button>
-        <button aria-label="Membros" onClick={() => setModal('members')}>
-          <Icon name="mobilemembers" />
-        </button>
-        <button aria-label="Últimas publicações" onClick={() => setModal('notifications')}>
-          <Icon name="feed" />
-        </button>
-      </nav>
+  function renderRoutePage() {
+    if (isLogin) {
+      if (session) {
+        return (
+          <PageShell title="Você já está conectado" onBack={() => navigate('/')}>
+            <div className="panel-content">
+              <p>Você já entrou como <strong>{profileName}</strong>.</p>
+              <div className="route-actions">
+                <button className="action" onClick={() => navigate('/perfil')}>Abrir meu perfil</button>
+                <button className="action" onClick={leaveAccount}><LogOut /> Sair</button>
+              </div>
+            </div>
+          </PageShell>
+        )
+      }
+      return <AuthPage mode="login" navigate={navigate} notify={setToast} />
+    }
 
-      {modal === 'compose' && (
-        <Composer
-          onClose={() => setModal(null)}
+    if (isSignup) {
+      if (session) {
+        return (
+          <PageShell title="Conta já conectada" onBack={() => navigate('/')}>
+            <div className="panel-content">
+              <p>Você já está conectado. Para criar outra conta, saia primeiro.</p>
+            </div>
+          </PageShell>
+        )
+      }
+      return <AuthPage mode="signup" navigate={navigate} notify={setToast} />
+    }
+
+    if (isComposer) {
+      if (!session) {
+        return (
+          <PageShell title="Entre para publicar" onBack={() => navigate('/')}>
+            <div className="panel-content guest-page">
+              <p>Você precisa estar conectado para criar um tópico.</p>
+              <div className="route-actions">
+                <button className="action" onClick={() => navigate('/entrar')}><LogIn /> Entrar</button>
+                <button className="action primary-action" onClick={() => navigate('/cadastro')}><UserPlus /> Criar conta</button>
+              </div>
+            </div>
+          </PageShell>
+        )
+      }
+      return (
+        <ComposerPage
           onPublish={publish}
           notify={setToast}
           categories={categories}
+          navigate={navigate}
         />
-      )}
+      )
+    }
 
-      {modal === 'auth' && (
-        <AuthPanel onClose={() => setModal(null)} notify={setToast} />
-      )}
-
-      {modal === 'search' && (
-        <Modal title="Buscar no fórum" onClose={() => setModal(null)}>
+    if (isSearch) {
+      return (
+        <PageShell title="Buscar no fórum" onBack={() => navigate('/')}>
           <form
-            className="panel-content"
+            className="panel-content standalone-form"
             onSubmit={(event) => {
               event.preventDefault()
               setPage(1)
               setPopularPage(1)
-              setModal(null)
+              navigate('/')
             }}
           >
             <label htmlFor="search-field">Palavra-chave ou membro</label>
@@ -932,18 +951,149 @@ function App() {
               Buscar
             </button>
           </form>
-        </Modal>
-      )}
+        </PageShell>
+      )
+    }
 
-      {modal === 'topic' && selected && (
-        <Modal title={selected.title} onClose={() => setModal(null)} wide>
-          <div className="panel-content thread">
-            <div className="thread-author">
-              <Avatar src={selected.avatarUrl} />
-              <strong>{selected.user}</strong>
-              <span>{selected.category}</span>
+    if (isMembers) {
+      return (
+        <PageShell title="Membros" onBack={() => navigate('/')} wide>
+          <div className="panel-content members standalone-members">
+            {members.map((member) => (
+              <div className="member-row" key={member.id}>
+                <Avatar src={member.avatar_url} />
+                <span>
+                  <strong>{member.display_name || member.username || 'Membro'}</strong>
+                  <small>{member.role === 'member' ? 'Membro' : member.role}</small>
+                </span>
+              </div>
+            ))}
+            {!members.length && <p>Ainda não há membros cadastrados.</p>}
+          </div>
+        </PageShell>
+      )
+    }
+
+    if (isNotifications) {
+      return (
+        <PageShell title="Últimas publicações" onBack={() => navigate('/')} wide>
+          <div className="panel-content notification-list standalone-notifications">
+            {activity.map((item) => {
+              const topic = topics.find((candidate) => candidate.id === item.topicId)
+              return (
+                <button key={item.id} onClick={() => topic && openTopic(topic)}>
+                  <Avatar src={item.avatarUrl} small />
+                  <span>
+                    <strong>{item.user} &gt; {item.topicTitle}</strong>
+                    <br />
+                    {item.text}
+                  </span>
+                </button>
+              )
+            })}
+            {!activity.length && <p>Ainda não há publicações recentes.</p>}
+          </div>
+        </PageShell>
+      )
+    }
+
+    if (isThemes) {
+      return (
+        <PageShell title="Temas da CreativeZone" onBack={() => navigate('/')}>
+          <div className="panel-content theme-options standalone-themes">
+            {categories.map((category) => (
+              <button key={category.id} onClick={() => chooseTheme(category.name)}>
+                <strong>{category.name}</strong>
+                {category.description && <small>{category.description}</small>}
+              </button>
+            ))}
+          </div>
+        </PageShell>
+      )
+    }
+
+    if (isProfile) {
+      if (!session) {
+        return (
+          <PageShell title="Minha conta" onBack={() => navigate('/')}>
+            <div className="panel-content guest-page">
+              <p>Você ainda não está conectado.</p>
+              <div className="route-actions">
+                <button className="action" onClick={() => navigate('/entrar')}><LogIn /> Entrar</button>
+                <button className="action primary-action" onClick={() => navigate('/cadastro')}><UserPlus /> Criar conta</button>
+              </div>
             </div>
-            <p>{selected.description}</p>
+          </PageShell>
+        )
+      }
+
+      return (
+        <PageShell title="Meu perfil" onBack={() => navigate('/')}>
+          <div className="panel-content">
+            <div className="thread-author profile-page-head">
+              <Avatar src={profile?.avatar_url} />
+              <div>
+                <strong>{profileName}</strong>
+                <p className="profile-email">{session.user.email}</p>
+              </div>
+            </div>
+            <p>
+              {topics.filter((topic) => topic.authorId === session.user.id).length} tópicos publicados
+              {' · '}
+              {favorites.length} salvos
+            </p>
+            <div className="profile-actions">
+              <button className="action" onClick={() => navigate('/novo-topico')}>Criar tópico</button>
+              <button className="action" onClick={leaveAccount}><LogOut /> Sair</button>
+            </div>
+          </div>
+        </PageShell>
+      )
+    }
+
+    if (isAbout) {
+      return (
+        <PageShell title="CreativeZone" onBack={() => navigate('/')}>
+          <div className="panel-content about-page">
+            <p>
+              Comunidade CreativeZone para tecnologia, software, hardware, games e troca de
+              conhecimento entre membros.
+            </p>
+            <p>
+              Aqui cada tópico e resposta pertence à comunidade e fica persistido no fórum.
+            </p>
+          </div>
+        </PageShell>
+      )
+    }
+
+    if (routeTopicId) {
+      if (forumLoading && !routeTopic) {
+        return (
+          <PageShell title="Carregando tópico..." onBack={() => navigate('/')} wide>
+            <div className="panel-content"><p>Carregando...</p></div>
+          </PageShell>
+        )
+      }
+
+      if (!routeTopic) {
+        return (
+          <PageShell title="Tópico não encontrado" onBack={() => navigate('/')}>
+            <div className="panel-content"><p>Este tópico não existe ou não está mais disponível.</p></div>
+          </PageShell>
+        )
+      }
+
+      return (
+        <PageShell title={routeTopic.title} onBack={() => navigate('/')} wide>
+          <div className="panel-content thread standalone-thread">
+            <div className="thread-author">
+              <Avatar src={routeTopic.avatarUrl} />
+              <strong>{routeTopic.user}</strong>
+              <span>{routeTopic.category}</span>
+            </div>
+
+            <p>{routeTopic.description}</p>
 
             <div className="thread-replies">
               {threadReplies.map((post) => (
@@ -959,9 +1109,9 @@ function App() {
               )}
             </div>
 
-            {selected.locked ? (
+            {routeTopic.locked ? (
               <p className="thread-empty">Este tópico está bloqueado para novas respostas.</p>
-            ) : (
+            ) : session ? (
               <form onSubmit={submitReply}>
                 <label htmlFor="reply">Responder ao tópico</label>
                 <textarea
@@ -969,136 +1119,146 @@ function App() {
                   required
                   value={reply}
                   onChange={(event) => setReply(event.target.value)}
-                  placeholder={
-                    session ? 'Escreva sua resposta...' : 'Entre para responder ao tópico.'
-                  }
-                  disabled={!session}
+                  placeholder="Escreva sua resposta..."
                 />
-                {session ? (
-                  <button className="action" type="submit">
-                    <Send />
-                    Enviar
-                  </button>
-                ) : (
-                  <button className="action" type="button" onClick={() => setModal('auth')}>
-                    <LogIn />
-                    Entrar para responder
-                  </button>
-                )}
+                <button className="action" type="submit"><Send /> Enviar</button>
               </form>
+            ) : (
+              <div className="reply-login-box">
+                <p>Entre para responder a este tópico.</p>
+                <div className="route-actions">
+                  <button className="action" onClick={() => navigate('/entrar')}><LogIn /> Entrar</button>
+                  <button className="action primary-action" onClick={() => navigate('/cadastro')}><UserPlus /> Criar conta</button>
+                </div>
+              </div>
             )}
           </div>
-        </Modal>
+        </PageShell>
+      )
+    }
+
+    return (
+      <PageShell title="Página não encontrada" onBack={() => navigate('/')}>
+        <div className="panel-content"><p>A página solicitada não existe.</p></div>
+      </PageShell>
+    )
+  }
+
+  return (
+    <div className="app">
+      <header className="header">
+        <nav className="leftnav" aria-label="Principal">
+          <button className={isHome ? 'active' : ''} onClick={reset}>
+            <Icon name="forum" />
+            Fórum
+          </button>
+          <button className={isMembers ? 'active' : ''} onClick={() => navigate('/membros')}>
+            <Icon name="members" />
+            Membros
+          </button>
+          <button className={isAbout ? 'active' : ''} onClick={() => navigate('/creativezone')}>
+            <Icon name="portal" />
+            CreativeZone
+          </button>
+        </nav>
+
+        <nav className="rightnav" aria-label="Ações">
+          <button className="newtopic" onClick={() => requireAuth('/novo-topico')}>
+            <Icon name="pencil" />
+            Novo Tópico
+          </button>
+
+          <button className="search-trigger" onClick={() => navigate('/buscar')}>
+            <Icon name="search" />
+            Buscar
+          </button>
+
+          <button
+            className="theme-toggle"
+            aria-label={appearance === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
+            title={appearance === 'dark' ? 'Tema claro' : 'Tema escuro'}
+            onClick={() => setAppearance((value) => (value === 'dark' ? 'light' : 'dark'))}
+          >
+            {appearance === 'dark' ? <Sun /> : <Moon />}
+          </button>
+
+          <button
+            className="notifications"
+            aria-label="Últimas publicações"
+            onClick={() => navigate('/notificacoes')}
+          >
+            <Icon name="bell" />
+          </button>
+
+          {!authLoading && session ? (
+            <button
+              className="profile"
+              aria-label={profileName}
+              onClick={() => navigate('/perfil')}
+            >
+              <img src={profileImage} alt="" />
+              <ChevronDown />
+            </button>
+          ) : !authLoading ? (
+            <div className="guest-auth">
+              <button onClick={() => navigate('/entrar')}><LogIn /> Entrar</button>
+              <button className="signup-link" onClick={() => navigate('/cadastro')}><UserPlus /> Criar conta</button>
+            </div>
+          ) : null}
+        </nav>
+      </header>
+
+      {isHome && (
+        <button className="forum-banner" onClick={reset} aria-label="CreativeZone — início">
+          <img src={banner} alt="CreativeZone" />
+        </button>
       )}
 
-      {modal === 'members' && (
-        <Modal title="Membros" onClose={() => setModal(null)}>
-          <div className="panel-content members">
-            {members.map((member) => (
-              <div className="member-row" key={member.id}>
-                <Avatar src={member.avatar_url} />
-                <span>
-                  <strong>{member.display_name || member.username || 'Membro'}</strong>
-                  <small>{member.role === 'member' ? 'Membro' : member.role}</small>
-                </span>
-              </div>
-            ))}
-            {!members.length && <p>Ainda não há membros cadastrados.</p>}
-          </div>
-        </Modal>
-      )}
-
-      {modal === 'notifications' && (
-        <Modal title="Últimas publicações" onClose={() => setModal(null)}>
-          <div className="panel-content notification-list">
-            {activity.map((item) => {
-              const topic = topics.find((candidate) => candidate.id === item.topicId)
-              return (
-                <button key={item.id} onClick={() => topic && open(topic)}>
-                  <Avatar src={item.avatarUrl} small />
-                  <span>
-                    <strong>{item.user} &gt; {item.topicTitle}</strong>
-                    <br />
-                    {item.text}
-                  </span>
-                </button>
-              )
-            })}
-            {!activity.length && <p>Ainda não há publicações recentes.</p>}
-          </div>
-        </Modal>
-      )}
-
-      {modal === 'themes' && (
-        <Modal title="Escolha um tema" onClose={() => setModal(null)}>
-          <div className="panel-content theme-options">
+      {isHome && (
+        <div className="mobile-themes">
+          <div ref={mobileThemes}>
             {categories.map((category) => (
               <button key={category.id} onClick={() => chooseTheme(category.name)}>
-                <strong>{category.name}</strong>
-                {category.description && <small>{category.description}</small>}
+                {category.name}
               </button>
             ))}
           </div>
-        </Modal>
+          <button
+            aria-label="Ver mais temas"
+            onClick={() => mobileThemes.current?.scrollBy({ left: 180, behavior: 'smooth' })}
+          >
+            <ChevronRight />
+          </button>
+        </div>
       )}
 
-      {modal === 'profile' && session && (
-        <Modal title="Meu perfil" onClose={() => setModal(null)}>
-          <div className="panel-content">
-            <div className="thread-author">
-              <Avatar src={profile?.avatar_url} />
-              <div>
-                <strong>{profileName}</strong>
-                <p className="profile-email">{session.user.email}</p>
-              </div>
-            </div>
-            <p>
-              {topics.filter((topic) => topic.authorId === session.user.id).length} tópicos publicados
-              {' · '}
-              {favorites.length} salvos
-            </p>
-            <div className="profile-actions">
-              <button className="action" onClick={() => setModal('compose')}>
-                Criar tópico
-              </button>
-              <button className="action" onClick={leaveAccount}>
-                <LogOut />
-                Sair
-              </button>
-            </div>
-          </div>
-        </Modal>
+      <div className="crumb">
+        <button onClick={reset}>Fórum</button>
+        <ChevronRight />
+        <span>
+          {isHome ? filter || 'Inicial' : path.replace(/^\//, '').replace(/-/g, ' ') || 'Inicial'}
+        </span>
+      </div>
+
+      {!hasSupabaseConfig && (
+        <div className="backend-warning" role="alert">
+          O build não recebeu as variáveis do Supabase.
+        </div>
       )}
 
-      {modal === 'options' && selected && (
-        <Modal title="Opções do tópico" onClose={() => setModal(null)}>
-          <div className="panel-content theme-options">
-            <button
-              onClick={() => {
-                favorite(selected.id)
-                setModal(null)
-              }}
-            >
-              {favorites.includes(selected.id) ? 'Remover dos salvos' : 'Salvar tópico'}
-            </button>
-            <button onClick={() => open(selected)}>Abrir discussão</button>
-          </div>
-        </Modal>
+      {forumError && (
+        <div className="backend-warning" role="alert">
+          {forumError}
+        </div>
       )}
 
-      {modal === 'about' && (
-        <Modal title="CreativeZone" onClose={() => setModal(null)}>
-          <div className="panel-content">
-            <p>
-              Comunidade CreativeZone para tecnologia, software, hardware, games e troca de
-              conhecimento entre membros.
-            </p>
-          </div>
-        </Modal>
+      {toast && (
+        <div className="toast" role="status">
+          {toast}
+        </div>
       )}
 
-      {authLoading && <div className="toast" role="status">Verificando sessão...</div>}
-      {toast && <div className="toast" role="status">{toast}</div>}
+      {isHome ? renderHome() : renderRoutePage()}
     </div>
   )
 }
