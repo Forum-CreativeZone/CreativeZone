@@ -228,13 +228,16 @@ export async function recordTopicView(topicId, userId = null) {
   const client = requireSupabase()
   const { error } = await client
     .from('topic_view_events')
-    .insert({
+    .upsert({
       topic_id: topicId,
       user_id: userId || null,
       session_key: getViewSessionKey(),
+    }, {
+      onConflict: 'topic_id,session_key,view_date',
+      ignoreDuplicates: true,
     })
 
-  if (error && error.code !== '23505') throw error
+  if (error) throw error
 }
 
 export async function getAchievementCatalog(userId = null) {
