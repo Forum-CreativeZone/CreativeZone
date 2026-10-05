@@ -855,7 +855,7 @@ function App() {
       .on('presence', { event: 'join' }, syncPresence)
       .on('presence', { event: 'leave' }, syncPresence)
       .subscribe(async (status) => {
-        if (status !== 'SUBSCRIBED' || !user?.id || !profile) return
+        if (status !== 'SUBSCRIBED' || !user?.id || !profile || profile.show_online === false) return
 
         try {
           await channel.track({
@@ -881,6 +881,7 @@ function App() {
     profile?.display_name,
     profile?.avatar_url,
     profile?.role,
+    profile?.show_online,
   ])
 
   useEffect(() => {
@@ -1029,7 +1030,7 @@ function App() {
       guestKey = 'guest-' + Date.now().toString(36)
     }
 
-    const presenceKey = user?.id || guestKey
+    const presenceKey = user?.id && profile?.show_online !== false ? user.id : guestKey
     const channel = supabase.channel('creativezone-topic-presence-' + routeTopicId, {
       config: { presence: { key: presenceKey } },
     })
@@ -1051,10 +1052,10 @@ function App() {
         if (status !== 'SUBSCRIBED') return
         await channel.track({
           viewer_key: presenceKey,
-          user_id: user?.id || null,
-          username: profile?.username || '',
-          display_name: profile?.display_name || profile?.username || 'Visitante',
-          avatar_url: profile?.avatar_url || '',
+          user_id: user?.id && profile?.show_online !== false ? user.id : null,
+          username: profile?.show_online !== false ? (profile?.username || '') : '',
+          display_name: profile?.show_online !== false ? (profile?.display_name || profile?.username || 'Visitante') : 'Visitante',
+          avatar_url: profile?.show_online !== false ? (profile?.avatar_url || '') : '',
           viewed_at: new Date().toISOString(),
         })
       })
@@ -1063,7 +1064,7 @@ function App() {
       channel.untrack().catch(() => {})
       supabase.removeChannel(channel)
     }
-  }, [routeTopicId, user?.id, profile?.username, profile?.display_name, profile?.avatar_url])
+  }, [routeTopicId, user?.id, profile?.username, profile?.display_name, profile?.avatar_url, profile?.show_online])
 
   useEffect(() => {
     let cancelled = false
@@ -1319,6 +1320,9 @@ function App() {
         content: editingTopicDraft.content.trim(),
         category_id: editingTopicDraft.categoryId,
       })
+      const names = String(editingTopicDraft.tags || '').split(',').map((value) => value.replace(/^#+/, '').trim()).filter(Boolean).slice(0,6)
+      const nextTags = await setTopicTags(routeTopicId, session.user.id, names)
+      setRouteTags(nextTags)
       setRouteTopic(mapTopic(updated))
       setEditingTopic(false)
       await refreshForum()
@@ -1958,6 +1962,7 @@ function App() {
                           title: routeTopic.title,
                           content: routeTopic.description,
                           categoryId: routeTopic.categoryId,
+                          tags: routeTags.map((tag) => tag.name).join(', '),
                         })
                         setEditingTopic(true)
                       }}
@@ -2004,14 +2009,20 @@ function App() {
                     </select>
                   </label>
                   <label>
+                    Tags
+                    <input
+                      value={editingTopicDraft.tags || ''}
+                      onChange={(event) => setEditingTopicDraft((draft) => ({ ...draft, tags: event.target.value }))}
+                      placeholder="#React, #IA, #Cloud"
+                    />
+                  </label>
+                  <label>
                     Conteúdo
-                    <textarea
-                      required
+                    <ProfessionalEditor
                       value={editingTopicDraft.content}
-                      onChange={(event) => setEditingTopicDraft((draft) => ({
-                        ...draft,
-                        content: event.target.value,
-                      }))}
+                      onChange={(value) => setEditingTopicDraft((draft) => ({ ...draft, content: value }))}
+                      required
+                      maxLength={12000}
                     />
                   </label>
                   <div className="route-actions">
@@ -2088,9 +2099,10 @@ function App() {
                   )}
                   {editingPostId === post.id ? (
                     <div className="inline-post-edit">
-                      <textarea
+                      <ProfessionalEditor
                         value={editingPostText}
-                        onChange={(event) => setEditingPostText(event.target.value)}
+                        onChange={setEditingPostText}
+                        maxLength={12000}
                       />
                       <div className="route-actions">
                         <button className="action primary-action" onClick={() => savePostEdit(post.id)}>
