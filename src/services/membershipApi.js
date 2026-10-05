@@ -207,3 +207,46 @@ export function membershipLabel(membership) {
   if (!membership) return 'FREE'
   return membership.badge || membership.plan_id?.toUpperCase() || 'FREE'
 }
+
+
+export async function getHistoricalBadgeAdminData() {
+  const client = requireSupabase()
+  const slugs = ['beta-tester','pioneer-creativezone','early-supporter']
+  const [profiles, badges, awards] = await Promise.all([
+    client
+      .from('profiles')
+      .select('id,username,display_name,avatar_url,system_owner')
+      .eq('account_status','active')
+      .order('created_at')
+      .limit(200),
+    client
+      .from('badges')
+      .select('id,slug,name,description,icon')
+      .in('slug', slugs)
+      .order('name'),
+    client
+      .from('user_badges')
+      .select('user_id,badge_id,awarded_at'),
+  ])
+
+  for (const result of [profiles,badges,awards]) {
+    if (result.error) throw result.error
+  }
+
+  const badgeIds = new Set((badges.data || []).map((badge) => badge.id))
+  return {
+    profiles: profiles.data || [],
+    badges: badges.data || [],
+    awards: (awards.data || []).filter((award) => badgeIds.has(award.badge_id)),
+  }
+}
+
+export async function manageHistoricalBadge(userId, badgeSlug, grant = true) {
+  const client = requireSupabase()
+  const { error } = await client.rpc('manage_historical_badge', {
+    p_user_id: userId,
+    p_badge_slug: badgeSlug,
+    p_grant: Boolean(grant),
+  })
+  if (error) throw error
+}
