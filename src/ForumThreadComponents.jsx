@@ -35,10 +35,14 @@ export function ThreadAuthorPanel({
   navigate,
   fallbackName = 'Membro',
   fallbackAvatar = '',
+  decoration = null,
 }) {
   const name = profile?.display_name || profile?.username || fallbackName
   const username = profile?.username
   const avatar = profile?.avatar_url || fallbackAvatar
+  const cosmetics = decoration?.cosmetics || {}
+  const membership = decoration?.membership || null
+  const isOwner = Boolean(decoration?.system_owner)
   const openProfile = () => {
     if (username) navigate('/membro/' + encodeURIComponent(username))
   }
@@ -50,14 +54,26 @@ export function ThreadAuthorPanel({
         onClick={openProfile}
         disabled={!username}
       >
-        {avatar ? (
-          <img src={avatar} alt="" />
-        ) : (
-          <span className="thread-profile-fallback">{name.slice(0, 1).toUpperCase()}</span>
-        )}
-        <strong>{name}</strong>
+        <span className={'thread-avatar-frame frame-' + (cosmetics.avatar_frame || 'none')}>
+          {avatar ? (
+            <img src={avatar} alt="" />
+          ) : (
+            <span className="thread-profile-fallback">{name.slice(0, 1).toUpperCase()}</span>
+          )}
+        </span>
+        <strong style={cosmetics.name_color ? { color: cosmetics.name_color } : undefined}>{name}</strong>
         {username && <small>@{username}</small>}
+        {cosmetics.profile_title && <em className="thread-profile-title">{cosmetics.profile_title}</em>}
       </button>
+
+      <div className="thread-identity-badges">
+        {isOwner && <span className="identity-badge architect">🏗️ Arquiteto CreativeZone</span>}
+        {membership?.plan_id && membership.plan_id !== 'free' && (
+          <span className={'identity-badge membership-' + membership.plan_id + ' style-' + (cosmetics.badge_style || 'default')}>
+            {membership.badge}{membership.permanent ? ' ∞' : ''}
+          </span>
+        )}
+      </div>
 
       <span className={'thread-role-badge role-' + (profile?.role || 'member')}>
         <ShieldCheck />
@@ -111,6 +127,7 @@ export function ThreadPostCard({
   children,
   actions,
   signature,
+  decoration,
 }) {
   return (
     <article className={'thread-post-card ' + (original ? 'thread-post-original' : '')}>
@@ -120,6 +137,7 @@ export function ThreadPostCard({
         navigate={navigate}
         fallbackName={fallbackName}
         fallbackAvatar={fallbackAvatar}
+        decoration={decoration}
       />
 
       <div className="thread-post-content">
