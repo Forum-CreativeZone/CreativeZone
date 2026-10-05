@@ -305,6 +305,21 @@ export function CommunityChat({
   }, [])
 
   useEffect(() => {
+    let targetId = null
+    try { targetId = sessionStorage.getItem('creativezone-chat-focus') } catch {}
+
+    if (targetId && visibleMessages.some((message) => message.id === targetId)) {
+      rememberCollapsed(false)
+      window.setTimeout(() => {
+        const element = document.getElementById('chat-message-' + targetId)
+        element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        element?.classList.add('is-focused-report')
+        window.setTimeout(() => element?.classList.remove('is-focused-report'), 2600)
+      }, 120)
+      try { sessionStorage.removeItem('creativezone-chat-focus') } catch {}
+      return
+    }
+
     if (collapsed || !shouldStickToBottom.current) return
     const area = messagesRef.current
     if (area) area.scrollTop = area.scrollHeight
