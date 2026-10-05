@@ -64,15 +64,32 @@ export async function checkLeakedPassword(password) {
   }
 }
 
-export async function signUp(email, password, profile = {}) {
+// Compatibility for the current registration form. The real validation remains
+// centralized in checkLeakedPassword/signUp so direct Auth calls cannot bypass it.
+globalThis.checkCompromisedPassword = async (password) => {
+  const result = await checkLeakedPassword(password)
+  return result.leaked
+}
+
+export async function signUp(emailOrOptions, passwordArg, profileArg = {}) {
   const client = requireSupabase()
+  const optionsMode = emailOrOptions && typeof emailOrOptions === 'object'
+  const email = optionsMode ? emailOrOptions.email : emailOrOptions
+  const password = optionsMode ? emailOrOptions.password : passwordArg
+  const profile = optionsMode
+    ? {
+        username: emailOrOptions.username,
+        display_name: emailOrOptions.displayName || emailOrOptions.display_name,
+      }
+    : profileArg
+
   if (String(password || '').length < 10) {
     const error = new Error('A senha precisa ter pelo menos 10 caracteres.')
     error.code = 'creativezone_weak_password'
     throw error
   }
-  const passwordCheck = await checkLeakedPassword(password)
 
+  const passwordCheck = await checkLeakedPassword(password)
   if (passwordCheck.leaked) {
     const error = new Error(
       'Esta senha foi bloqueada porque já apareceu em vazamentos de dados conhecidos. Escolha uma senha nova, exclusiva e que você não use em outros sites.'
@@ -94,8 +111,12 @@ export async function signUp(email, password, profile = {}) {
   return data
 }
 
-export async function signIn(email, password) {
+export async function signIn(emailOrOptions, passwordArg) {
   const client = requireSupabase()
+  const optionsMode = emailOrOptions && typeof emailOrOptions === 'object'
+  const email = optionsMode ? emailOrOptions.email : emailOrOptions
+  const password = optionsMode ? emailOrOptions.password : passwordArg
+
   const { data, error } = await client.auth.signInWithPassword({
     email,
     password,
@@ -190,7 +211,6 @@ export async function getSession() {
   return data.session
 }
 
-
 async function getExternalProviders() {
   const url = import.meta.env.VITE_SUPABASE_URL
   const key =
@@ -237,7 +257,6 @@ export async function signInWithOAuthProvider(provider) {
   if (error) throw error
   return data
 }
-
 
 export function getAuthErrorMessage(error) {
   if (!error) return 'Não foi possível concluir a autenticação.'
