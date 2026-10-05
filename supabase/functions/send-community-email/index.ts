@@ -113,7 +113,7 @@ function renderHtml(job: any, copy: any, url: string) {
   const name = esc(job.recipient?.display_name || job.recipient?.username || "membro")
   const actor = esc(job.actor?.display_name || job.actor?.username || "CreativeZone")
   const excerpt = copy.excerpt
-    ? `<div style="margin:22px 0 0;padding:16px 18px;border-left:3px solid #13b6ff;border-radius:8px;background:#0d151f;color:#c9d7e5;font-size:14px;line-height:1.65;">${esc(copy.excerpt)}</div>`
+    ? `<div style="margin:22px 0 0;padding:16px 18px;border-left:3px solid #ef2b24;border-radius:8px;background:#160d0d;color:#c9d7e5;font-size:14px;line-height:1.65;">${esc(copy.excerpt)}</div>`
     : ""
 
   return `<!doctype html>
@@ -128,23 +128,23 @@ function renderHtml(job: any, copy: any, url: string) {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#060a0f;padding:28px 12px;">
 <tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;background:#0a1018;border:1px solid #1d2a38;border-radius:18px;overflow:hidden;">
-<tr><td style="height:4px;background:#13b6ff;font-size:0;line-height:0;">&nbsp;</td></tr>
+<tr><td style="height:4px;background:#ef2b24;font-size:0;line-height:0;">&nbsp;</td></tr>
 <tr><td style="padding:26px 28px 18px;">
 <table role="presentation" cellpadding="0" cellspacing="0"><tr>
 <td width="64"><img src="${LOGO_URL}" width="52" height="52" alt="CreativeZone" style="display:block;width:52px;height:52px;object-fit:contain;"></td>
-<td><div style="font-size:19px;font-weight:800;color:#fff;">Creative<span style="color:#26c9ff;">Zone</span></div><div style="font-size:11px;letter-spacing:2px;color:#6d8297;margin-top:3px;">COMUNIDADE CREATIVE LAB</div></td>
+<td><div style="font-size:19px;font-weight:800;color:#fff;">Creative<span style="color:#ff3b30;">Zone</span></div><div style="font-size:11px;letter-spacing:2px;color:#6d8297;margin-top:3px;">COMUNIDADE CREATIVE LAB</div></td>
 </tr></table>
 </td></tr>
 <tr><td style="padding:12px 28px 30px;">
-<div style="font-size:11px;font-weight:800;letter-spacing:1.7px;color:#28c7ff;margin-bottom:12px;">${esc(copy.eyebrow)}</div>
+<div style="font-size:11px;font-weight:800;letter-spacing:1.7px;color:#ff3b30;margin-bottom:12px;">${esc(copy.eyebrow)}</div>
 <h1 style="margin:0 0 14px;font-size:29px;line-height:1.2;color:#fff;font-weight:800;">${esc(copy.title)}</h1>
 <p style="margin:0;color:#9fb0c1;font-size:15px;line-height:1.7;">Olá, ${name}. ${esc(copy.message)}</p>
 ${excerpt}
 ${job.actor ? `<div style="margin-top:22px;color:#f7fbff;font-size:14px;font-weight:700;">${actor}${job.actor?.username ? ` <span style="color:#73879a;font-weight:400;">@${esc(job.actor.username)}</span>` : ""}</div>` : ""}
-<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:28px;"><tr><td style="border-radius:10px;background:#159ee8;"><a href="${esc(url)}" target="_blank" style="display:inline-block;padding:13px 22px;color:#fff;text-decoration:none;font-size:14px;font-weight:800;border-radius:10px;">${esc(copy.cta)} →</a></td></tr></table>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:28px;"><tr><td style="border-radius:10px;background:#d9231b;"><a href="${esc(url)}" target="_blank" style="display:inline-block;padding:13px 22px;color:#fff;text-decoration:none;font-size:14px;font-weight:800;border-radius:10px;">${esc(copy.cta)} →</a></td></tr></table>
 </td></tr>
 <tr><td style="padding:18px 28px;background:#080d13;border-top:1px solid #172230;font-size:11px;line-height:1.6;color:#687b8d;">
-Você recebeu este e-mail conforme suas preferências. <a href="${SITE_URL}/conta/alertas" style="color:#70d7ff;text-decoration:none;">Gerenciar alertas</a>
+Você recebeu este e-mail conforme suas preferências. <a href="${SITE_URL}/conta/alertas" style="color:#ff6159;text-decoration:none;">Gerenciar alertas</a>
 </td></tr>
 </table>
 </td></tr></table>
