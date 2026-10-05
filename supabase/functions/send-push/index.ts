@@ -24,7 +24,7 @@ const typeTitles: Record<string, string> = {
 
 const prefColumns: Record<string, string> = {
   new_reply: "push_reply",
-  topic_watch: "push_reply",
+  topic_watch: "push_watch",
   mention: "push_mention",
   quote: "push_quote",
   reaction: "push_reaction",
@@ -75,7 +75,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: settings } = await service
     .from("account_settings")
-    .select("push_enabled,push_reply,push_mention,push_quote,push_reaction,push_follower,push_dm,push_moderation")
+    .select("push_enabled,push_reply,push_watch,push_mention,push_quote,push_reaction,push_follower,push_dm,push_moderation")
     .eq("user_id", notification.user_id)
     .maybeSingle();
 
