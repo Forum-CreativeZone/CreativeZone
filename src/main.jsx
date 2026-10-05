@@ -841,48 +841,84 @@ function App() {
 
   const topicMatch = path.match(/^\/topico\/([^/]+)$/)
   const routeTopicId = topicMatch ? decodeURIComponent(topicMatch[1]) : null
-  const routeTopic = routeTopicId ? topics.find((topic) => topic.id === routeTopicId) : null
   const memberMatch = path.match(/^\/membro\/([^/]+)$/)
   const routeMemberUsername = memberMatch ? decodeURIComponent(memberMatch[1]) : null
   const accountMatch = path.match(/^\/conta(?:\/([^/]+))?$/)
   const accountSection = accountMatch ? (accountMatch[1] || 'perfil') : null
   const messagesMatch = path.match(/^\/mensagens(?:\/([^/]+))?$/)
   const messageUsername = messagesMatch?.[1] ? decodeURIComponent(messagesMatch[1]) : null
+  const projectMatch = path.match(/^\/projetos\/([^/]+)$/)
+  const routeProjectSlug = projectMatch?.[1] ? decodeURIComponent(projectMatch[1]) : null
 
   useEffect(() => {
-    if (!routeTopicId) {
-      setThreadReplies([])
-      return
+    let cancelled = false
+
+    async function loadThread() {
+      if (!routeTopicId) {
+        setRouteTopic(null)
+        setThreadReplies([])
+        setTopicMedia([])
+        setPostMedia({})
+        return
+      }
+
+      try {
+        const [rawTopic, posts, media] = await Promise.all([
+          getTopicById(routeTopicId),
+          getPosts(routeTopicId),
+          getTopicMedia(routeTopicId),
+        ])
+        if (cancelled) return
+        setRouteTopic(mapTopic(rawTopic))
+        setThreadReplies(posts)
+        setTopicMedia(media)
+
+        const pairs = await Promise.all(
+          posts.map(async (post) => {
+            try {
+              return [post.id, await getPostMedia(post.id)]
+            } catch {
+              return [post.id, []]
+            }
+          })
+        )
+        if (!cancelled) setPostMedia(Object.fromEntries(pairs))
+      } catch {
+        if (!cancelled) {
+          setRouteTopic(null)
+          setThreadReplies([])
+          setTopicMedia([])
+          setPostMedia({})
+          setToast('Não foi possível carregar o tópico.')
+        }
+      }
     }
 
-    getPosts(routeTopicId)
-      .then(setThreadReplies)
-      .catch(() => {
-        setThreadReplies([])
-        setToast('Não foi possível carregar as respostas.')
-      })
+    loadThread()
+    return () => { cancelled = true }
   }, [routeTopicId])
 
-  const searched = topics.filter(
-    (topic) =>
-      !ignoredIds.includes(topic.authorId) &&
-      (!filter || topic.category === filter) &&
-      (!query ||
-        (topic.title + ' ' + topic.user + ' ' + topic.description)
-          .toLowerCase()
-          .includes(query.toLowerCase()))
-  )
+  useEffect(() => {
+    if (query.trim().length < 2) {
+      setSearchResults([])
+      return undefined
+    }
 
-  const total = Math.max(1, Math.ceil(searched.length / 3))
+    const timer = setTimeout(() => {
+      searchForum(query, { limit: 12 })
+        .then(setSearchResults)
+        .catch(() => setSearchResults([]))
+    }, 220)
+
+    return () => clearTimeout(timer)
+  }, [query])
+
+  const total = Math.max(1, Math.ceil(topicCount / 3))
   const currentPage = Math.min(page, total)
-  const recent = searched.slice((currentPage - 1) * 3, currentPage * 3)
-  const popular = [...searched].sort((a, b) => b.views - a.views)
-  const popularTotal = Math.max(1, Math.ceil(popular.length / 3))
+  const recent = topics
+  const popularTotal = Math.max(1, Math.ceil(popularTopicCount / 3))
   const currentPopularPage = Math.min(popularPage, popularTotal)
-  const displayedPopular = popular.slice(
-    (currentPopularPage - 1) * 3,
-    currentPopularPage * 3
-  )
+  const displayedPopular = popularTopics
   const visibleActivity = activity.filter((item) => !ignoredIds.includes(item.authorId))
 
   async function favorite(id) {
