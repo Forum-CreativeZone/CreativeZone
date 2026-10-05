@@ -2446,10 +2446,15 @@ function App() {
               autoFocus
               placeholder="O que você procura?"
             />
-            <button className="action" type="submit">
-              <Icon name="search" />
-              Buscar
-            </button>
+            <div className="overlay-search-actions">
+              <button className="action primary-action" type="submit">
+                <Icon name="search" />
+                Buscar rápido
+              </button>
+              <button className="action" type="button" onClick={() => { setOverlay(null); navigate('/buscar') }}>
+                Busca avançada
+              </button>
+            </div>
           </form>
         </OverlayPanel>
       )}
