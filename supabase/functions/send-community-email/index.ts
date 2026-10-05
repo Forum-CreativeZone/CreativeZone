@@ -39,6 +39,18 @@ function copyFor(job: any) {
       excerpt,
       cta: "Ver resposta",
     },
+    topic_watch: {
+      subject: `Atualização em “${topic}” — CreativeZone`,
+      eyebrow: "TÓPICO ACOMPANHADO",
+      title: "Há novidade em um tópico que você está assistindo",
+      message: job.notification_data?.event === "reply"
+        ? `${actor} respondeu em “${topic}”.`
+        : job.notification_data?.event === "reply_update"
+          ? `Uma resposta em “${topic}” foi atualizada.`
+          : `O tópico “${topic}” foi atualizado.`,
+      excerpt,
+      cta: "Abrir tópico",
+    },
     mention: {
       subject: `${actor} mencionou você — CreativeZone`,
       eyebrow: "VOCÊ FOI MENCIONADO",
