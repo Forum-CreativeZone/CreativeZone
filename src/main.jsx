@@ -259,9 +259,15 @@ function OverlayPanel({ title, onClose, children, wide = false, variant = '' }) 
   )
 }
 
-function PageShell({ title, children, onBack, wide = false }) {
+function PageShell({ title, children, onBack, wide = false, full = false }) {
   return (
-    <section className={'standalone-page ' + (wide ? 'wide-page' : '')}>
+    <section
+      className={
+        'standalone-page ' +
+        (wide ? 'wide-page ' : '') +
+        (full ? 'full-page' : '')
+      }
+    >
       <div className="page-card">
         <div className="page-titlebar">
           <div>
@@ -1305,7 +1311,7 @@ function App() {
 
     if (isAbout) {
       return (
-        <PageShell title="CreativeZone" onBack={() => navigate('/')}>
+        <PageShell title="CreativeZone" onBack={() => navigate('/')} full>
           <div className="panel-content about-page">
             <section className="about-intro">
               <span className="about-kicker">COMUNIDADE • IDEIAS • PROJETOS</span>
