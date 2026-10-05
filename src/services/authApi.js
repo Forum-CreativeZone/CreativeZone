@@ -148,6 +148,36 @@ export async function updateAccountPassword(password, nonce) {
   return data
 }
 
+export async function requestPasswordReset(email) {
+  const client = requireSupabase()
+  const redirectTo =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/redefinir-senha`
+      : undefined
+
+  const { error } = await client.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  })
+  if (error) throw error
+}
+
+export async function updateRecoveredPassword(password) {
+  const client = requireSupabase()
+  const passwordCheck = await checkLeakedPassword(password)
+
+  if (passwordCheck.leaked) {
+    const error = new Error(
+      'Esta senha foi bloqueada porque já apareceu em vazamentos de dados conhecidos. Escolha uma senha nova, exclusiva e que você não use em outros sites.'
+    )
+    error.code = 'creativezone_leaked_password'
+    throw error
+  }
+
+  const { data, error } = await client.auth.updateUser({ password })
+  if (error) throw error
+  return data
+}
+
 export async function getSession() {
   if (!supabase) return null
 
