@@ -170,24 +170,38 @@
 
 .social-auth-icon{display:block;width:22px;height:22px;object-fit:contain;flex:0 0 22px}
 
-/* Search + notifications are intentional overlays; the rest of the forum remains page-based. */
-.overlay-backdrop{position:fixed;inset:0;z-index:1000;background:#000b;display:grid;place-items:center;padding:20px}
-.overlay-panel{width:min(620px,100%);max-height:min(82vh,760px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 18px 60px #0008}
-.overlay-panel.wide{width:min(900px,100%)}
-.overlay-head{min-height:56px;padding:0 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--red)}
-.overlay-head h2{font-size:18px;font-weight:500;color:var(--red)}
-.overlay-head>button{width:28px;height:28px;display:grid;place-items:center;border-radius:50%;border:1px solid currentColor}
-.overlay-head svg{width:16px;height:16px}
-.overlay-search-form{max-width:none}
+/* Header popovers: search and notifications use the same compact pattern as the profile menu. */
+.overlay-backdrop{position:fixed;inset:0;z-index:78;background:transparent;padding:0}
+.overlay-panel{position:absolute;z-index:80;top:62px;right:22px;width:330px;max-height:min(70vh,560px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 18px 50px #0008}
+.overlay-panel.wide{width:390px}
+.overlay-panel-search{right:190px;width:370px}
+.overlay-panel-notifications{right:66px;width:390px}
+.overlay-head{min-height:48px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+.overlay-head h2{font-size:15px;font-weight:600;color:var(--red)}
+.overlay-head>button{width:24px;height:24px;display:grid;place-items:center;border-radius:50%;border:1px solid currentColor}
+.overlay-head svg{width:14px;height:14px}
+.overlay-search-form{max-width:none;padding:16px}
+.overlay-search-form label{font-size:12px;color:#aaa;margin-bottom:7px}
+.overlay-search-form input{height:42px;margin-bottom:12px;padding:10px 12px;font-size:14px}
+.overlay-search-form .action{padding:6px 9px}
 .overlay-notifications{display:grid;gap:0}
-.overlay-notifications button{display:flex;gap:12px;text-align:left;padding:12px;border-bottom:1px solid var(--line)}
+.overlay-notifications button{display:flex;gap:10px;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
 .overlay-notifications button:last-of-type{border-bottom:0}
 .overlay-notifications strong{color:var(--red);font-weight:500}
-:root[data-theme="light"] .overlay-panel{box-shadow:0 18px 60px #0003}
+.personal-notifications{padding:8px}
+.personal-notifications>button:not(.mark-all-overlay){padding:10px 8px}
+.mark-all-overlay{margin:3px 4px 8px}
+:root[data-theme="light"] .overlay-panel{box-shadow:0 18px 50px #0003}
+@media(min-width:761px) and (max-width:1250px){
+  .overlay-panel-search{right:156px}
+  .overlay-panel-notifications{right:58px}
+}
 @media(max-width:760px){
-  .overlay-backdrop{padding:12px}
-  .overlay-panel{width:100%;max-height:86dvh}
-  .overlay-head{min-height:52px}
+  .overlay-panel,
+  .overlay-panel.wide,
+  .overlay-panel-search,
+  .overlay-panel-notifications{position:fixed;top:68px;left:10px;right:10px;width:auto;max-height:65dvh}
+  .overlay-head{min-height:48px}
 }
 
 
