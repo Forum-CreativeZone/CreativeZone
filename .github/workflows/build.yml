@@ -20,10 +20,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.19.5
+          node-version: 22.20.0
+
+      - name: Upgrade npm
+        run: npm install --global npm@11.6.2
 
       - name: Install dependencies and generate lockfile
-        run: npm install
+        run: npm install --legacy-peer-deps --no-audit --no-fund
 
       - name: Commit regenerated lockfile
         if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
@@ -57,10 +60,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.19.5
+          node-version: 22.20.0
+
+      - name: Upgrade npm
+        run: npm install --global npm@11.6.2
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps --no-audit --no-fund
 
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
