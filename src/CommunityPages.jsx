@@ -616,6 +616,7 @@ function AccountNotifications({ data, reload, userId, navigate }) {
 function notificationTitle(item) {
   return {
     new_reply: 'Nova resposta no seu tópico',
+    topic_watch: 'Atualização em tópico assistido',
     mention: 'Você foi mencionado',
     quote: 'Sua publicação foi citada',
     reaction: 'Você recebeu uma reação',
