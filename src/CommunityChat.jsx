@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  AtSign,
   Ban,
   ChevronDown,
   ChevronUp,
@@ -46,7 +47,7 @@ function roleLabel(role) {
 }
 
 function ChatText({ text = '', navigate }) {
-  const parts = String(text).split(/(https?:\/\/[^\s]+|@[A-Za-z0-9_.-]{3,50})/g)
+  const parts = String(text).split(/(https?:\/\/[^\s]+|@\[[^\]]{2,80}\]|@[A-Za-z0-9_.-]{3,50})/g)
 
   return (
     <>
@@ -65,8 +66,8 @@ function ChatText({ text = '', navigate }) {
           )
         }
 
-        if (/^@[A-Za-z0-9_.-]{3,50}$/.test(part)) {
-          const username = part.slice(1)
+        if (/^@\[[^\]]{2,80}\]$/.test(part) || /^@[A-Za-z0-9_.-]{3,50}$/.test(part)) {
+          const username = part.startsWith('@[') ? part.slice(2, -1) : part.slice(1)
           return (
             <button
               type="button"
@@ -412,6 +413,21 @@ export function CommunityChat({
     }
   }
 
+  function mentionUser(message) {
+    const username = message.author?.username
+    if (!username) return
+
+    const token = /^[A-Za-z0-9_.-]{3,50}$/.test(username)
+      ? '@' + username
+      : '@[' + username + ']'
+
+    setText((current) => {
+      const prefix = current && !/\s$/.test(current) ? current + ' ' : current
+      return prefix + token + ' '
+    })
+    setMenuId(null)
+  }
+
   function transformToTopic(message) {
     if (message.deleted_at || !message.content) return
     const author = message.author?.username || message.author?.display_name || 'membro'
@@ -647,6 +663,12 @@ export function CommunityChat({
                               }}
                             >
                               <Edit3 /> Editar
+                            </button>
+                          )}
+
+                          {session && !own && message.author?.username && (
+                            <button onClick={() => mentionUser(message)}>
+                              <AtSign /> Mencionar
                             </button>
                           )}
 
