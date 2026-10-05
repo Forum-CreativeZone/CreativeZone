@@ -294,6 +294,7 @@ const notificationRows = [
   ['follower','Novos seguidores'],
   ['dm','Mensagens diretas'],
   ['moderation','Avisos da moderação'],
+  ['membership','Assinatura VIP: ativação, vencimento e expiração'],
 ]
 
 export function NotificationPreferencesSection({ userId, settings, setSettings, notify }) {
