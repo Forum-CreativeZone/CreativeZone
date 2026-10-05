@@ -272,6 +272,9 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
     cosmetics = null,
   } = data
   const isSelf = currentId === profile.id
+  const historicalBadges = badges
+    .map((entry) => entry.badges)
+    .filter((badge) => ['beta-tester','pioneer-creativezone','early-supporter'].includes(badge?.slug))
   const activity = [...topics.map((item) => ({ kind: 'topic', date: item.created_at, item })), ...posts.map((item) => ({ kind: 'post', date: item.created_at, item }))].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,30)
   const birthParts = []
   if (profile.public_birth_day && profile.public_birth_month) birthParts.push(`${String(profile.public_birth_day).padStart(2,'0')}/${String(profile.public_birth_month).padStart(2,'0')}`)
@@ -322,6 +325,11 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
                 {membership.badge}{membership.permanent ? ' ∞' : ''}
               </b>
             )}
+            {historicalBadges.map((badge) => (
+              <b className={'identity-badge historical historical-' + badge.slug} key={badge.id}>
+                {badge.icon} {badge.name}
+              </b>
+            ))}
             <b className="identity-badge level">{reputationLevel(stats.reputation)}</b>
           </div>
           {profile.status_message && <p className="profile-status">{profile.status_message}</p>}
