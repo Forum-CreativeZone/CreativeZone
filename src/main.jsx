@@ -199,6 +199,30 @@ function ForumText({ content = '' }) {
   return <div className="forum-rendered-text">{parts.length ? parts : content}</div>
 }
 
+function ForumMediaList({ items = [] }) {
+  if (!items.length) return null
+  return (
+    <div className="forum-media-list">
+      {items.map((item) => (
+        <a
+          key={item.id}
+          href={item.signed_url || '#'}
+          target="_blank"
+          rel="noreferrer"
+          className={'forum-media-item ' + (isImageMedia(item) ? 'image' : 'file')}
+        >
+          {isImageMedia(item) && item.signed_url ? (
+            <img src={item.signed_url} alt={item.original_name || 'Anexo'} />
+          ) : (
+            <Paperclip />
+          )}
+          <span>{item.original_name || 'Anexo'}</span>
+        </a>
+      ))}
+    </div>
+  )
+}
+
 function Topic({ topic, onOpen, onFavorite, favorites, onMenu }) {
   const saved = favorites.includes(topic.id)
   return (
