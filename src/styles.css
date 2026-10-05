@@ -101,7 +101,48 @@
 .standalone-composer>label:first-child{margin-top:0}
 .guest-page{display:grid;gap:18px}
 .reply-login-box{margin-top:24px;padding:18px;border:1px solid var(--line);border-radius:6px;display:grid;gap:12px}
-.about-page{display:grid;gap:14px;line-height:1.6}
+.about-page{display:grid;gap:18px;line-height:1.65}
+.about-intro,.about-highlight,.about-github-card,.about-project-grid article,.about-closing{border:1px solid #ffffff12;border-radius:10px}
+.about-intro{padding:24px;background:linear-gradient(180deg,#ffffff05,#ffffff02)}
+.about-kicker{display:block;margin-bottom:8px;color:#ff3b30;font-size:11px;font-weight:800;letter-spacing:1.6px}
+.about-intro h2,.about-github-card h3,.about-highlight h3{margin:0 0 12px;color:#fff}
+.about-intro h2{font-size:27px;line-height:1.2}
+.about-intro p{color:#c8c8c8}
+.about-intro p+p{margin-top:12px}
+.about-intro strong,.about-closing strong{color:#fff}
+.about-highlight{padding:20px 22px;background:#b8291914;border-color:#7a211c}
+.about-highlight h3{font-size:19px;color:#ff5c52}
+.about-highlight p{color:#d0c3c2}
+.about-project-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.about-project-grid article{padding:18px;background:#ffffff04}
+.about-project-grid strong{display:block;margin-bottom:8px;color:#fff;font-size:15px}
+.about-project-grid p{color:#aaa;font-size:13px}
+.about-github-card{padding:22px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:22px;align-items:center;background:#090909}
+.about-github-card p{color:#b8b8b8}
+.github-community-link{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:10px 14px;border:1px solid var(--red);border-radius:6px;background:var(--red);color:#fff;font-size:13px;font-weight:700;white-space:nowrap}
+.github-community-link:hover{filter:brightness(1.08)}
+.github-community-link img{width:20px;height:20px;object-fit:contain}
+.about-closing{padding:18px 20px;text-align:center;color:#bbb;background:#ffffff03}
+:root[data-theme="light"] .about-intro,
+:root[data-theme="light"] .about-project-grid article,
+:root[data-theme="light"] .about-github-card,
+:root[data-theme="light"] .about-closing{border-color:#00000012;background:#fff}
+:root[data-theme="light"] .about-intro h2,
+:root[data-theme="light"] .about-github-card h3,
+:root[data-theme="light"] .about-project-grid strong,
+:root[data-theme="light"] .about-intro strong,
+:root[data-theme="light"] .about-closing strong{color:#191919}
+:root[data-theme="light"] .about-intro p,
+:root[data-theme="light"] .about-github-card p,
+:root[data-theme="light"] .about-closing{color:#555}
+:root[data-theme="light"] .about-project-grid p{color:#666}
+@media(max-width:760px){
+  .about-intro{padding:18px}
+  .about-intro h2{font-size:22px}
+  .about-project-grid{grid-template-columns:1fr}
+  .about-github-card{grid-template-columns:1fr;padding:18px}
+  .github-community-link{width:100%}
+}
 .profile-page-head{align-items:center}
 .toast{position:static;left:auto;bottom:auto;transform:none;margin:12px 44px 0;max-width:none;pointer-events:auto}
 :root[data-theme="light"] .page-card,
