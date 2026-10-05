@@ -4,7 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2"
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!
-const RESEND_FROM = Deno.env.get("RESEND_FROM") || "CreativeZone <onboarding@resend.dev>"
+const RESEND_FROM = Deno.env.get("RESEND_FROM") || "CreativeZone <notificacoes@ddsurvival.online>"
 const SITE_URL = "https://assets-forum.gestao-quiroz.workers.dev"
 const LOGO_URL = "https://raw.githubusercontent.com/Inosuke-Company/CreativeZone/main/assets/logo.png"
 
