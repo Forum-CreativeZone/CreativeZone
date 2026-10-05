@@ -34,6 +34,7 @@ import {
   getHistoricalBadgeAdminData,
   getMembershipPlans,
   manageHistoricalBadge,
+  rejectMembershipRequest,
 } from './services/membershipApi'
 
 const tabs = [
@@ -172,7 +173,7 @@ function MembersTab({ data, notify, reload }) {
   )
 }
 
-function VipTab({ data, plans, notify, reload }) {
+function VipTab({ data, plans, notify, reload, session }) {
   const members=data.members || []
   const [userId,setUserId]=useState('')
   const [planId,setPlanId]=useState('pro')
@@ -219,6 +220,20 @@ function VipTab({ data, plans, notify, reload }) {
     }
   }
 
+  async function rejectRequest(request) {
+    if(!window.confirm('Recusar a solicitação ' + request.reference_code + '?')) return
+    setBusy(true)
+    try {
+      await rejectMembershipRequest(request.id, session.user.id)
+      notify('Solicitação recusada.')
+      await reload()
+    } catch(error) {
+      notify(error?.message || 'Não foi possível recusar a solicitação.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const pending=(data.membership_requests || []).filter((item)=>item.status==='pending')
   const active=members.filter((item)=>item.membership_status==='active' && item.plan_id)
 
@@ -262,7 +277,10 @@ function VipTab({ data, plans, notify, reload }) {
               <small>{request.reference_code} · {request.plan_badge} · {request.months_requested} mês(es)</small>
               <b>{formatMoney(request.total_price_cents,request.currency)}</b>
             </div>
-            <button className="action primary-action" disabled={busy} onClick={()=>grant({request})}><Check /> Aprovar</button>
+            <div className="admin-payment-actions">
+              <button className="action primary-action" disabled={busy} onClick={()=>grant({request})}><Check /> Aprovar</button>
+              <button className="action danger-action" disabled={busy} onClick={()=>rejectRequest(request)}><X /> Recusar</button>
+            </div>
           </article>
         ))}
         {!pending.length && <p className="admin-empty">Nenhum pedido pendente.</p>}
@@ -549,7 +567,7 @@ export function AdminDashboard({ session, profile, navigate, notify }) {
           <div className="admin-tab-content">
             {tab==='overview' && <Overview data={data} onTab={setTab} />}
             {tab==='members' && <MembersTab data={data} notify={notify} reload={()=>reload()} />}
-            {tab==='vip' && <VipTab data={data} plans={plans} notify={notify} reload={()=>reload()} />}
+            {tab==='vip' && <VipTab data={data} plans={plans} notify={notify} reload={()=>reload()} session={session} />}
             {tab==='moderation' && <ModerationTab data={data} notify={notify} reload={()=>reload()} />}
             {tab==='projects' && <ProjectsTab data={data} notify={notify} reload={()=>reload()} />}
             {tab==='system' && <SystemTab data={data} notify={notify} reload={()=>reload()} />}
