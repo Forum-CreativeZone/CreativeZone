@@ -750,6 +750,7 @@ function App() {
   const [forumLoading, setForumLoading] = useState(true)
   const [forumError, setForumError] = useState('')
   const [profile, setProfile] = useState(null)
+  const [forumOnlineMembers, setForumOnlineMembers] = useState([])
   const [ignoredIds, setIgnoredIds] = useState([])
   const mobileThemes = useRef()
   const { session, user, loading: authLoading } = useAuth()
@@ -879,6 +880,70 @@ function App() {
       .then(setProfile)
       .catch((error) => console.error('Falha ao carregar perfil:', error))
   }, [user])
+
+  useEffect(() => {
+    if (!supabase) {
+      setForumOnlineMembers([])
+      return undefined
+    }
+
+    const options = user?.id
+      ? { config: { presence: { key: user.id } } }
+      : undefined
+
+    const channel = supabase.channel('creativezone-forum-presence-v1', options)
+
+    const syncPresence = () => {
+      const byUser = new Map()
+
+      Object.values(channel.presenceState() || {}).flat().forEach((presence) => {
+        if (!presence?.user_id) return
+        if (!byUser.has(presence.user_id)) byUser.set(presence.user_id, presence)
+      })
+
+      setForumOnlineMembers(
+        [...byUser.values()].sort((a, b) =>
+          String(a.display_name || a.username || '').localeCompare(
+            String(b.display_name || b.username || ''),
+            'pt-BR',
+            { sensitivity: 'base' }
+          )
+        )
+      )
+    }
+
+    channel
+      .on('presence', { event: 'sync' }, syncPresence)
+      .on('presence', { event: 'join' }, syncPresence)
+      .on('presence', { event: 'leave' }, syncPresence)
+      .subscribe(async (status) => {
+        if (status !== 'SUBSCRIBED' || !user?.id || !profile) return
+
+        try {
+          await channel.track({
+            user_id: user.id,
+            username: profile.username,
+            display_name: profile.display_name || profile.username || 'Membro',
+            avatar_url: profile.avatar_url || '',
+            role: profile.role || 'member',
+            online_at: new Date().toISOString(),
+          })
+        } catch (error) {
+          console.error('Falha ao publicar presença no fórum:', error)
+        }
+      })
+
+    return () => {
+      if (user?.id) channel.untrack().catch(() => {})
+      supabase.removeChannel(channel)
+    }
+  }, [
+    user?.id,
+    profile?.username,
+    profile?.display_name,
+    profile?.avatar_url,
+    profile?.role,
+  ])
 
   useEffect(() => {
     if (!user?.id) return
@@ -1342,6 +1407,7 @@ function App() {
         <CommunityChat
           session={session}
           profile={profile}
+          onlineMembers={forumOnlineMembers}
           ignoredIds={ignoredIds}
           navigate={navigate}
           notify={setToast}
