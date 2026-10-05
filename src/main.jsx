@@ -736,6 +736,9 @@ function App() {
   const [topicCount, setTopicCount] = useState(0)
   const [popularTopicCount, setPopularTopicCount] = useState(0)
   const [routeTopic, setRouteTopic] = useState(null)
+  const [threadAuthorStats, setThreadAuthorStats] = useState({})
+  const [watchingTopic, setWatchingTopic] = useState(false)
+  const [watchBusy, setWatchBusy] = useState(false)
   const [topicMedia, setTopicMedia] = useState([])
   const [postMedia, setPostMedia] = useState({})
   const [replyFiles, setReplyFiles] = useState([])
@@ -949,6 +952,8 @@ function App() {
       if (!routeTopicId) {
         setRouteTopic(null)
         setThreadReplies([])
+        setThreadAuthorStats({})
+        setWatchingTopic(false)
         setTopicMedia([])
         setPostMedia({})
         return
@@ -965,6 +970,13 @@ function App() {
         setThreadReplies(posts)
         setTopicMedia(media)
 
+        const authorIds = [
+          rawTopic?.author_id,
+          ...posts.map((post) => post.author_id),
+        ].filter(Boolean)
+        const stats = await getForumAuthorStats(authorIds)
+        if (!cancelled) setThreadAuthorStats(stats)
+
         const pairs = await Promise.all(
           posts.map(async (post) => {
             try {
@@ -979,6 +991,7 @@ function App() {
         if (!cancelled) {
           setRouteTopic(null)
           setThreadReplies([])
+          setThreadAuthorStats({})
           setTopicMedia([])
           setPostMedia({})
           setToast('Não foi possível carregar o tópico.')
@@ -989,6 +1002,27 @@ function App() {
     loadThread()
     return () => { cancelled = true }
   }, [routeTopicId])
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!routeTopicId || !user?.id) {
+      setWatchingTopic(false)
+      return undefined
+    }
+
+    isWatchingTopic(user.id, routeTopicId)
+      .then((value) => {
+        if (!cancelled) setWatchingTopic(value)
+      })
+      .catch(() => {
+        if (!cancelled) setWatchingTopic(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [routeTopicId, user?.id])
 
   useEffect(() => {
     if (query.trim().length < 2) {
@@ -1012,6 +1046,41 @@ function App() {
   const currentPopularPage = Math.min(popularPage, popularTotal)
   const displayedPopular = popularTopics
   const visibleActivity = activity.filter((item) => !ignoredIds.includes(item.authorId))
+  const categoryTree = useMemo(() => flattenCategoryTree(categories), [categories])
+  const routeCategoryPath = useMemo(
+    () => getCategoryPath(categories, routeTopic?.categoryId),
+    [categories, routeTopic?.categoryId]
+  )
+  const forumCategories = useMemo(
+    () => categories.filter((category) => category.node_type === 'forum'),
+    [categories]
+  )
+
+  async function toggleTopicWatch() {
+    if (!routeTopicId) return
+    if (!user?.id) {
+      setToast('Entre para assistir este tópico.')
+      navigate('/entrar')
+      return
+    }
+
+    setWatchBusy(true)
+    try {
+      if (watchingTopic) {
+        await unwatchTopic(user.id, routeTopicId)
+        setWatchingTopic(false)
+        setToast('Você deixou de assistir este tópico.')
+      } else {
+        await watchTopic(user.id, routeTopicId)
+        setWatchingTopic(true)
+        setToast('Agora você receberá notificações sobre novas atividades neste tópico.')
+      }
+    } catch (error) {
+      setToast(error?.message || 'Não foi possível alterar o acompanhamento deste tópico.')
+    } finally {
+      setWatchBusy(false)
+    }
+  }
 
   async function favorite(id) {
     if (!user?.id) {
