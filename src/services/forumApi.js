@@ -248,8 +248,8 @@ export async function watchTopic(userId, topicId) {
   const client = requireSupabase()
   const { error } = await client
     .from('topic_watches')
-    .upsert({ topic_id: topicId, user_id: userId }, { onConflict: 'topic_id,user_id' })
-  if (error) throw error
+    .insert({ topic_id: topicId, user_id: userId })
+  if (error && error.code !== '23505') throw error
 }
 
 export async function unwatchTopic(userId, topicId) {
