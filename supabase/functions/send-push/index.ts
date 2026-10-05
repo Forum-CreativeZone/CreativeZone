@@ -13,6 +13,7 @@ const SITE_URL = "https://assets-forum.gestao-quiroz.workers.dev";
 
 const typeTitles: Record<string, string> = {
   new_reply: "Nova resposta",
+  topic_watch: "Tópico acompanhado atualizado",
   mention: "Você foi mencionado",
   quote: "Sua publicação foi citada",
   reaction: "Nova reação",
@@ -23,6 +24,7 @@ const typeTitles: Record<string, string> = {
 
 const prefColumns: Record<string, string> = {
   new_reply: "push_reply",
+  topic_watch: "push_reply",
   mention: "push_mention",
   quote: "push_quote",
   reaction: "push_reaction",
@@ -96,7 +98,13 @@ Deno.serve(async (req: Request) => {
     title: typeTitles[notification.type] || "CreativeZone",
     body: notification.type === "moderation"
       ? "Você recebeu um novo aviso da moderação."
-      : actorName + " gerou uma nova atividade para você.",
+      : notification.type === "topic_watch"
+        ? (
+            notification.data?.event === "reply"
+              ? actorName + " respondeu a um tópico que você está assistindo."
+              : "Há uma atualização em um tópico que você está assistindo."
+          )
+        : actorName + " gerou uma nova atividade para você.",
     url: notificationUrl(notification),
     tag: "creativezone-" + notification.id,
   });
