@@ -37,3 +37,26 @@ test('community chat renders on the forum home', async ({ page }) => {
   await expect(page.getByText('Chat da Comunidade', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: /Entre na CreativeZone para participar do chat/i })).toBeVisible()
 })
+
+
+test('keeps login and signup forms vertically structured', async ({ page }) => {
+  await page.goto('/entrar')
+  await expect(page.getByRole('heading', { name: 'Entrar na CreativeZone' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Continuar com Google' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Continuar com GitHub' })).toBeVisible()
+
+  const email = page.getByLabel('E-mail')
+  const password = page.getByLabel('Senha')
+  const emailBox = await email.boundingBox()
+  const passwordBox = await password.boundingBox()
+
+  expect(emailBox?.width || 0).toBeGreaterThan(300)
+  expect(passwordBox?.width || 0).toBeGreaterThan(300)
+  expect((passwordBox?.y || 0)).toBeGreaterThan((emailBox?.y || 0))
+
+  await page.goto('/cadastro')
+  await expect(page.getByRole('heading', { name: 'Criar conta na CreativeZone' })).toBeVisible()
+  const usernameBox = await page.getByLabel('Nome de usuário').boundingBox()
+  const displayNameBox = await page.getByLabel('Nome exibido').boundingBox()
+  expect((displayNameBox?.y || 0)).toBeGreaterThan((usernameBox?.y || 0))
+})
