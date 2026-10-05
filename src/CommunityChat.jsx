@@ -429,7 +429,7 @@ export function CommunityChat({
   }
 
   function mentionUser(message) {
-    const username = message.author?.username
+    const username = message.author?.username || message.author_username
     if (!username) return
 
     const token = /^[A-Za-z0-9_.-]{3,50}$/.test(username)
@@ -445,7 +445,7 @@ export function CommunityChat({
 
   function transformToTopic(message) {
     if (message.deleted_at || !message.content) return
-    const author = message.author?.username || message.author?.display_name || 'membro'
+    const author = message.author?.username || message.author_username || message.author?.display_name || 'membro'
     const short = message.content.replace(/\s+/g, ' ').trim().slice(0, 80)
 
     try {
@@ -544,15 +544,19 @@ export function CommunityChat({
             {visibleMessages.map((message) => {
               const author =
                 message.author?.display_name ||
-                message.author?.username ||
+                message.author_display_name ||
+                message.author?.username || message.author_username ||
+                message.author_username ||
                 visibleOnlineMembers.find((item) => item.user_id === message.user_id)?.display_name ||
                 'Membro'
               const avatar =
                 message.author?.avatar_url ||
+                message.author_avatar_url ||
                 visibleOnlineMembers.find((item) => item.user_id === message.user_id)?.avatar_url ||
                 ''
               const role =
                 message.author?.role ||
+                message.author_role ||
                 visibleOnlineMembers.find((item) => item.user_id === message.user_id)?.role ||
                 'member'
               const reply = message.reply_to ? messageMap.get(message.reply_to) : null
@@ -576,8 +580,8 @@ export function CommunityChat({
                   <button
                     type="button"
                     className="community-chat-avatar"
-                    onClick={() => message.author?.username && navigate('/membro/' + encodeURIComponent(message.author.username))}
-                    disabled={!message.author?.username}
+                    onClick={() => message.author?.username || message.author_username && navigate('/membro/' + encodeURIComponent(message.author.username))}
+                    disabled={!message.author?.username || message.author_username}
                   >
                     {avatar ? (
                       <img src={avatar} alt="" />
@@ -590,8 +594,8 @@ export function CommunityChat({
                     <div className="community-chat-message-meta">
                       <button
                         type="button"
-                        onClick={() => message.author?.username && navigate('/membro/' + encodeURIComponent(message.author.username))}
-                        disabled={!message.author?.username}
+                        onClick={() => message.author?.username || message.author_username && navigate('/membro/' + encodeURIComponent(message.author.username))}
+                        disabled={!message.author?.username || message.author_username}
                       >
                         {author}
                       </button>
@@ -681,7 +685,7 @@ export function CommunityChat({
                             </button>
                           )}
 
-                          {session && !own && message.author?.username && (
+                          {session && !own && message.author?.username || message.author_username && (
                             <button onClick={() => mentionUser(message)}>
                               <AtSign /> Mencionar
                             </button>
