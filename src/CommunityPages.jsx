@@ -623,6 +623,7 @@ function notificationTitle(item) {
   return {
     new_reply: 'Nova resposta no seu tópico',
     mention: 'Você foi mencionado',
+    chat_mention: 'Menção no Chat da Comunidade',
     quote: 'Sua publicação foi citada',
     reaction: 'Você recebeu uma reação',
     new_follower: 'Novo seguidor',
