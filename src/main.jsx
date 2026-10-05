@@ -1922,7 +1922,7 @@ function App() {
                     >
                       {forumCategories.map((category) => (
                         <option key={category.id} value={category.id}>
-                          {category.name}
+                          {category.pathLabel || category.name}
                         </option>
                       ))}
                     </select>
