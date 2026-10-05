@@ -1,7 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   Check,
+  ChevronRight,
+  Folder,
+  FolderTree,
   Lightbulb,
+  MessageSquare,
   Pencil,
   Plus,
   Send,
@@ -17,6 +21,12 @@ import {
   updateCategory,
 } from './services/categoryApi'
 
+const nodeLabels = {
+  category: 'Categoria principal',
+  section: 'Subcategoria',
+  forum: 'Fórum',
+}
+
 function Shell({ children, navigate }) {
   return (
     <section className="community-page community-page-wide category-page">
@@ -29,6 +39,48 @@ function Shell({ children, navigate }) {
       </div>
     </section>
   )
+}
+
+function flattenCategories(categories) {
+  const byParent = new Map()
+  for (const category of categories || []) {
+    const key = category.parent_id || 'root'
+    const items = byParent.get(key) || []
+    items.push(category)
+    byParent.set(key, items)
+  }
+
+  for (const items of byParent.values()) {
+    items.sort((a, b) =>
+      Number(a.sort_order || 0) - Number(b.sort_order || 0) ||
+      String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
+    )
+  }
+
+  const result = []
+  const walk = (parentId, depth) => {
+    for (const item of byParent.get(parentId) || []) {
+      result.push({ ...item, depth })
+      walk(item.id, depth + 1)
+    }
+  }
+  walk('root', 0)
+  return result
+}
+
+function validParents(categories, nodeType, currentId = null) {
+  if (nodeType === 'category') return []
+  return (categories || []).filter((item) => {
+    if (item.id === currentId) return false
+    if (nodeType === 'section') return item.node_type === 'category'
+    return ['category', 'section'].includes(item.node_type)
+  })
+}
+
+function NodeIcon({ type }) {
+  if (type === 'category') return <FolderTree />
+  if (type === 'section') return <Folder />
+  return <MessageSquare />
 }
 
 export function CategorySuggestionButton({
@@ -89,7 +141,7 @@ export function CategorySuggestionButton({
             <header>
               <div>
                 <span>SUGESTÃO PARA O FÓRUM</span>
-                <strong>Qual categoria está faltando?</strong>
+                <strong>Qual área está faltando?</strong>
               </div>
               <button type="button" aria-label="Fechar" onClick={() => setOpen(false)}>
                 <X />
@@ -114,12 +166,12 @@ export function CategorySuggestionButton({
             </label>
 
             <label>
-              Por que essa categoria seria útil?
+              Por que essa área seria útil?
               <textarea
                 maxLength={1200}
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
-                placeholder="Explique o tipo de discussão que deveria ficar nessa categoria."
+                placeholder="Explique o tipo de discussão que deveria ficar nessa área."
               />
             </label>
 
@@ -144,18 +196,57 @@ export function CategoriesPage({
   onChanged,
 }) {
   const isAdmin = profile?.role === 'admin'
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    nodeType: 'forum',
+    parentId: '',
+    sortOrder: 0,
+  })
   const [editingId, setEditingId] = useState(null)
-  const [editDraft, setEditDraft] = useState({ name: '', description: '' })
+  const [editDraft, setEditDraft] = useState({
+    name: '',
+    description: '',
+    nodeType: 'forum',
+    parentId: '',
+    sortOrder: 0,
+  })
   const [suggestions, setSuggestions] = useState([])
   const [suggestionStatus, setSuggestionStatus] = useState('pending')
+  const [suggestionParents, setSuggestionParents] = useState({})
   const [busy, setBusy] = useState(false)
+
+  const flattened = useMemo(() => flattenCategories(categories), [categories])
+  const creationParents = validParents(categories, form.nodeType)
+  const editParents = validParents(categories, editDraft.nodeType, editingId)
+  const forumParents = (categories || []).filter((item) =>
+    ['category', 'section'].includes(item.node_type)
+  )
+
+  useEffect(() => {
+    if (form.nodeType === 'category') {
+      setForm((current) => ({ ...current, parentId: '' }))
+    } else if (!form.parentId && creationParents[0]) {
+      setForm((current) => ({ ...current, parentId: creationParents[0].id }))
+    }
+  }, [form.nodeType, categories])
 
   async function loadSuggestions() {
     if (!isAdmin) return
     try {
-      setSuggestions(await getCategorySuggestions(suggestionStatus))
+      const rows = await getCategorySuggestions(suggestionStatus)
+      setSuggestions(rows)
+      setSuggestionParents((current) => {
+        const next = { ...current }
+        const fallback =
+          (categories || []).find((item) => item.node_type === 'section')?.id ||
+          (categories || []).find((item) => item.node_type === 'category')?.id ||
+          ''
+        for (const row of rows) {
+          if (!next[row.id]) next[row.id] = fallback
+        }
+        return next
+      })
     } catch (error) {
       notify?.(error?.message || 'Não foi possível carregar as sugestões.')
     }
@@ -163,15 +254,25 @@ export function CategoriesPage({
 
   useEffect(() => {
     loadSuggestions()
-  }, [isAdmin, suggestionStatus])
+  }, [isAdmin, suggestionStatus, categories])
 
   async function addCategory(event) {
     event.preventDefault()
     setBusy(true)
     try {
-      await createCategory({ name, description })
-      setName('')
-      setDescription('')
+      await createCategory({
+        name: form.name,
+        description: form.description,
+        parentId: form.nodeType === 'category' ? null : form.parentId,
+        nodeType: form.nodeType,
+        sortOrder: form.sortOrder,
+      })
+      setForm((current) => ({
+        ...current,
+        name: '',
+        description: '',
+        sortOrder: 0,
+      }))
       await onChanged?.()
       notify?.('Categoria criada.')
     } catch (error) {
@@ -186,6 +287,9 @@ export function CategoriesPage({
     setEditDraft({
       name: category.name || '',
       description: category.description || '',
+      nodeType: category.node_type || 'forum',
+      parentId: category.parent_id || '',
+      sortOrder: Number(category.sort_order || 0),
     })
   }
 
@@ -193,7 +297,13 @@ export function CategoriesPage({
     event.preventDefault()
     setBusy(true)
     try {
-      await updateCategory(editingId, editDraft)
+      await updateCategory(editingId, {
+        name: editDraft.name,
+        description: editDraft.description,
+        parentId: editDraft.nodeType === 'category' ? null : editDraft.parentId,
+        nodeType: editDraft.nodeType,
+        sortOrder: editDraft.sortOrder,
+      })
       setEditingId(null)
       await onChanged?.()
       notify?.('Categoria atualizada.')
@@ -205,9 +315,9 @@ export function CategoriesPage({
   }
 
   async function remove(category) {
-    if (!window.confirm(`Excluir a categoria “${category.name}”?\n\nCategorias com tópicos não podem ser removidas até que o conteúdo seja movido ou excluído.`)) {
-      return
-    }
+    if (!window.confirm(
+      `Excluir “${category.name}”?\n\nÁreas que possuem tópicos ou subcategorias não podem ser removidas até que o conteúdo seja movido ou excluído.`
+    )) return
 
     setBusy(true)
     try {
@@ -239,20 +349,28 @@ export function CategoriesPage({
   }
 
   async function approveAndCreate(item) {
+    const parentId = suggestionParents[item.id]
+    if (!parentId) {
+      notify?.('Escolha onde a nova área deve ficar.')
+      return
+    }
+
     setBusy(true)
     try {
       await createCategory({
         name: item.suggested_name,
         description: item.description,
+        parentId,
+        nodeType: 'forum',
       })
       await reviewCategorySuggestion({
         suggestionId: item.id,
         reviewerId: session.user.id,
         status: 'approved',
-        adminNote: 'Categoria criada a partir desta sugestão.',
+        adminNote: 'Fórum criado a partir desta sugestão.',
       })
       await Promise.all([onChanged?.(), loadSuggestions()])
-      notify?.('Sugestão aprovada e categoria criada.')
+      notify?.('Sugestão aprovada e fórum criado.')
     } catch (error) {
       notify?.(error?.message || 'Não foi possível aprovar a sugestão.')
     } finally {
@@ -264,12 +382,12 @@ export function CategoriesPage({
     <Shell navigate={navigate}>
       <div className="categories-page-content">
         <section className="categories-intro">
-          <span>CATEGORIAS DO FÓRUM</span>
-          <h2>Organize as conversas sem engessar a comunidade.</h2>
+          <span>ESTRUTURA DO FÓRUM</span>
+          <h2>Categoria → Subcategoria → Fórum → Tópicos.</h2>
           <p>
-            As categorias existem para manter os tópicos fáceis de encontrar. Quando um assunto
-            novo ganhar espaço suficiente, os membros podem sugerir uma nova categoria para a
-            administração.
+            A CreativeZone usa uma hierarquia para organizar o conteúdo. Categorias principais
+            agrupam grandes áreas, subcategorias organizam seções e os fóruns são o nível em que
+            os membros publicam tópicos.
           </p>
           {!isAdmin && (
             <CategorySuggestionButton
@@ -284,17 +402,67 @@ export function CategoriesPage({
         <section className="category-directory">
           <div className="category-section-title">
             <div>
-              <span>ATIVAS</span>
-              <h2>Categorias disponíveis</h2>
+              <span>ESTRUTURA ATIVA</span>
+              <h2>Categorias e fóruns</h2>
             </div>
             <b>{categories.length}</b>
           </div>
 
-          <div className="category-directory-list">
-            {categories.map((category) => (
-              <article className="category-directory-card" key={category.id}>
+          <div className="category-directory-list category-tree-list">
+            {flattened.map((category) => (
+              <article
+                className={'category-directory-card category-node-' + category.node_type}
+                key={category.id}
+                style={{ '--category-depth': category.depth }}
+              >
                 {editingId === category.id ? (
                   <form className="category-inline-edit" onSubmit={saveEdit}>
+                    <div className="category-form-grid">
+                      <label>
+                        Tipo
+                        <select
+                          value={editDraft.nodeType}
+                          onChange={(event) => setEditDraft((draft) => ({
+                            ...draft,
+                            nodeType: event.target.value,
+                            parentId: event.target.value === 'category' ? '' : draft.parentId,
+                          }))}
+                        >
+                          <option value="category">Categoria principal</option>
+                          <option value="section">Subcategoria</option>
+                          <option value="forum">Fórum</option>
+                        </select>
+                      </label>
+                      {editDraft.nodeType !== 'category' && (
+                        <label>
+                          Pertence a
+                          <select
+                            required
+                            value={editDraft.parentId}
+                            onChange={(event) => setEditDraft((draft) => ({
+                              ...draft,
+                              parentId: event.target.value,
+                            }))}
+                          >
+                            <option value="">Selecione...</option>
+                            {editParents.map((parent) => (
+                              <option key={parent.id} value={parent.id}>{parent.name}</option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+                      <label>
+                        Ordem
+                        <input
+                          type="number"
+                          value={editDraft.sortOrder}
+                          onChange={(event) => setEditDraft((draft) => ({
+                            ...draft,
+                            sortOrder: event.target.value,
+                          }))}
+                        />
+                      </label>
+                    </div>
                     <label>
                       Nome
                       <input
@@ -334,13 +502,19 @@ export function CategoriesPage({
                   </form>
                 ) : (
                   <>
-                    <div>
-                      <strong>{category.name}</strong>
-                      <p>{category.description || 'Categoria da comunidade CreativeZone.'}</p>
+                    <div className="category-node-main">
+                      <span className="category-node-icon"><NodeIcon type={category.node_type} /></span>
+                      <span>
+                        <small className="category-node-type">
+                          {nodeLabels[category.node_type] || 'Fórum'}
+                        </small>
+                        <strong>{category.name}</strong>
+                        <p>{category.description || 'Área da comunidade CreativeZone.'}</p>
+                      </span>
                     </div>
                     <div className="category-admin-actions">
                       <button className="action" onClick={() => onChoose?.(category.name)}>
-                        Abrir tópicos
+                        Abrir <ChevronRight />
                       </button>
                       {isAdmin && (
                         <>
@@ -372,19 +546,68 @@ export function CategoriesPage({
             <div className="category-section-title">
               <div>
                 <span>ADMINISTRAÇÃO</span>
-                <h2>Adicionar categoria</h2>
+                <h2>Adicionar área</h2>
               </div>
               <Plus />
             </div>
             <form className="category-create-form" onSubmit={addCategory}>
+              <div className="category-form-grid">
+                <label>
+                  Tipo
+                  <select
+                    value={form.nodeType}
+                    onChange={(event) => setForm((current) => ({
+                      ...current,
+                      nodeType: event.target.value,
+                      parentId: event.target.value === 'category' ? '' : current.parentId,
+                    }))}
+                  >
+                    <option value="category">Categoria principal</option>
+                    <option value="section">Subcategoria</option>
+                    <option value="forum">Fórum</option>
+                  </select>
+                </label>
+                {form.nodeType !== 'category' && (
+                  <label>
+                    Pertence a
+                    <select
+                      required
+                      value={form.parentId}
+                      onChange={(event) => setForm((current) => ({
+                        ...current,
+                        parentId: event.target.value,
+                      }))}
+                    >
+                      <option value="">Selecione...</option>
+                      {creationParents.map((parent) => (
+                        <option key={parent.id} value={parent.id}>{parent.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <label>
+                  Ordem
+                  <input
+                    type="number"
+                    value={form.sortOrder}
+                    onChange={(event) => setForm((current) => ({
+                      ...current,
+                      sortOrder: event.target.value,
+                    }))}
+                  />
+                </label>
+              </div>
               <label>
                 Nome
                 <input
                   required
                   minLength={3}
                   maxLength={80}
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
+                  value={form.name}
+                  onChange={(event) => setForm((current) => ({
+                    ...current,
+                    name: event.target.value,
+                  }))}
                   placeholder="Ex.: Inteligência Artificial"
                 />
               </label>
@@ -392,13 +615,16 @@ export function CategoriesPage({
                 Descrição
                 <textarea
                   maxLength={1200}
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                  placeholder="Explique quais discussões pertencem a esta categoria."
+                  value={form.description}
+                  onChange={(event) => setForm((current) => ({
+                    ...current,
+                    description: event.target.value,
+                  }))}
+                  placeholder="Explique quais discussões pertencem a esta área."
                 />
               </label>
               <button className="action primary-action" disabled={busy}>
-                <Plus /> Criar categoria
+                <Plus /> Criar
               </button>
             </form>
           </section>
@@ -437,22 +663,39 @@ export function CategoriesPage({
                     {new Date(item.created_at).toLocaleString('pt-BR')} · {item.status}
                   </small>
                   {item.status === 'pending' && (
-                    <div className="category-admin-actions">
-                      <button
-                        className="action primary-action"
-                        disabled={busy}
-                        onClick={() => approveAndCreate(item)}
-                      >
-                        <Check /> Aprovar e criar
-                      </button>
-                      <button
-                        className="action danger-action"
-                        disabled={busy}
-                        onClick={() => reviewSuggestion(item, 'declined')}
-                      >
-                        <X /> Recusar
-                      </button>
-                    </div>
+                    <>
+                      <label className="suggestion-placement">
+                        Criar dentro de
+                        <select
+                          value={suggestionParents[item.id] || ''}
+                          onChange={(event) => setSuggestionParents((current) => ({
+                            ...current,
+                            [item.id]: event.target.value,
+                          }))}
+                        >
+                          <option value="">Selecione...</option>
+                          {forumParents.map((parent) => (
+                            <option key={parent.id} value={parent.id}>{parent.name}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <div className="category-admin-actions">
+                        <button
+                          className="action primary-action"
+                          disabled={busy}
+                          onClick={() => approveAndCreate(item)}
+                        >
+                          <Check /> Aprovar e criar fórum
+                        </button>
+                        <button
+                          className="action danger-action"
+                          disabled={busy}
+                          onClick={() => reviewSuggestion(item, 'declined')}
+                        >
+                          <X /> Recusar
+                        </button>
+                      </div>
+                    </>
                   )}
                 </article>
               ))}
