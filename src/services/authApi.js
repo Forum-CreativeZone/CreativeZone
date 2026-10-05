@@ -20,6 +20,24 @@ async function sha1Hex(value) {
     .toUpperCase()
 }
 
+export function validatePasswordStrength(password) {
+  const value = String(password || '')
+  if (value.length < 10) throw new Error('A senha precisa ter pelo menos 10 caracteres.')
+  if (value.length > 128) throw new Error('A senha deve ter no máximo 128 caracteres.')
+
+  const groups = [
+    /[a-z]/.test(value),
+    /[A-Z]/.test(value),
+    /[0-9]/.test(value),
+    /[^A-Za-z0-9]/.test(value),
+  ].filter(Boolean).length
+
+  if (groups < 3) {
+    throw new Error('Use pelo menos 3 tipos de caracteres: minúsculas, maiúsculas, números e símbolos.')
+  }
+  return true
+}
+
 export async function checkLeakedPassword(password) {
   const hash = await sha1Hex(password)
   const prefix = hash.slice(0, 5)
@@ -83,11 +101,7 @@ export async function signUp(emailOrOptions, passwordArg, profileArg = {}) {
       }
     : profileArg
 
-  if (String(password || '').length < 10) {
-    const error = new Error('A senha precisa ter pelo menos 10 caracteres.')
-    error.code = 'creativezone_weak_password'
-    throw error
-  }
+  validatePasswordStrength(password)
 
   const passwordCheck = await checkLeakedPassword(password)
   if (passwordCheck.leaked) {
@@ -156,6 +170,7 @@ export async function updateAccountEmail(email, nonce) {
 
 export async function updateAccountPassword(password, nonce) {
   const client = requireSupabase()
+  validatePasswordStrength(password)
   const passwordCheck = await checkLeakedPassword(password)
 
   if (passwordCheck.leaked) {
@@ -189,6 +204,7 @@ export async function requestPasswordReset(email) {
 
 export async function updateRecoveredPassword(password) {
   const client = requireSupabase()
+  validatePasswordStrength(password)
   const passwordCheck = await checkLeakedPassword(password)
 
   if (passwordCheck.leaked) {
