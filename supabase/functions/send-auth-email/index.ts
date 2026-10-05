@@ -104,10 +104,10 @@ function renderHtml({
   url?: string
 }) {
   const tokenBlock = token
-    ? `<div style="margin-top:24px;padding:18px;border-radius:10px;background:#07131d;border:1px solid #1e3b50;text-align:center;"><div style="font-size:11px;letter-spacing:1.5px;color:#6f8798;margin-bottom:8px;">CÓDIGO DE SEGURANÇA</div><div style="font-size:30px;letter-spacing:8px;color:#fff;font-weight:800;">${esc(token)}</div></div>`
+    ? `<div style="margin-top:24px;padding:18px;border-radius:10px;background:#180909;border:1px solid #5a1714;text-align:center;"><div style="font-size:11px;letter-spacing:1.5px;color:#6f8798;margin-bottom:8px;">CÓDIGO DE SEGURANÇA</div><div style="font-size:30px;letter-spacing:8px;color:#fff;font-weight:800;">${esc(token)}</div></div>`
     : ""
   const action = url && copy.cta
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:28px;"><tr><td style="background:#159ee8;border-radius:10px;"><a href="${esc(url)}" target="_blank" style="display:inline-block;padding:13px 22px;color:#fff;text-decoration:none;font-weight:800;font-size:14px;">${esc(copy.cta)} →</a></td></tr></table>`
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:28px;"><tr><td style="background:#d9231b;border-radius:10px;"><a href="${esc(url)}" target="_blank" style="display:inline-block;padding:13px 22px;color:#fff;text-decoration:none;font-weight:800;font-size:14px;">${esc(copy.cta)} →</a></td></tr></table>`
     : ""
 
   return `<!doctype html>
@@ -121,13 +121,13 @@ function renderHtml({
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(copy.message)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:28px 12px;background:#060a0f;"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;background:#0a1018;border:1px solid #1d2a38;border-radius:18px;overflow:hidden;">
-<tr><td style="height:4px;background:#13b6ff;font-size:0;">&nbsp;</td></tr>
+<tr><td style="height:4px;background:#ef2b24;font-size:0;">&nbsp;</td></tr>
 <tr><td style="padding:26px 28px 16px;"><table role="presentation"><tr>
 <td width="64"><img src="${LOGO_URL}" width="52" height="52" alt="CreativeZone" style="display:block;width:52px;height:52px;object-fit:contain;"></td>
-<td><div style="font-size:19px;font-weight:800;color:#fff;">Creative<span style="color:#26c9ff;">Zone</span></div><div style="font-size:11px;letter-spacing:2px;color:#6d8297;">COMUNIDADE CREATIVE LAB</div></td>
+<td><div style="font-size:19px;font-weight:800;color:#fff;">Creative<span style="color:#ff3b30;">Zone</span></div><div style="font-size:11px;letter-spacing:2px;color:#6d8297;">COMUNIDADE CREATIVE LAB</div></td>
 </tr></table></td></tr>
 <tr><td style="padding:14px 28px 32px;">
-<div style="font-size:11px;font-weight:800;letter-spacing:1.7px;color:#28c7ff;margin-bottom:12px;">${esc(copy.eyebrow)}</div>
+<div style="font-size:11px;font-weight:800;letter-spacing:1.7px;color:#ff3b30;margin-bottom:12px;">${esc(copy.eyebrow)}</div>
 <h1 style="margin:0 0 14px;font-size:29px;line-height:1.2;color:#fff;">${esc(copy.title)}</h1>
 <p style="margin:0;color:#9fb0c1;font-size:15px;line-height:1.7;">Olá, ${esc(recipientName)}. ${esc(copy.message)}</p>
 ${tokenBlock}
