@@ -15,6 +15,7 @@ const typeTitles: Record<string, string> = {
   new_reply: "Nova resposta",
   topic_watch: "Tópico acompanhado atualizado",
   mention: "Você foi mencionado",
+  chat_mention: "Menção no Chat da Comunidade",
   quote: "Sua publicação foi citada",
   reaction: "Nova reação",
   new_follower: "Novo seguidor",
@@ -26,6 +27,7 @@ const prefColumns: Record<string, string> = {
   new_reply: "push_reply",
   topic_watch: "push_watch",
   mention: "push_mention",
+  chat_mention: "push_mention",
   quote: "push_quote",
   reaction: "push_reaction",
   new_follower: "push_follower",
@@ -34,6 +36,9 @@ const prefColumns: Record<string, string> = {
 };
 
 function notificationUrl(notification: any) {
+  if (notification.data?.path) {
+    return SITE_URL + notification.data.path;
+  }
   if (notification.type === "direct_message" && notification.actor?.username) {
     return SITE_URL + "/mensagens/" + encodeURIComponent(notification.actor.username);
   }
@@ -104,7 +109,9 @@ Deno.serve(async (req: Request) => {
               ? actorName + " respondeu a um tópico que você está assistindo."
               : "Há uma atualização em um tópico que você está assistindo."
           )
-        : actorName + " gerou uma nova atividade para você.",
+        : notification.type === "chat_mention"
+          ? actorName + " mencionou você no Chat da Comunidade."
+          : actorName + " gerou uma nova atividade para você.",
     url: notificationUrl(notification),
     tag: "creativezone-" + notification.id,
   });
