@@ -3,9 +3,9 @@ import { expect, test } from '@playwright/test'
 test('renders the CreativeZone shell and community page', async ({ page }) => {
   await page.goto('/')
   await expect(page).toHaveTitle(/CreativeZone/)
-  await expect(page.getByRole('button', { name: 'CreativeZone' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'CreativeZone', exact: true })).toBeVisible()
 
-  await page.getByRole('button', { name: 'CreativeZone' }).click()
+  await page.getByRole('button', { name: 'CreativeZone', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'CreativeZone' })).toBeVisible()
   await expect(page.getByText('Um espaço para conversar, aprender e construir juntos.')).toBeVisible()
 })
