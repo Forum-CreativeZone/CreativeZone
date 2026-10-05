@@ -2131,10 +2131,31 @@ function App() {
 
       <div className="crumb">
         <button onClick={reset}>Fórum</button>
-        <ChevronRight />
-        <span>
-          {isHome ? filter || 'Inicial' : path.replace(/^\//, '').replace(/-/g, ' ') || 'Inicial'}
-        </span>
+        {routeTopicId && routeTopic ? (
+          <>
+            {routeCategoryPath.map((category) => (
+              <React.Fragment key={category.id}>
+                <ChevronRight />
+                <button onClick={() => chooseCategory(category.name)}>
+                  {category.name}
+                </button>
+              </React.Fragment>
+            ))}
+            <ChevronRight />
+            <span>{routeTopic.title}</span>
+          </>
+        ) : (
+          <>
+            <ChevronRight />
+            <span>
+              {isHome
+                ? filter || 'Inicial'
+                : path === '/categorias' || path === '/temas'
+                  ? 'Categorias'
+                  : path.replace(/^\//, '').replace(/-/g, ' ') || 'Inicial'}
+            </span>
+          </>
+        )}
       </div>
 
       {!hasSupabaseConfig && (
