@@ -622,6 +622,7 @@ function notificationTitle(item) {
     new_follower: 'Novo seguidor',
     direct_message: 'Nova mensagem direta',
     moderation: 'Aviso da moderação',
+    category_suggestion: 'Nova sugestão de categoria',
   }[item.type] || 'Nova notificação'
 }
 
@@ -659,7 +660,7 @@ export function NotificationsPanel({ session, navigate, onClose }) {
   }, [userId])
 
   if (!session) return <p className="community-empty">Entre para ver suas notificações.</p>
-  return <div className="overlay-notifications personal-notifications"><button className="mark-all-overlay" onClick={async()=>{await markAllNotificationsRead(session.user.id); setItems(await getNotifications(session.user.id))}}>Marcar todas como lidas</button>{items.map((item)=><button key={item.id} className={item.read?'':'unread'} onClick={async()=>{await markNotificationRead(item.id); onClose(); if(item.data?.topic_id) navigate(`/topico/${item.data.topic_id}`); else if(item.type==='direct_message' && item.actor?.username) navigate(`/mensagens/${item.actor.username}`)}}><Avatar profile={item.actor} size={40}/><span><strong>{notificationTitle(item)}</strong><small>{item.actor?.display_name || item.actor?.username || 'CreativeZone'} · {formatRelative(item.created_at)}</small></span></button>)}{!items.length&&<p className="community-empty">Nenhuma notificação.</p>}</div>
+  return <div className="overlay-notifications personal-notifications"><button className="mark-all-overlay" onClick={async()=>{await markAllNotificationsRead(session.user.id); setItems(await getNotifications(session.user.id))}}>Marcar todas como lidas</button>{items.map((item)=><button key={item.id} className={item.read?'':'unread'} onClick={async()=>{await markNotificationRead(item.id); onClose(); if(item.data?.path) navigate(item.data.path); else if(item.data?.topic_id) navigate(`/topico/${item.data.topic_id}`); else if(item.type==='direct_message' && item.actor?.username) navigate(`/mensagens/${item.actor.username}`)}}><Avatar profile={item.actor} size={40}/><span><strong>{notificationTitle(item)}</strong><small>{item.actor?.display_name || item.actor?.username || 'CreativeZone'} · {formatRelative(item.created_at)}</small></span></button>)}{!items.length&&<p className="community-empty">Nenhuma notificação.</p>}</div>
 }
 
 export function MessagesPage({ username, session, members, navigate, notify }) {
