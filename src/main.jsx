@@ -1163,6 +1163,8 @@ function App() {
   const isHome = path === '/'
   const isLogin = path === '/entrar'
   const isSignup = path === '/cadastro'
+  const isForgotPassword = path === '/esqueci-senha'
+  const isResetPassword = path === '/redefinir-senha'
   const isComposer = path === '/novo-topico'
   const isSearch = path === '/buscar'
   const isMembers = path === '/membros'
@@ -1170,6 +1172,8 @@ function App() {
   const isThemes = path === '/temas'
   const isProfile = path === '/perfil'
   const isAbout = path === '/creativezone'
+  const isProjects = path === '/projetos' || Boolean(routeProjectSlug)
+  const isModeration = path === '/moderacao'
   const isAccount = Boolean(accountMatch)
   const isMessages = Boolean(messagesMatch)
 
@@ -1249,7 +1253,7 @@ function App() {
                     <button
                       className="activityitem"
                       key={item.id}
-                      onClick={() => topic && openTopic(topic)}
+                      onClick={() => openTopic(item.topicId)}
                     >
                       <Avatar src={item.avatarUrl} small />
                       <span>
@@ -1287,6 +1291,26 @@ function App() {
   }
 
   function renderRoutePage() {
+    if (isForgotPassword) {
+      return <PasswordRecoveryPage mode="request" session={session} navigate={navigate} notify={setToast} />
+    }
+
+    if (isResetPassword) {
+      return <PasswordRecoveryPage mode="reset" session={session} navigate={navigate} notify={setToast} />
+    }
+
+    if (routeProjectSlug) {
+      return <ProjectPage slug={routeProjectSlug} session={session} navigate={navigate} notify={setToast} />
+    }
+
+    if (path === '/projetos') {
+      return <ProjectsPage session={session} navigate={navigate} notify={setToast} />
+    }
+
+    if (isModeration) {
+      return <ModerationPage profile={profile} session={session} navigate={navigate} notify={setToast} />
+    }
+
     if (routeMemberUsername) {
       return (
         <PublicProfilePage
@@ -1441,7 +1465,7 @@ function App() {
             {visibleActivity.map((item) => {
               const topic = topics.find((candidate) => candidate.id === item.topicId)
               return (
-                <button key={item.id} onClick={() => topic && openTopic(topic)}>
+                <button key={item.id} onClick={() => openTopic(item.topicId)}>
                   <Avatar src={item.avatarUrl} small />
                   <span>
                     <strong>{item.user} &gt; {item.topicTitle}</strong>
@@ -1588,6 +1612,10 @@ function App() {
                 <img src={githubIcon} alt="" aria-hidden="true" />
                 Visitar a comunidade no GitHub
               </a>
+              <button className="github-community-link" onClick={() => navigate('/projetos')}>
+                <Briefcase />
+                Explorar projetos da CreativeZone
+              </button>
             </section>
 
             <p className="about-closing">
@@ -1736,6 +1764,10 @@ function App() {
           <button className={isAbout ? 'active' : ''} onClick={() => navigate('/creativezone')}>
             <Icon name="portal" />
             CreativeZone
+          </button>
+          <button className={isProjects ? 'active' : ''} onClick={() => navigate('/projetos')}>
+            <Briefcase />
+            Projetos
           </button>
         </nav>
 
