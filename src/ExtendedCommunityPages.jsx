@@ -18,6 +18,7 @@ import {
   createReport,
   getModerationActions,
   getModerationReports,
+  getReportTargetPath,
   getProject,
   getProjects,
   leaveProject,
@@ -166,10 +167,17 @@ export function ModerationPage({ profile, session, navigate, notify }) {
     } catch (error) { notify?.(error?.message || 'Não foi possível aplicar a ação.') }
   }
 
-  function openTarget(report) {
-    if (report.target_type === 'topic') navigate('/topico/'+report.target_id)
-    else if (report.target_type === 'profile') navigate('/membro/'+report.target_id)
-    else if (report.target_type === 'project') navigate('/projetos')
+  async function openTarget(report) {
+    try {
+      const targetPath = await getReportTargetPath(report)
+      if (!targetPath) {
+        notify?.('O conteúdo denunciado não está mais disponível.')
+        return
+      }
+      navigate(targetPath)
+    } catch (error) {
+      notify?.(error?.message || 'Não foi possível abrir o conteúdo denunciado.')
+    }
   }
 
   return (
