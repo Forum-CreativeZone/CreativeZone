@@ -78,6 +78,27 @@ export async function uploadAvatar(userId, file) {
   return data
 }
 
+export async function uploadProfileCover(userId, file) {
+  const client = requireSupabase()
+  if (!file?.type?.startsWith('image/')) throw new Error('Selecione uma imagem válida para a capa.')
+  if (file.size > 6 * 1024 * 1024) throw new Error('A capa deve ter no máximo 6 MB.')
+
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+  const path = `${userId}/cover-${Date.now()}.${ext}`
+  const { error } = await client.storage.from('profile-covers').upload(path, file)
+  if (error) throw error
+
+  const url = client.storage.from('profile-covers').getPublicUrl(path).data.publicUrl
+  const { data, error: updateError } = await client
+    .from('profiles')
+    .update({ cover_url: url })
+    .eq('id', userId)
+    .select()
+    .single()
+  if (updateError) throw updateError
+  return data
+}
+
 export async function getPublicProfile(username) {
   const client = requireSupabase()
   const { data: profile, error } = await client
@@ -87,14 +108,18 @@ export async function getPublicProfile(username) {
     .single()
   if (error) throw error
 
-  const [topicsRes, postsRes, followersRes, followingRes, badgesRes] = await Promise.all([
+  const [topicsRes, postsRes, followersRes, followingRes, badgesRes, featuredRes] = await Promise.all([
     client.from('topics').select('id,title,slug,created_at,views').eq('author_id', profile.id).order('created_at', { ascending: false }),
     client.from('posts').select('id,topic_id,content,created_at,topics(id,title)').eq('author_id', profile.id).order('created_at', { ascending: false }).limit(30),
     client.from('follows').select('follower_id').eq('following_id', profile.id),
     client.from('follows').select('following_id').eq('follower_id', profile.id),
     client.from('user_badges').select('awarded_at,badges(*)').eq('user_id', profile.id).order('awarded_at', { ascending: false }),
+    client.from('profile_featured_projects')
+      .select('sort_order,project:projects!profile_featured_projects_project_id_fkey(id,title,slug,summary,status,repo_url,website_url,tags)')
+      .eq('user_id', profile.id)
+      .order('sort_order'),
   ])
-  for (const result of [topicsRes, postsRes, followersRes, followingRes, badgesRes]) {
+  for (const result of [topicsRes, postsRes, followersRes, followingRes, badgesRes, featuredRes]) {
     if (result.error) throw result.error
   }
 
@@ -118,6 +143,7 @@ export async function getPublicProfile(username) {
     topics: topicsRes.data ?? [],
     posts: postsRes.data ?? [],
     badges: badgesRes.data ?? [],
+    featuredProjects: (featuredRes.data ?? []).map((row) => ({ ...row.project, sort_order: row.sort_order })).filter((item) => item.id),
     stats: {
       topics: topicsRes.data?.length ?? 0,
       posts: postsRes.data?.length ?? 0,
