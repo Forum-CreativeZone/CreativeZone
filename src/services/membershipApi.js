@@ -9,7 +9,7 @@ export async function getMembershipPlans() {
   const client = requireSupabase()
   const { data, error } = await client
     .from('membership_plans')
-    .select('id,name,description,badge,rank,entitlements')
+    .select('id,name,description,badge,rank,entitlements,price_cents,currency')
     .eq('active', true)
     .order('rank')
   if (error) throw error
@@ -58,17 +58,14 @@ export async function saveProfileCosmetics(userId, values) {
   return data
 }
 
-export async function requestMembershipUpgrade(userId, planId, message = '') {
+export async function requestMembershipUpgrade(userId, planId, months = 1, message = '') {
+  if (!userId) throw new Error('Autenticação necessária.')
   const client = requireSupabase()
-  const { data, error } = await client
-    .from('membership_upgrade_requests')
-    .insert({
-      user_id: userId,
-      plan_id: planId,
-      message: message.trim().slice(0, 1000),
-    })
-    .select('id,user_id,plan_id,status,created_at')
-    .single()
+  const { data, error } = await client.rpc('create_membership_whatsapp_request', {
+    p_plan_id: planId,
+    p_months: Math.max(1, Math.min(Number(months) || 1, 36)),
+    p_message: message.trim().slice(0, 1000),
+  })
   if (error) throw error
   return data
 }
@@ -78,7 +75,7 @@ export async function getMembershipRequests() {
   const { data, error } = await client
     .from('membership_upgrade_requests')
     .select(
-      'id,user_id,plan_id,message,status,reviewed_by,reviewed_at,created_at,profile:profiles!membership_upgrade_requests_user_id_fkey(id,username,display_name,avatar_url),plan:membership_plans!membership_upgrade_requests_plan_id_fkey(id,name,badge,rank)'
+      'id,user_id,plan_id,message,status,reviewed_by,reviewed_at,created_at,months_requested,unit_price_cents,total_price_cents,currency,reference_code,contact_channel,profile:profiles!membership_upgrade_requests_user_id_fkey(id,username,display_name,avatar_url),plan:membership_plans!membership_upgrade_requests_plan_id_fkey(id,name,badge,rank,price_cents,currency)'
     )
     .order('created_at', { ascending: false })
     .limit(100)
@@ -87,48 +84,21 @@ export async function getMembershipRequests() {
 }
 
 export async function adminGrantMembership({
-  adminId,
   userId,
   planId,
+  months = 1,
   permanent = false,
-  days = 30,
   requestId = null,
 }) {
   const client = requireSupabase()
-  const startsAt = new Date()
-  const endsAt = permanent
-    ? null
-    : new Date(startsAt.getTime() + Math.max(1, Number(days) || 30) * 86400000).toISOString()
-
-  const { data, error } = await client
-    .from('user_memberships')
-    .upsert({
-      user_id: userId,
-      plan_id: planId,
-      status: 'active',
-      permanent: Boolean(permanent),
-      starts_at: startsAt.toISOString(),
-      ends_at: endsAt,
-      source: 'admin',
-      granted_by: adminId,
-      updated_at: startsAt.toISOString(),
-    }, { onConflict: 'user_id' })
-    .select('user_id,plan_id,status,permanent,starts_at,ends_at')
-    .single()
+  const { data, error } = await client.rpc('admin_set_membership', {
+    p_user_id: userId,
+    p_plan_id: planId,
+    p_months: Math.max(1, Math.min(Number(months) || 1, 36)),
+    p_permanent: Boolean(permanent),
+    p_request_id: requestId || null,
+  })
   if (error) throw error
-
-  if (requestId) {
-    const { error: requestError } = await client
-      .from('membership_upgrade_requests')
-      .update({
-        status: 'approved',
-        reviewed_by: adminId,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq('id', requestId)
-    if (requestError) throw requestError
-  }
-
   return data
 }
 
