@@ -1,14 +1,8 @@
 import { supabase } from './supabaseClient'
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024
-const ALLOWED_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-  'application/pdf',
-  'text/plain',
-])
+import {
+  isAllowedForumAttachment,
+  MAX_FORUM_ATTACHMENT_BYTES,
+} from '../utils/forumUtils'
 
 function requireSupabase() {
   if (!supabase) throw new Error('Supabase não configurado.')
@@ -17,8 +11,8 @@ function requireSupabase() {
 
 function validateFile(file) {
   if (!file) throw new Error('Selecione um arquivo.')
-  if (file.size > MAX_FILE_SIZE) throw new Error('Cada anexo pode ter no máximo 10 MB.')
-  if (!ALLOWED_TYPES.has(file.type)) {
+  if (file.size > MAX_FORUM_ATTACHMENT_BYTES) throw new Error('Cada anexo pode ter no máximo 10 MB.')
+  if (!isAllowedForumAttachment(file)) {
     throw new Error('Formato não permitido. Use imagens, PDF ou arquivo de texto.')
   }
 }
