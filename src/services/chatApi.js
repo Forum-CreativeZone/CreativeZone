@@ -15,6 +15,10 @@ const chatMessageSelect = `
   edited_at,
   deleted_at,
   deleted_by,
+  author_username,
+  author_display_name,
+  author_avatar_url,
+  author_role,
   author:profiles!chat_messages_user_id_fkey(
     id,
     username,
