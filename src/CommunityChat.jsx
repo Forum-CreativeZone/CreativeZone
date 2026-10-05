@@ -279,6 +279,31 @@ export function CommunityChat({
   ])
 
   useEffect(() => {
+    if (connection === 'online') return undefined
+
+    const timer = window.setInterval(() => {
+      loadMessages()
+    }, 15000)
+
+    return () => window.clearInterval(timer)
+  }, [connection])
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setConnection((current) => current === 'online' ? current : 'connecting')
+      loadMessages()
+    }
+    const handleOffline = () => setConnection('offline')
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
+  useEffect(() => {
     if (collapsed || !shouldStickToBottom.current) return
     const area = messagesRef.current
     if (area) area.scrollTop = area.scrollHeight
