@@ -493,3 +493,150 @@
   .account-update-list>div{grid-template-columns:1fr}
   .account-update-list>div>small{grid-column:auto}
 }
+
+
+/* Extended community features: projects, moderation, reports, attachments and recovery */
+.forgot-password-link{margin-top:12px;color:#f05a50;font-size:13px;text-align:left}
+.recovery-note{margin-bottom:18px;color:#aaa;line-height:1.6}
+.recovery-success{margin:0 0 14px;padding:10px 12px;border:1px solid #2f7d4a;border-radius:6px;background:#1a4b2b22;color:#91e0aa}
+
+.attachment-picker{display:inline-flex!important;align-items:center;gap:7px;width:max-content;margin:16px 0 8px;padding:7px 10px;border:1px solid var(--line);border-radius:5px;color:#ccc;cursor:pointer}
+.attachment-picker input{display:none}
+.attachment-picker svg{width:16px;height:16px}
+.attachment-selection{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.attachment-selection span{padding:5px 8px;border:1px solid #ffffff16;border-radius:5px;background:#ffffff08;color:#aaa;font-size:12px}
+.forum-media-list{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+.forum-media-item{display:flex;align-items:center;gap:8px;max-width:260px;padding:8px;border:1px solid #ffffff16;border-radius:7px;background:#ffffff06;font-size:12px}
+.forum-media-item.image{display:grid;gap:6px}
+.forum-media-item img{width:220px;max-width:100%;height:130px;object-fit:cover;border-radius:5px}
+.forum-media-item svg{width:18px;height:18px}
+.inline-edit-form,.inline-post-edit{display:grid;gap:10px;margin:10px 0 14px;padding:14px;border:1px solid var(--line);border-radius:7px;background:#ffffff04}
+.inline-edit-form label{display:grid;gap:5px;font-size:12px;color:#aaa}
+.inline-edit-form input,.inline-edit-form select,.inline-edit-form textarea,.inline-post-edit textarea{width:100%;background:#2b2b2b;color:#fff;border:1px solid #444;border-radius:5px;padding:9px 10px}
+.inline-edit-form textarea,.inline-post-edit textarea{min-height:130px}
+.danger-action{border-color:#a52a22!important;color:#ff756d!important}
+
+.report-backdrop{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:18px;background:#000a}
+.report-dialog{width:min(520px,100%);background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 24px 80px #000a;padding:18px;display:grid;gap:14px}
+.report-dialog header{display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.report-dialog header button{width:28px;height:28px;display:grid;place-items:center}
+.report-dialog header svg{width:17px}
+.report-dialog label{display:grid;gap:7px;color:#aaa;font-size:13px}
+.report-dialog select,.report-dialog textarea{width:100%;background:#292929;color:#fff;border:1px solid #444;border-radius:6px;padding:10px}
+.report-dialog textarea{min-height:120px;resize:vertical}
+
+.moderation-toolbar{display:flex;gap:8px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.moderation-toolbar button{display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:6px;color:#aaa}
+.moderation-toolbar button.active{background:var(--red);color:#fff}
+.moderation-toolbar svg{width:17px}
+.moderation-content{padding:20px;display:grid;gap:12px}
+.moderation-filters{display:flex;gap:7px;flex-wrap:wrap}
+.moderation-filters button{padding:6px 9px;border:1px solid #444;border-radius:20px;font-size:12px}
+.moderation-filters button.active{background:#ffffff12;border-color:var(--red);color:#ff6b61}
+.report-card{border:1px solid #ffffff14;border-radius:8px;padding:14px;background:#ffffff04;display:grid;gap:11px}
+.report-card-head{display:flex;justify-content:space-between;gap:12px}
+.report-card-head>div{display:grid;gap:2px}
+.report-card-head span,.report-card-head small{color:#888;font-size:11px}
+.report-reporter{display:flex;align-items:center;gap:9px}
+.report-actions{display:flex;flex-wrap:wrap;gap:7px}
+.resolution-note{padding:8px 10px;border-left:3px solid var(--red);background:#ffffff06;color:#aaa}
+.moderation-history>div{display:grid;gap:3px;padding:12px;border-bottom:1px solid var(--line)}
+.moderation-history span,.moderation-history small{color:#888;font-size:11px}
+
+.projects-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:center;padding:24px;border-bottom:1px solid var(--line);background:linear-gradient(135deg,#b8291912,transparent)}
+.projects-hero h2{font-size:26px;margin:0 0 9px}
+.projects-hero p{max-width:760px;color:#aaa;line-height:1.6}
+.projects-hero-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.project-form{margin:18px 20px 0;padding:18px;border:1px solid var(--line);border-radius:8px;display:grid;gap:12px;background:#ffffff04}
+.project-form label{display:grid;gap:6px;color:#aaa;font-size:12px}
+.project-form input,.project-form textarea{width:100%;background:#2c2c2c;color:#fff;border:1px solid #444;border-radius:6px;padding:10px}
+.project-form textarea{min-height:150px;resize:vertical}
+.project-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.projects-grid{padding:20px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.project-card{min-height:220px;padding:16px;border:1px solid #ffffff14;border-radius:10px;background:#ffffff04;text-align:left;display:flex;flex-direction:column;gap:10px}
+.project-card:hover{border-color:var(--red);transform:translateY(-1px)}
+.project-card-top{display:flex;justify-content:space-between;align-items:center}
+.project-card-top svg{width:22px;color:#ff544a}
+.project-card h3{font-size:18px}
+.project-card p{color:#aaa;font-size:13px;line-height:1.5;flex:1}
+.project-card footer{display:flex;justify-content:space-between;align-items:center;color:#888;font-size:11px}
+.project-card footer span{display:flex;align-items:center;gap:4px}
+.project-card footer svg{width:14px}
+.project-status{display:inline-flex;padding:4px 8px;border-radius:20px;border:1px solid #ffffff20;font-size:10px;text-transform:uppercase;letter-spacing:.6px}
+.status-active{color:#77df9a;border-color:#2f6c45}
+.status-completed{color:#7ec8ff;border-color:#315f7c}
+.status-paused{color:#f5c46a;border-color:#735c2d}
+.project-tags{display:flex;gap:6px;flex-wrap:wrap}
+.project-tags span{padding:4px 7px;border-radius:20px;background:#ffffff0d;color:#aaa;font-size:10px}
+.project-detail{padding:20px;display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px}
+.project-overview,.project-members-panel,.project-pending-panel,.project-updates{border:1px solid #ffffff14;border-radius:9px;padding:18px;background:#ffffff04}
+.project-overview{grid-column:1}
+.project-members-panel{grid-column:2;grid-row:1 / span 2}
+.project-updates{grid-column:1}
+.project-pending-panel{grid-column:1}
+.project-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#aaa;font-size:12px}
+.project-summary{font-size:20px;font-weight:700;margin:16px 0 10px}
+.project-description{white-space:pre-wrap;line-height:1.7;color:#bbb}
+.project-links,.project-status-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.project-member-list{display:grid;gap:8px;margin:12px 0}
+.project-member-list>div,.project-pending-panel>div{display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid var(--line)}
+.project-member-list span,.project-pending-panel span{display:grid;flex:1}
+.project-member-list small,.project-pending-panel small{color:#888}
+.join-project-form,.project-updates form{display:grid;gap:8px;margin-top:12px}
+.join-project-form textarea,.project-updates textarea{width:100%;min-height:90px;background:#292929;color:#fff;border:1px solid #444;border-radius:6px;padding:9px}
+.project-updates>div{display:grid;gap:9px;margin-top:12px}
+.project-updates article{padding:12px;border:1px solid #ffffff12;border-radius:7px}
+.project-updates article small{display:block;color:#777;margin:2px 0 8px}
+.project-updates article p{white-space:pre-wrap;line-height:1.6}
+
+.search-popover-results{display:grid;border-top:1px solid var(--line);max-height:360px;overflow:auto}
+.search-popover-results>button{display:grid;gap:5px;padding:10px 14px;text-align:left;border-bottom:1px solid var(--line)}
+.search-popover-results>button:hover{background:#ffffff08}
+.search-popover-results span{display:flex;justify-content:space-between;gap:10px}
+.search-popover-results small{color:#777}
+.search-popover-results p{color:#aaa;font-size:11px;line-height:1.4}
+.search-no-results{padding:14px;color:#777}
+.push-device-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+
+:root[data-theme="light"] .attachment-selection span,
+:root[data-theme="light"] .forum-media-item,
+:root[data-theme="light"] .inline-edit-form,
+:root[data-theme="light"] .inline-post-edit,
+:root[data-theme="light"] .report-card,
+:root[data-theme="light"] .project-form,
+:root[data-theme="light"] .project-card,
+:root[data-theme="light"] .project-overview,
+:root[data-theme="light"] .project-members-panel,
+:root[data-theme="light"] .project-pending-panel,
+:root[data-theme="light"] .project-updates{background:#fff;border-color:#e7d9d6}
+:root[data-theme="light"] .inline-edit-form input,
+:root[data-theme="light"] .inline-edit-form select,
+:root[data-theme="light"] .inline-edit-form textarea,
+:root[data-theme="light"] .inline-post-edit textarea,
+:root[data-theme="light"] .report-dialog select,
+:root[data-theme="light"] .report-dialog textarea,
+:root[data-theme="light"] .project-form input,
+:root[data-theme="light"] .project-form textarea,
+:root[data-theme="light"] .join-project-form textarea,
+:root[data-theme="light"] .project-updates textarea{background:#f5f2f1;color:#191919;border-color:#dfd3d0}
+:root[data-theme="light"] .project-card p,
+:root[data-theme="light"] .projects-hero p,
+:root[data-theme="light"] .project-description{color:#555}
+:root[data-theme="light"] .search-popover-results>button:hover{background:#faf5f4}
+
+@media(max-width:900px){
+  .projects-grid{grid-template-columns:1fr 1fr}
+  .project-detail{grid-template-columns:1fr}
+  .project-overview,.project-members-panel,.project-updates,.project-pending-panel{grid-column:1;grid-row:auto}
+}
+@media(max-width:760px){
+  .projects-hero{grid-template-columns:1fr;padding:18px}
+  .projects-hero-actions{justify-content:flex-start}
+  .projects-grid{grid-template-columns:1fr;padding:14px}
+  .project-form{margin:14px;padding:14px}
+  .project-form-grid{grid-template-columns:1fr}
+  .project-detail{padding:14px}
+  .moderation-content{padding:14px}
+  .report-card-head{display:grid}
+  .forum-media-item.image img{width:100%;height:auto;max-height:220px}
+}
