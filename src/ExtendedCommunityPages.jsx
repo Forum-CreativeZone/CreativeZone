@@ -27,6 +27,7 @@ import {
   reviewProjectMember,
   reviewReport,
   updateProject,
+  updateProjectStatus,
 } from './services/extendedApi'
 
 function Shell({ title, onBack, children }) {
@@ -379,7 +380,7 @@ export function ProjectPage({ slug, session, navigate, notify }) {
   }
 
   async function changeStatus(value) {
-    try { await updateProject(project.id,{status:value}); notify?.('Status do projeto atualizado.'); load() }
+    try { await updateProjectStatus(project.id,value); notify?.('Status do projeto atualizado.'); load() }
     catch (error) { notify?.(error?.message || 'Não foi possível alterar o status.') }
   }
 
