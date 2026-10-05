@@ -85,13 +85,6 @@ import {
 import { getPageCount, slugify } from './utils/forumUtils'
 import './styles.css'
 
-const news = [
-  'Tecnologia: acompanhe as discussões mais recentes da comunidade.',
-  'Games: compartilhe novidades, dúvidas e experiências.',
-  'Hardware: monte, melhore e resolva problemas do seu PC.',
-  'Software: desenvolvimento, ferramentas e produtividade.',
-]
-
 function readLocal(key, fallback) {
   try {
     return JSON.parse(localStorage.getItem(key)) ?? fallback
@@ -1260,10 +1253,12 @@ function App() {
             </section>
 
             <div className="news-grid">
-              {news.map((title, index) => (
-                <button key={title} onClick={() => chooseCategory(categories[index]?.name || '')}>
-                  <img src={A['news' + (index + 1)]} alt="" />
-                  <b>{title}</b>
+              {categories.slice(0, 4).map((category, index) => (
+                <button key={category.id} onClick={() => chooseCategory(category.name)}>
+                  <img src={A['news' + ((index % 4) + 1)]} alt="" />
+                  <b>
+                    {category.name}: {category.description || 'acompanhe as discussões desta categoria.'}
+                  </b>
                 </button>
               ))}
             </div>
