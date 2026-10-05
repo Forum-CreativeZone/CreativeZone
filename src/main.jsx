@@ -73,6 +73,7 @@ import {
 } from './ExtendedCommunityPages'
 import { PasswordRecoveryPage } from './AuthRecoveryPages'
 import { ThreadPostCard } from './ForumThreadComponents'
+import { ForumNodePage } from './ForumNodePage'
 import { CategoriesPage, CategorySuggestionButton } from './CategoryPages'
 import {
   getPostMedia,
@@ -936,6 +937,8 @@ function App() {
 
   const topicMatch = path.match(/^\/topico\/([^/]+)$/)
   const routeTopicId = topicMatch ? decodeURIComponent(topicMatch[1]) : null
+  const forumMatch = path.match(/^\/forum\/([^/]+)$/)
+  const routeForumSlug = forumMatch ? decodeURIComponent(forumMatch[1]) : null
   const memberMatch = path.match(/^\/membro\/([^/]+)$/)
   const routeMemberUsername = memberMatch ? decodeURIComponent(memberMatch[1]) : null
   const accountMatch = path.match(/^\/conta(?:\/([^/]+))?$/)
@@ -1051,6 +1054,16 @@ function App() {
     () => getCategoryPath(categories, routeTopic?.categoryId),
     [categories, routeTopic?.categoryId]
   )
+  const routeForumNode = useMemo(
+    () => routeForumSlug
+      ? categories.find((category) => category.slug === routeForumSlug) || null
+      : null,
+    [categories, routeForumSlug]
+  )
+  const routeForumPath = useMemo(
+    () => getCategoryPath(categories, routeForumNode?.id),
+    [categories, routeForumNode?.id]
+  )
   const forumCategories = useMemo(
     () => categories
       .filter((category) => category.node_type === 'forum')
@@ -1124,6 +1137,18 @@ function App() {
     setPage(1)
     setPopularPage(1)
     navigate('/')
+  }
+
+  function openCategoryNode(categoryOrName) {
+    const category = typeof categoryOrName === 'string'
+      ? categories.find((item) => item.name === categoryOrName)
+      : categoryOrName
+
+    if (!category?.slug) return
+    setFilter('')
+    setPage(1)
+    setPopularPage(1)
+    navigate('/forum/' + encodeURIComponent(category.slug))
   }
 
   function requireAuth(pathAfterLogin) {
@@ -1381,7 +1406,7 @@ function App() {
 
             <div className="news-grid">
               {forumCategories.slice(0, 4).map((category, index) => (
-                <button key={category.id} onClick={() => chooseCategory(category.name)}>
+                <button key={category.id} onClick={() => openCategoryNode(category)}>
                   <img src={A['news' + ((index % 4) + 1)]} alt="" />
                   <b>
                     {category.name}: {category.description || 'acompanhe as discussões desta categoria.'}
@@ -1429,7 +1454,7 @@ function App() {
                   key={category.id}
                   className={'category-side-node category-side-' + category.node_type}
                   style={{ '--category-depth': category.depth }}
-                  onClick={() => chooseCategory(category.name)}
+                  onClick={() => openCategoryNode(category)}
                 >
                   <span>{category.name}</span>
                   <small>
@@ -1464,6 +1489,28 @@ function App() {
 
     if (isResetPassword) {
       return <PasswordRecoveryPage mode="reset" session={session} navigate={navigate} notify={setToast} />
+    }
+
+    if (routeForumSlug) {
+      if (!routeForumNode && forumLoading) {
+        return (
+          <PageShell title="Carregando área..." onBack={() => navigate('/')} wide>
+            <div className="panel-content"><p>Carregando estrutura do fórum...</p></div>
+          </PageShell>
+        )
+      }
+
+      return (
+        <ForumNodePage
+          node={routeForumNode}
+          categories={categories}
+          session={session}
+          navigate={navigate}
+          notify={setToast}
+          onOpenTopic={openTopic}
+          ignoredIds={ignoredIds}
+        />
+      )
     }
 
     if (routeProjectSlug) {
@@ -1677,7 +1724,7 @@ function App() {
           profile={profile}
           navigate={navigate}
           notify={setToast}
-          onChoose={chooseCategory}
+          onChoose={openCategoryNode}
           onChanged={refreshForum}
         />
       )
@@ -2218,7 +2265,7 @@ function App() {
               <button
                 key={category.id}
                 className={'mobile-category-' + category.node_type}
-                onClick={() => chooseCategory(category.name)}
+                onClick={() => openCategoryNode(category)}
               >
                 {category.name}
               </button>
@@ -2240,13 +2287,28 @@ function App() {
             {routeCategoryPath.map((category) => (
               <React.Fragment key={category.id}>
                 <ChevronRight />
-                <button onClick={() => chooseCategory(category.name)}>
+                <button onClick={() => openCategoryNode(category)}>
                   {category.name}
                 </button>
               </React.Fragment>
             ))}
             <ChevronRight />
             <span>{routeTopic.title}</span>
+          </>
+        ) : routeForumNode ? (
+          <>
+            {routeForumPath.map((category, index) => (
+              <React.Fragment key={category.id}>
+                <ChevronRight />
+                {index === routeForumPath.length - 1 ? (
+                  <span>{category.name}</span>
+                ) : (
+                  <button onClick={() => openCategoryNode(category)}>
+                    {category.name}
+                  </button>
+                )}
+              </React.Fragment>
+            ))}
           </>
         ) : (
           <>
