@@ -21,6 +21,9 @@ const typeTitles: Record<string, string> = {
   new_follower: "Novo seguidor",
   direct_message: "Nova mensagem direta",
   moderation: "Aviso da moderação",
+  membership_granted: "VIP ativado",
+  membership_expiring: "Seu VIP está vencendo",
+  membership_expired: "Seu VIP expirou",
 };
 
 const prefColumns: Record<string, string> = {
@@ -33,6 +36,9 @@ const prefColumns: Record<string, string> = {
   new_follower: "push_follower",
   direct_message: "push_dm",
   moderation: "push_moderation",
+  membership_granted: "push_membership",
+  membership_expiring: "push_membership",
+  membership_expired: "push_membership",
 };
 
 function notificationUrl(notification: any) {
@@ -80,7 +86,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: settings } = await service
     .from("account_settings")
-    .select("push_enabled,push_reply,push_watch,push_mention,push_quote,push_reaction,push_follower,push_dm,push_moderation")
+    .select("push_enabled,push_reply,push_watch,push_mention,push_quote,push_reaction,push_follower,push_dm,push_moderation,push_membership")
     .eq("user_id", notification.user_id)
     .maybeSingle();
 
@@ -103,6 +109,12 @@ Deno.serve(async (req: Request) => {
     title: typeTitles[notification.type] || "CreativeZone",
     body: notification.type === "moderation"
       ? "Você recebeu um novo aviso da moderação."
+      : notification.type === "membership_granted"
+        ? (notification.data?.message || "Seu VIP CreativeZone foi ativado.")
+        : notification.type === "membership_expiring"
+          ? (notification.data?.message || "Seu VIP CreativeZone vence em breve.")
+          : notification.type === "membership_expired"
+            ? (notification.data?.message || "Seu VIP CreativeZone expirou.")
       : notification.type === "topic_watch"
         ? (
             notification.data?.event === "reply"
