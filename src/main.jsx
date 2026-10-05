@@ -89,6 +89,8 @@ import {
 } from './services/communityApi'
 import { getPageCount, slugify } from './utils/forumUtils'
 import { ProfessionalEditor, RichForumContent } from './ProfessionalEditor'
+import { EliteAreaPage } from './MembershipSection'
+import { getMemberDecorations, getMembershipState } from './services/membershipApi'
 import {
   AchievementsPage,
   AdvancedSearchPage,
@@ -378,7 +380,7 @@ function PageShell({ title, children, onBack, wide = false, full = false }) {
   )
 }
 
-function ComposerPage({ onPublish, notify, categories, navigate, session }) {
+function ComposerPage({ onPublish, notify, categories, navigate, session, membershipState }) {
   const draft = useMemo(() => readLocal('creativezone-draft', {}), [])
   const firstCategory = categories[0]?.id || ''
   const [title, setTitle] = useState(draft.title || '')
@@ -457,6 +459,8 @@ function ComposerPage({ onPublish, notify, categories, navigate, session }) {
           onChange={setDescription}
           files={attachments}
           onFilesChange={setAttachments}
+          maxFiles={membershipState?.entitlements?.forum_upload_count || 4}
+          maxBytes={(membershipState?.entitlements?.forum_upload_mb || 10) * 1024 * 1024}
           required
           maxLength={12000}
           placeholder="Escreva sua publicação em Markdown. Links do YouTube, GitHub, CodePen e imagens são incorporados automaticamente."
@@ -671,6 +675,8 @@ function App() {
   const [relatedTopics, setRelatedTopics] = useState([])
   const [topicViewers, setTopicViewers] = useState([])
   const [threadAuthorStats, setThreadAuthorStats] = useState({})
+  const [threadDecorations, setThreadDecorations] = useState({})
+  const [membershipState, setMembershipState] = useState(null)
   const [watchingTopic, setWatchingTopic] = useState(false)
   const [watchBusy, setWatchBusy] = useState(false)
   const [topicMedia, setTopicMedia] = useState([])
@@ -820,6 +826,16 @@ function App() {
   }, [user])
 
   useEffect(() => {
+    if (!user?.id) {
+      setMembershipState(null)
+      return
+    }
+    getMembershipState(user.id)
+      .then(setMembershipState)
+      .catch(() => setMembershipState(null))
+  }, [user?.id])
+
+  useEffect(() => {
     if (!supabase) {
       setForumOnlineMembers([])
       return undefined
@@ -948,6 +964,7 @@ function App() {
         setRouteTopic(null)
         setThreadReplies([])
         setThreadAuthorStats({})
+        setThreadDecorations({})
         setWatchingTopic(false)
         setTopicMedia([])
         setPostMedia({})
@@ -976,8 +993,14 @@ function App() {
           rawTopic?.author_id,
           ...posts.map((post) => post.author_id),
         ].filter(Boolean)
-        const stats = await getForumAuthorStats(authorIds)
-        if (!cancelled) setThreadAuthorStats(stats)
+        const [stats, decorations] = await Promise.all([
+          getForumAuthorStats(authorIds),
+          getMemberDecorations(authorIds).catch(() => ({})),
+        ])
+        if (!cancelled) {
+          setThreadAuthorStats(stats)
+          setThreadDecorations(decorations)
+        }
 
         const pairs = await Promise.all(
           posts.map(async (post) => {
@@ -994,6 +1017,7 @@ function App() {
           setRouteTopic(null)
           setThreadReplies([])
           setThreadAuthorStats({})
+          setThreadDecorations({})
           setTopicMedia([])
           setPostMedia({})
           setRouteTags([])
@@ -1568,6 +1592,7 @@ function App() {
   }
 
   function renderRoutePage() {
+    if (path === '/elite') return <EliteAreaPage session={session} navigate={navigate} />
     if (isRanking) return <RankingsPage navigate={navigate} />
     if (isAchievements) return <AchievementsPage session={session} navigate={navigate} />
     if (routeTagSlug) return <TagPage slug={routeTagSlug} session={session} navigate={navigate} />
@@ -1703,6 +1728,7 @@ function App() {
           categories={forumCategories}
           navigate={navigate}
           session={session}
+          membershipState={membershipState}
         />
       )
     }
@@ -1934,6 +1960,7 @@ function App() {
               navigate={navigate}
               fallbackName={routeTopic.user}
               fallbackAvatar={routeTopic.avatarUrl}
+              decoration={threadDecorations[routeTopic.authorId]}
               createdAt={routeTopic.createdAt}
               number={1}
               original
@@ -2048,6 +2075,7 @@ function App() {
                   navigate={navigate}
                   fallbackName={post.profiles?.display_name || post.profiles?.username || 'Membro'}
                   fallbackAvatar={post.profiles?.avatar_url || ''}
+                  decoration={threadDecorations[post.author_id]}
                   createdAt={post.created_at}
                   number={index + 2}
                   signature={post.profiles?.signature}
@@ -2160,6 +2188,8 @@ function App() {
                   onChange={setReply}
                   files={replyFiles}
                   onFilesChange={setReplyFiles}
+                  maxFiles={membershipState?.entitlements?.forum_upload_count || 4}
+                  maxBytes={(membershipState?.entitlements?.forum_upload_mb || 10) * 1024 * 1024}
                   required
                   maxLength={12000}
                   placeholder="Escreva sua resposta. Markdown, embeds e arrastar arquivos são suportados."
