@@ -66,6 +66,8 @@ import {
   SecuritySection,
 } from './AdvancedAccountSections'
 import { ReportButton } from './ExtendedCommunityPages'
+import { MembershipSection } from './MembershipSection'
+import { getMembershipState } from './services/membershipApi'
 
 function Avatar({ profile, size = 56 }) {
   const name = profile?.display_name || profile?.username || 'Membro'
@@ -170,9 +172,20 @@ export function UserQuickMenu({ profile, session, onClose, navigate, onSignOut }
         <div className="user-quick-profile">
           <Avatar profile={profile} size={64} />
           <div>
-            <strong>{profile?.display_name || profile?.username || 'Membro'}</strong>
+            <strong style={summary?.cosmetics?.name_color ? { color: summary.cosmetics.name_color } : undefined}>
+              {profile?.display_name || profile?.username || 'Membro'}
+            </strong>
             <span>@{profile?.username || 'membro'}</span>
-            <small>{profile?.role === 'member' ? 'Membro' : profile?.role}</small>
+            {summary?.cosmetics?.profile_title && <em className="quick-profile-title">{summary.cosmetics.profile_title}</em>}
+            <div className="quick-identity-tags">
+              {summary?.profile?.system_owner && <b className="identity-badge architect">🏗️ Arquiteto</b>}
+              {summary?.membership?.plan_id && summary.membership.plan_id !== 'free' && (
+                <b className={'identity-badge membership-' + summary.membership.plan_id}>
+                  {summary.membership.badge}{summary.membership.permanent ? ' ∞' : ''}
+                </b>
+              )}
+              <small>{profile?.role === 'member' ? 'Membro' : profile?.role}</small>
+            </div>
           </div>
         </div>
         {profile?.status_message && <p className="user-status">“{profile.status_message}”</p>}
@@ -189,6 +202,10 @@ export function UserQuickMenu({ profile, session, onClose, navigate, onSignOut }
           <button onClick={() => { onClose(); navigate('/mensagens') }}><MessageCircle /> Mensagens</button>
           <button onClick={() => { onClose(); navigate('/projetos') }}><Briefcase /> Projetos</button>
           <button onClick={() => { onClose(); navigate('/conta/notificacoes') }}><Bell /> Notificações</button>
+          <button onClick={() => { onClose(); navigate('/conta/assinatura') }}><Trophy /> Assinatura & VIP</button>
+          {summary?.membership?.entitlements?.elite_area && (
+            <button onClick={() => { onClose(); navigate('/elite') }}><Trophy /> Elite Lounge</button>
+          )}
           {['moderator','admin'].includes(profile?.role) && (
             <button onClick={() => { onClose(); navigate('/moderacao') }}><Shield /> Moderação</button>
           )}
@@ -244,7 +261,16 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
     )
   }
 
-  const { profile, stats, topics, posts, badges, featuredProjects = [] } = data
+  const {
+    profile,
+    stats,
+    topics,
+    posts,
+    badges,
+    featuredProjects = [],
+    membership = null,
+    cosmetics = null,
+  } = data
   const isSelf = currentId === profile.id
   const activity = [...topics.map((item) => ({ kind: 'topic', date: item.created_at, item })), ...posts.map((item) => ({ kind: 'post', date: item.created_at, item }))].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,30)
   const birthParts = []
@@ -270,13 +296,34 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
   return (
     <CommunityShell title={profile.display_name || profile.username} onBack={() => navigate('/membros')}>
       <div
-        className={'public-profile-hero ' + (profile.cover_url ? 'has-cover' : '')}
+        className={
+          'public-profile-hero ' +
+          (profile.cover_url ? 'has-cover ' : '') +
+          'membership-plan-' + (membership?.plan_id || 'free') + ' ' +
+          'cover-effect-' + (cosmetics?.cover_effect || 'none')
+        }
         style={profile.cover_url ? { '--profile-cover': `url("${profile.cover_url}")` } : undefined}
       >
-        <Avatar profile={profile} size={128} />
+        <div className={'public-avatar-frame frame-' + (cosmetics?.avatar_frame || 'none')}>
+          <Avatar profile={profile} size={128} />
+        </div>
         <div className="public-profile-main">
-          <h2>{profile.display_name || profile.username}</h2>
+          <h2 style={cosmetics?.name_color ? { color: cosmetics.name_color } : undefined}>
+            {profile.display_name || profile.username}
+          </h2>
           <span className="profile-handle">@{profile.username}</span>
+          {cosmetics?.profile_title && <p className="profile-custom-title">{cosmetics.profile_title}</p>}
+          <div className="profile-identity-badges">
+            {profile.system_owner && <b className="identity-badge architect">🏗️ Arquiteto CreativeZone</b>}
+            {profile.role === 'admin' && <b className="identity-badge admin">ADMIN</b>}
+            {profile.role === 'moderator' && <b className="identity-badge moderator">MOD</b>}
+            {membership?.plan_id && membership.plan_id !== 'free' && (
+              <b className={'identity-badge membership-' + membership.plan_id + ' style-' + (cosmetics?.badge_style || 'default')}>
+                {membership.badge}{membership.permanent ? ' ∞' : ''}
+              </b>
+            )}
+            <b className="identity-badge level">{reputationLevel(stats.reputation)}</b>
+          </div>
           {profile.status_message && <p className="profile-status">{profile.status_message}</p>}
           <div className="profile-meta">
             <span><Calendar /> Membro desde {formatDate(profile.created_at)}</span>
@@ -392,6 +439,7 @@ const accountSections = [
   ['privacidade','Privacidade', Shield],
   ['aparencia','Aparência', Palette],
   ['preferencias','Preferências', Settings],
+  ['assinatura','Assinatura & VIP', Trophy],
   ['conectadas','Contas conectadas', Link2],
   ['alertas','Alertas e e-mails', Bell],
   ['notificacoes','Notificações', Bell],
@@ -410,6 +458,7 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
   const [draft, setDraft] = useState(profile || {})
   const [busy, setBusy] = useState(false)
   const [extra, setExtra] = useState(null)
+  const [membershipState, setMembershipState] = useState(null)
   const [projectChoices, setProjectChoices] = useState([])
   const [featuredProjectIds, setFeaturedProjectIds] = useState([])
 
@@ -438,6 +487,13 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
 
   useEffect(() => { loadBase() }, [userId, profile?.id])
   useEffect(() => { loadExtra() }, [userId, section])
+  useEffect(() => {
+    if (!userId) {
+      setMembershipState(null)
+      return
+    }
+    getMembershipState(userId).then(setMembershipState).catch(() => setMembershipState(null))
+  }, [userId])
   useEffect(() => {
     if (!userId) return
     Promise.all([getEligibleFeaturedProjects(userId), getFeaturedProjects(userId)])
@@ -504,7 +560,11 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
           show_location: Boolean(settings.show_location),
         },
       })
-      await saveFeaturedProjects(userId, featuredProjectIds)
+      await saveFeaturedProjects(
+        userId,
+        featuredProjectIds,
+        membershipState?.entitlements?.featured_projects || 3
+      )
       setProfile(result.profile)
       setDraft(result.profile)
       if (settings.theme !== 'system') setAppearance(settings.theme)
@@ -531,6 +591,11 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
   async function coverChange(event) {
     const file = event.target.files?.[0]
     if (!file) return
+    if (file.type === 'image/gif' && !membershipState?.entitlements?.animated_cover) {
+      notify('Capas animadas são um benefício CreativeZone Pro/Elite.')
+      event.target.value = ''
+      return
+    }
     setBusy(true)
     try {
       const next = await uploadProfileCover(userId, file)
@@ -542,10 +607,11 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
   }
 
   function toggleFeaturedProject(projectId) {
+    const limit = membershipState?.entitlements?.featured_projects || 3
     setFeaturedProjectIds((current) => {
       if (current.includes(projectId)) return current.filter((id) => id !== projectId)
-      if (current.length >= 3) {
-        notify('Você pode destacar até 3 projetos.')
+      if (current.length >= limit) {
+        notify('Seu plano permite destacar até ' + limit + ' projetos.')
         return current
       }
       return [...current, projectId]
@@ -603,7 +669,10 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
               <label>Assinatura do fórum<textarea maxLength={500} value={draft.signature || ''} onChange={(e) => setProfileField('signature', e.target.value)} placeholder="Aparecerá abaixo das suas respostas." /></label>
               {projectChoices.length > 0 && (
                 <fieldset className="featured-project-picker">
-                  <legend>Projetos destacados no perfil <small>(até 3)</small></legend>
+                  <legend>
+                    Projetos destacados no perfil
+                    <small> (até {membershipState?.entitlements?.featured_projects || 3})</small>
+                  </legend>
                   {projectChoices.map((project) => (
                     <label key={project.id}>
                       <input
@@ -673,6 +742,16 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
 
           {section === 'atualizacoes' && (
             <AccountUpdatesSection userId={userId} />
+          )}
+
+          {section === 'assinatura' && (
+            <MembershipSection
+              session={session}
+              profile={draft}
+              state={membershipState}
+              setState={setMembershipState}
+              notify={notify}
+            />
           )}
 
           {section === 'conectadas' && (
