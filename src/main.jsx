@@ -769,8 +769,6 @@ function App() {
     }
   }, [page, popularPage, query, filter, ignoredIds])
 
-  }, [])
-
   useEffect(() => {
     refreshForum()
   }, [refreshForum])
