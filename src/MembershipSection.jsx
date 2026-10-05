@@ -208,7 +208,7 @@ function CosmeticsForm({ state, cosmetics, setCosmetics, onSave, busy }) {
   )
 }
 
-function AdminRequests({ requests, reload, notify }) {
+function AdminRequests({ session, requests, reload, notify }) {
   const [busyId,setBusyId] = useState(null)
 
   async function approve(request, permanent) {
@@ -561,6 +561,7 @@ export function MembershipSection({ session, profile, state, setState, notify })
       {isAdmin && (
         <>
           <AdminRequests
+            session={session}
             requests={requests}
             reload={async () => setRequests(await getMembershipRequests())}
             notify={notify}
