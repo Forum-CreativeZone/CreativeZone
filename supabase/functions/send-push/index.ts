@@ -47,6 +47,12 @@ function notificationUrl(notification: any) {
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
+  const { data: expectedHook, error: hookError } = await service.rpc("get_push_webhook_token");
+  const suppliedHook = req.headers.get("X-CreativeZone-Hook");
+  if (hookError || !expectedHook || !suppliedHook || suppliedHook !== expectedHook) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   let body: any;
   try { body = await req.json(); } catch { return new Response("Invalid JSON", { status: 400 }); }
   const notificationId = body?.notification_id;
