@@ -243,7 +243,7 @@ export function CommunityChat({
             const item = await getChatMessage(id)
             if (item) upsertMessage(item)
           } catch {
-            loadMessages()
+            loadMessages(true)
           }
         }
       )
