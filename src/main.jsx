@@ -969,7 +969,8 @@ function App() {
 
   function openTopic(topic) {
     setReply('')
-    navigate('/topico/' + encodeURIComponent(topic.id))
+    const id = typeof topic === 'string' ? topic : topic?.id
+    if (id) navigate('/topico/' + encodeURIComponent(id))
   }
 
   function chooseTheme(name) {
@@ -1005,6 +1006,14 @@ function App() {
         slug: slugify(topic.title) + '-' + Date.now().toString(36),
       })
 
+      for (const file of topic.attachments || []) {
+        await uploadForumMedia({
+          file,
+          userId: session.user.id,
+          topicId: created.id,
+        })
+      }
+
       setFilter('')
       setQuery('')
       setPage(1)
@@ -1028,17 +1037,86 @@ function App() {
     }
 
     try {
-      await createPost({
+      const createdPost = await createPost({
         topic_id: routeTopicId,
         author_id: session.user.id,
         content: reply.trim(),
       })
+
+      for (const file of replyFiles) {
+        await uploadForumMedia({
+          file,
+          userId: session.user.id,
+          postId: createdPost.id,
+        })
+      }
+
       setReply('')
-      setThreadReplies(await getPosts(routeTopicId))
+      setReplyFiles([])
+      const posts = await getPosts(routeTopicId)
+      setThreadReplies(posts)
+      const mediaPairs = await Promise.all(
+        posts.map(async (post) => [post.id, await getPostMedia(post.id).catch(() => [])])
+      )
+      setPostMedia(Object.fromEntries(mediaPairs))
       await refreshForum()
       setToast('Resposta publicada.')
     } catch (error) {
       setToast(error?.message || 'Não foi possível publicar a resposta.')
+    }
+  }
+
+  async function saveTopicEdit(event) {
+    event.preventDefault()
+    if (!routeTopicId) return
+    try {
+      const updated = await updateTopic(routeTopicId, {
+        title: editingTopicDraft.title.trim(),
+        content: editingTopicDraft.content.trim(),
+        category_id: editingTopicDraft.categoryId,
+      })
+      setRouteTopic(mapTopic(updated))
+      setEditingTopic(false)
+      await refreshForum()
+      setToast('Tópico atualizado.')
+    } catch (error) {
+      setToast(error?.message || 'Não foi possível editar o tópico.')
+    }
+  }
+
+  async function removeTopic() {
+    if (!routeTopicId || !window.confirm('Excluir este tópico permanentemente?')) return
+    try {
+      await deleteTopic(routeTopicId)
+      setToast('Tópico excluído.')
+      await refreshForum()
+      navigate('/')
+    } catch (error) {
+      setToast(error?.message || 'Não foi possível excluir o tópico.')
+    }
+  }
+
+  async function savePostEdit(postId) {
+    try {
+      const updated = await updatePost(postId, editingPostText.trim())
+      setThreadReplies((items) => items.map((item) => item.id === postId ? updated : item))
+      setEditingPostId(null)
+      setEditingPostText('')
+      setToast('Resposta atualizada.')
+    } catch (error) {
+      setToast(error?.message || 'Não foi possível editar a resposta.')
+    }
+  }
+
+  async function removePost(postId) {
+    if (!window.confirm('Excluir esta resposta permanentemente?')) return
+    try {
+      await deletePost(postId)
+      setThreadReplies((items) => items.filter((item) => item.id !== postId))
+      setToast('Resposta excluída.')
+      await refreshForum()
+    } catch (error) {
+      setToast(error?.message || 'Não foi possível excluir a resposta.')
     }
   }
 
