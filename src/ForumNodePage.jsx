@@ -136,7 +136,7 @@ export function ForumNodePage({
     return () => {
       cancelled = true
     }
-  }, [node?.id, node?.node_type, page, ignoredIds])
+  }, [node?.id, node?.node_type, page, ignoredIds, notify])
 
   useEffect(() => {
     setPage(1)
@@ -192,41 +192,42 @@ export function ForumNodePage({
                   const descendants = childrenByParent.get(child.id) || []
                   return (
                     <article className="forum-child-row" key={child.id}>
-                      <button
-                        className="forum-child-main"
-                        onClick={() => navigate('/forum/' + encodeURIComponent(child.slug))}
-                      >
-                        <span className={'forum-child-icon type-' + child.node_type}>
-                          <NodeIcon type={child.node_type} />
-                        </span>
-                        <span className="forum-child-copy">
-                          <small>{nodeLabel(child.node_type)}</small>
-                          <strong>{child.name}</strong>
-                          <p>{child.description || 'Área da comunidade CreativeZone.'}</p>
-                          {descendants.length > 0 && (
-                            <span className="forum-child-sublinks">
-                              {descendants.map((descendant) => (
-                                <button
-                                  type="button"
-                                  key={descendant.id}
-                                  onClick={(event) => {
-                                    event.stopPropagation()
-                                    navigate('/forum/' + encodeURIComponent(descendant.slug))
-                                  }}
-                                >
-                                  {descendant.name}
-                                </button>
-                              ))}
-                            </span>
-                          )}
-                        </span>
-                        <span className="forum-child-counts">
-                          <b>{summary.topic_count || 0}</b>
-                          <small>tópicos</small>
-                          <b>{summary.post_count || 0}</b>
-                          <small>respostas</small>
-                        </span>
-                      </button>
+                      <div className="forum-child-primary">
+                        <button
+                          className="forum-child-open"
+                          onClick={() => navigate('/forum/' + encodeURIComponent(child.slug))}
+                        >
+                          <span className={'forum-child-icon type-' + child.node_type}>
+                            <NodeIcon type={child.node_type} />
+                          </span>
+                          <span className="forum-child-copy">
+                            <small>{nodeLabel(child.node_type)}</small>
+                            <strong>{child.name}</strong>
+                            <p>{child.description || 'Área da comunidade CreativeZone.'}</p>
+                          </span>
+                          <ChevronRight />
+                        </button>
+
+                        {descendants.length > 0 && (
+                          <div className="forum-child-sublinks">
+                            {descendants.map((descendant) => (
+                              <button
+                                type="button"
+                                key={descendant.id}
+                                onClick={() => navigate('/forum/' + encodeURIComponent(descendant.slug))}
+                              >
+                                <MessageSquare />
+                                {descendant.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="forum-child-counts">
+                        <span><b>{summary.topic_count || 0}</b> tópicos</span>
+                        <span><b>{summary.post_count || 0}</b> respostas</span>
+                      </div>
 
                       <button
                         className="forum-child-last"
