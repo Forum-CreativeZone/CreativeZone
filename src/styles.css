@@ -1377,3 +1377,173 @@
   .community-chat-emoji-wrap>button,.community-chat-send{width:34px;height:34px}
   .community-chat-foot{display:none}
 }
+
+
+/* Authentication pages */
+.auth-form{
+  width:min(100%,620px);
+  margin:0 auto;
+  padding:22px 24px 28px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:0;
+}
+.auth-tabs{
+  width:100%;
+  margin:0 0 20px;
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:7px;
+  background:#101010;
+}
+.auth-tabs button{
+  min-height:46px;
+  padding:11px 14px;
+  border:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  font-size:14px;
+  font-weight:650;
+}
+.auth-tabs button+button{border-left:1px solid var(--line)}
+.auth-tabs button.active{
+  background:var(--red);
+  color:#fff;
+}
+.auth-tabs svg{width:17px;height:17px}
+
+.oauth-actions{
+  width:100%;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.oauth-actions button{
+  min-width:0;
+  min-height:48px;
+  padding:10px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  border:1px solid #3c3c3c;
+  border-radius:7px;
+  background:#171717;
+  color:#fff;
+  font-size:14px;
+  font-weight:650;
+  transition:background .16s ease,border-color .16s ease,transform .16s ease;
+}
+.oauth-actions button:hover:not(:disabled){
+  background:#202020;
+  border-color:#555;
+  transform:translateY(-1px);
+}
+.oauth-actions button:disabled{opacity:.55;cursor:default}
+.oauth-actions img{
+  width:24px;
+  height:24px;
+  max-width:24px;
+  max-height:24px;
+  flex:0 0 24px;
+  object-fit:contain;
+}
+
+.auth-divider{
+  width:100%;
+  max-width:none;
+  margin:20px 0;
+  padding:0;
+}
+.auth-form>label{
+  display:block;
+  margin:0 0 7px;
+  color:#d8d8d8;
+  font-size:12px;
+  font-weight:650;
+}
+.auth-form>input{
+  width:100%;
+  height:44px;
+  margin:0 0 16px;
+  padding:10px 12px;
+  border:1px solid #444;
+  border-radius:7px;
+  outline:none;
+  background:#292929;
+  color:#fff;
+  font:inherit;
+  font-size:14px;
+  transition:border-color .16s ease,box-shadow .16s ease,background .16s ease;
+}
+.auth-form>input::placeholder{color:#777}
+.auth-form>input:focus{
+  border-color:var(--red);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--red) 20%,transparent);
+  background:#2d2d2d;
+}
+.auth-form .auth-submit{
+  width:100%;
+  min-height:44px;
+  margin:2px 0 0;
+  justify-content:center;
+  border-radius:7px;
+  background:var(--red);
+  color:#fff;
+  font-weight:750;
+}
+.auth-form .auth-submit:hover:not(:disabled){filter:brightness(1.08)}
+.auth-form .auth-submit:disabled{opacity:.6;cursor:default}
+.forgot-password-link{
+  width:max-content;
+  margin:13px 0 0 auto;
+  padding:2px 0;
+  color:#ff655c;
+  font-size:12px;
+  text-align:right;
+}
+.forgot-password-link:hover{text-decoration:underline}
+.auth-error{
+  margin:0 0 14px;
+  padding:9px 11px;
+  border:1px solid #7d2923;
+  border-radius:6px;
+  background:#5b171322;
+  color:#ff938b;
+  font-size:12px;
+  line-height:1.45;
+}
+
+:root[data-theme="light"] .auth-tabs{
+  background:#faf8f7;
+  border-color:#ded4d2;
+}
+:root[data-theme="light"] .auth-tabs button+button{border-left-color:#ded4d2}
+:root[data-theme="light"] .oauth-actions button{
+  background:#fff;
+  color:#191919;
+  border-color:#d9d0ce;
+  box-shadow:0 2px 8px #32110c0b;
+}
+:root[data-theme="light"] .oauth-actions button:hover:not(:disabled){background:#f8f4f3}
+:root[data-theme="light"] .auth-form>label{color:#4f4745}
+:root[data-theme="light"] .auth-form>input{
+  background:#f7f4f3;
+  color:#191919;
+  border-color:#d8cfcd;
+}
+:root[data-theme="light"] .auth-form>input::placeholder{color:#999}
+:root[data-theme="light"] .auth-form>input:focus{background:#fff}
+:root[data-theme="light"] .auth-error{background:#fff1f0;color:#a92c24;border-color:#e2aaa6}
+
+@media(max-width:760px){
+  .auth-form{width:100%;padding:18px}
+  .auth-tabs{margin-bottom:16px}
+  .oauth-actions{grid-template-columns:1fr;gap:9px}
+  .oauth-actions button{min-height:46px}
+  .auth-divider{margin:17px 0}
+  .auth-form>input{font-size:16px}
+  .forgot-password-link{margin-top:12px}
+}
