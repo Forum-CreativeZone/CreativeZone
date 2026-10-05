@@ -395,6 +395,14 @@ export function ProjectPage({ slug, session, navigate, notify }) {
           <div className="project-links">
             {project.repo_url && <a className="action" href={project.repo_url} target="_blank" rel="noreferrer"><GitBranch/>Repositório</a>}
             {project.website_url && <a className="action" href={project.website_url} target="_blank" rel="noreferrer"><ExternalLink/>Site</a>}
+            {!isOwner && session && (
+              <ReportButton
+                session={session}
+                targetType="project"
+                targetId={project.id}
+                notify={notify}
+              />
+            )}
           </div>
           {canManage && <div className="project-status-controls">
             {['idea','planning','active','paused','completed'].map(value=><button className="action" key={value} onClick={()=>changeStatus(value)}>{value}</button>)}
