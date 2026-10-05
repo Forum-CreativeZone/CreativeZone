@@ -6,6 +6,7 @@ import {
   MessageSquare,
 } from 'lucide-react'
 import { getForumNodeSummaries } from './services/forumApi'
+import './forum-hierarchy.css'
 
 function formatActivity(value) {
   if (!value) return ''
