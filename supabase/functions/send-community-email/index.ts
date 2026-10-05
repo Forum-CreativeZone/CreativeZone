@@ -107,6 +107,36 @@ function copyFor(job: any) {
       excerpt,
       cta: "Abrir CreativeZone",
     },
+    membership_granted: {
+      subject: `${job.notification_data?.plan_name || "Seu VIP"} foi ativado — CreativeZone`,
+      eyebrow: "ASSINATURA ATIVADA",
+      title: "Seu apoio já está ativo",
+      message: job.notification_data?.permanent
+        ? `${job.notification_data?.plan_name || "Seu plano"} foi ativado permanentemente. Obrigado por apoiar a CreativeZone.`
+        : `${job.notification_data?.plan_name || "Seu plano"} foi ativado e já está disponível na sua conta.`,
+      excerpt: job.notification_data?.ends_at
+        ? `Validade: ${new Date(job.notification_data.ends_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`
+        : "",
+      cta: "Ver minha assinatura",
+    },
+    membership_expiring: {
+      subject: `Seu ${job.notification_data?.plan_name || "VIP"} está perto de vencer — CreativeZone`,
+      eyebrow: "VIP PERTO DO VENCIMENTO",
+      title: "Seu período VIP está terminando",
+      message: `Seu ${job.notification_data?.plan_name || "plano"} vence em breve. Se quiser continuar apoiando a comunidade, renove pelo WhatsApp.`,
+      excerpt: job.notification_data?.ends_at
+        ? `Vencimento: ${new Date(job.notification_data.ends_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`
+        : "",
+      cta: "Renovar VIP",
+    },
+    membership_expired: {
+      subject: `Seu ${job.notification_data?.plan_name || "VIP"} expirou — CreativeZone`,
+      eyebrow: "VIP ENCERRADO",
+      title: "Seu período VIP terminou",
+      message: `Seu ${job.notification_data?.plan_name || "plano"} chegou ao fim. Sua conta continua normalmente no plano Free e você pode renovar quando quiser.`,
+      excerpt: "",
+      cta: "Ver planos",
+    },
   }
 
   return copy[job.notification_type] || {
