@@ -405,6 +405,10 @@ export function MembershipSection({ session, profile, state, setState, notify })
   async function request(planId, months = 1) {
     const plan = plans.find((item) => item.id === planId)
     if (!plan) return
+
+    const whatsappWindow = window.open('about:blank', '_blank')
+    if (whatsappWindow) whatsappWindow.opener = null
+
     setBusy(true)
     try {
       const purchase = await requestMembershipUpgrade(
@@ -434,14 +438,16 @@ export function MembershipSection({ session, profile, state, setState, notify })
         'Vou enviar por aqui o comprovante do pagamento.',
       ].join('\n')
 
-      window.open(
-        'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(message),
-        '_blank',
-        'noopener,noreferrer'
-      )
+      const whatsappUrl = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(message)
+      if (whatsappWindow) {
+        whatsappWindow.location.href = whatsappUrl
+      } else {
+        window.location.href = whatsappUrl
+      }
       notify('Pedido criado. Continue pelo WhatsApp e envie o comprovante.')
       if (isAdmin) setRequests(await getMembershipRequests())
     } catch (error) {
+      whatsappWindow?.close()
       notify(error?.message || 'Não foi possível iniciar a solicitação.')
     } finally {
       setBusy(false)
