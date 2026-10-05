@@ -513,7 +513,7 @@ export function CategoriesPage({
                       </span>
                     </div>
                     <div className="category-admin-actions">
-                      <button className="action" onClick={() => onChoose?.(category.name)}>
+                      <button className="action" onClick={() => onChoose?.(category)}>
                         Abrir <ChevronRight />
                       </button>
                       {isAdmin && (
