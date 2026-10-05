@@ -66,6 +66,11 @@ export async function checkLeakedPassword(password) {
 
 export async function signUp(email, password, profile = {}) {
   const client = requireSupabase()
+  if (String(password || '').length < 10) {
+    const error = new Error('A senha precisa ter pelo menos 10 caracteres.')
+    error.code = 'creativezone_weak_password'
+    throw error
+  }
   const passwordCheck = await checkLeakedPassword(password)
 
   if (passwordCheck.leaked) {
@@ -236,6 +241,10 @@ export async function signInWithOAuthProvider(provider) {
 
 export function getAuthErrorMessage(error) {
   if (!error) return 'Não foi possível concluir a autenticação.'
+
+  if (error.code === 'creativezone_weak_password') {
+    return 'Use uma senha com pelo menos 10 caracteres.'
+  }
 
   if (error.code === 'creativezone_leaked_password') {
     return 'Esta senha foi bloqueada porque já apareceu em vazamentos de dados conhecidos. Escolha uma senha nova, exclusiva e que você não use em outros sites.'
