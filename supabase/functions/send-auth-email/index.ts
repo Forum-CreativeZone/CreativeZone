@@ -22,6 +22,10 @@ type EmailData = {
   redirect_to?: string
   email_action_type?: string
   site_url?: string
+  old_email?: string
+  old_phone?: string
+  provider?: string
+  factor_type?: string
 }
 
 function esc(value: unknown) {
@@ -75,6 +79,62 @@ function copyFor(type: string) {
       eyebrow: "VERIFICAÇÃO DE SEGURANÇA",
       title: "Confirme que é você",
       message: "Use o código abaixo para autorizar uma alteração sensível na sua conta.",
+      cta: "",
+    },
+    email: {
+      subject: "Confirme seu e-mail — CreativeZone",
+      eyebrow: "CONFIRMAÇÃO DE E-MAIL",
+      title: "Confirme seu endereço",
+      message: "Use o botão abaixo para confirmar este endereço de e-mail.",
+      cta: "Confirmar e-mail",
+    },
+    password_changed_notification: {
+      subject: "Sua senha foi alterada — CreativeZone",
+      eyebrow: "SEGURANÇA DA CONTA",
+      title: "Sua senha foi alterada",
+      message: "A senha da sua conta CreativeZone foi alterada recentemente. Se não foi você, redefina sua senha imediatamente.",
+      cta: "",
+    },
+    email_changed_notification: {
+      subject: "Seu e-mail foi alterado — CreativeZone",
+      eyebrow: "SEGURANÇA DA CONTA",
+      title: "Seu endereço de e-mail mudou",
+      message: "O endereço de e-mail associado à sua conta CreativeZone foi alterado.",
+      cta: "",
+    },
+    phone_changed_notification: {
+      subject: "Seu telefone foi alterado — CreativeZone",
+      eyebrow: "SEGURANÇA DA CONTA",
+      title: "Seu telefone foi alterado",
+      message: "O número de telefone associado à sua conta CreativeZone foi alterado.",
+      cta: "",
+    },
+    identity_linked_notification: {
+      subject: "Novo método de acesso conectado — CreativeZone",
+      eyebrow: "SEGURANÇA DA CONTA",
+      title: "Um novo método de acesso foi conectado",
+      message: "Uma nova identidade ou provedor de login foi conectado à sua conta.",
+      cta: "",
+    },
+    identity_unlinked_notification: {
+      subject: "Método de acesso removido — CreativeZone",
+      eyebrow: "SEGURANÇA DA CONTA",
+      title: "Um método de acesso foi removido",
+      message: "Uma identidade ou provedor de login foi removido da sua conta.",
+      cta: "",
+    },
+    mfa_factor_enrolled_notification: {
+      subject: "Nova verificação de segurança adicionada — CreativeZone",
+      eyebrow: "SEGURANÇA DA CONTA",
+      title: "Novo método de verificação adicionado",
+      message: "Um novo fator de autenticação foi adicionado à sua conta CreativeZone.",
+      cta: "",
+    },
+    mfa_factor_unenrolled_notification: {
+      subject: "Verificação de segurança removida — CreativeZone",
+      eyebrow: "SEGURANÇA DA CONTA",
+      title: "Método de verificação removido",
+      message: "Um fator de autenticação foi removido da sua conta CreativeZone.",
       cta: "",
     },
   }
