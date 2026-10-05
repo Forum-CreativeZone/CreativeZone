@@ -1769,3 +1769,114 @@
   .level-ladder{grid-template-columns:repeat(5,minmax(72px,1fr));overflow:auto}.achievement-grid{grid-template-columns:1fr}.advanced-search-form{grid-template-columns:1fr}.advanced-search-form .search-wide{grid-column:auto}.advanced-search-results>button>span{display:grid}.tag-page-head{align-items:flex-start;flex-direction:column}.tag-page-head .action{width:100%;justify-content:center}
   .thread-live-context{width:100%;margin-left:0;justify-content:space-between}.related-topics>div{grid-template-columns:1fr}.featured-projects-public{grid-template-columns:1fr}.public-profile-hero.has-cover{padding-top:95px}
 }
+
+
+/* CreativeZone Memberships, VIP identity and system owner */
+.identity-badge{
+  display:inline-flex;align-items:center;gap:4px;min-height:20px;padding:2px 7px;border:1px solid #ffffff18;
+  border-radius:999px;background:#171717;color:#aaa;font-size:8px;font-weight:850;letter-spacing:.35px;white-space:nowrap
+}
+.identity-badge.admin{border-color:#8e2c25;background:#35100d;color:#ff8a82}
+.identity-badge.moderator{border-color:#665127;background:#29210e;color:#e9c565}
+.identity-badge.level{border-color:#493a2e;background:#211a14;color:#c7a782}
+.identity-badge.membership-pro,.membership-plan-card.plan-pro>header>b{border-color:#6d4ac8;background:#24183f;color:#cbb5ff}
+.identity-badge.membership-elite,.membership-plan-card.plan-elite>header>b{border-color:#b7772a;background:#3a2611;color:#ffd28a}
+.identity-badge.architect{
+  border-color:#f0b73f;background:linear-gradient(135deg,#4a2809,#241407);color:#ffe2a2;
+  box-shadow:0 0 12px #e59f2a24
+}
+.profile-identity-badges,.thread-identity-badges,.quick-identity-tags{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+.profile-identity-badges{margin:7px 0 3px}
+.profile-custom-title{margin:3px 0;color:#e0ad58;font-size:11px;font-weight:700}
+.quick-profile-title{color:#c4904f;font-size:9px;font-style:normal}
+.quick-identity-tags>small{font-size:8px;color:#777;text-transform:uppercase}
+.public-avatar-frame,.thread-avatar-frame{position:relative;display:inline-grid;place-items:center;border-radius:12px;flex:none}
+.public-avatar-frame{width:136px;height:136px}
+.public-avatar-frame>.community-avatar{width:128px!important;height:128px!important}
+.thread-avatar-frame{width:62px;height:62px;border-radius:10px}
+.thread-avatar-frame>img,.thread-avatar-frame>.thread-profile-fallback{width:56px!important;height:56px!important;border-radius:7px!important}
+.frame-pro{padding:3px;background:linear-gradient(135deg,#7b55d6,#3c2a78,#9a72ed)}
+.frame-elite{padding:3px;background:linear-gradient(135deg,#ffd56c,#a66217,#fff0a1,#7d490e);background-size:220% 220%;animation:eliteFrameShift 4s ease infinite}
+.frame-architect{
+  padding:4px;background:conic-gradient(from 0deg,#ffdd75,#8d4f0c,#fff3ba,#d48b24,#ffdd75);
+  box-shadow:0 0 18px #d98c2740;animation:architectFrameSpin 8s linear infinite
+}
+@keyframes eliteFrameShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes architectFrameSpin{to{filter:hue-rotate(12deg)}}
+.thread-profile-title{display:block;margin-top:2px;color:#a87942;font-size:8px;font-style:normal}
+.thread-identity-badges{justify-content:center;margin:6px 0 4px}
+.thread-profile-card .thread-avatar-frame{margin:0 auto}
+.thread-profile-card .thread-avatar-frame img{object-fit:cover}
+.membership-plan-elite .public-profile-main h2{font-weight:850}
+.cover-effect-subtle.has-cover:after,.cover-effect-elite.has-cover:after,.cover-effect-architect.has-cover:after{
+  content:"";position:absolute;inset:0 0 auto 0;height:130px;pointer-events:none
+}
+.cover-effect-subtle.has-cover:after{background:linear-gradient(115deg,transparent,#ffffff10,transparent);background-size:220% 100%;animation:coverSweep 7s linear infinite}
+.cover-effect-elite.has-cover:after{background:linear-gradient(115deg,transparent,#ffc75b26,transparent);background-size:220% 100%;animation:coverSweep 4.5s linear infinite}
+.cover-effect-architect.has-cover:after{background:linear-gradient(110deg,transparent,#ffcb5a36,transparent,#ffffff12,transparent);background-size:260% 100%;animation:coverSweep 3.7s linear infinite}
+@keyframes coverSweep{from{background-position:180% 0}to{background-position:-120% 0}}
+
+.membership-section{display:grid;gap:14px}
+.membership-current-card{
+  min-height:112px;padding:16px;display:grid;grid-template-columns:54px minmax(0,1fr) auto;align-items:center;gap:12px;
+  border:1px solid #ffffff12;border-radius:9px;background:linear-gradient(135deg,#161616,#101010)
+}
+.membership-current-card.plan-pro{border-color:#5c438e;background:linear-gradient(135deg,#241a34,#111)}
+.membership-current-card.plan-elite{border-color:#7c5725;background:linear-gradient(135deg,#2f210f,#111)}
+.membership-current-icon{width:52px;height:52px;display:grid;place-items:center;border-radius:14px;background:#ffffff07}
+.membership-current-icon svg{width:28px;height:28px;color:#e0a447}
+.membership-current-card>div:nth-child(2){display:grid;gap:3px}.membership-current-card span{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:#777}
+.membership-current-card h2{font-size:21px}.membership-current-card p{font-size:10px;color:#888}
+.membership-current-card>b{padding:6px 9px;border:1px solid #ffffff15;border-radius:999px;font-size:9px;color:#ddd}
+.membership-plan-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.membership-plan-card{display:flex;flex-direction:column;min-height:330px;padding:12px;border:1px solid #ffffff0e;border-radius:8px;background:#141414}
+.membership-plan-card.active{box-shadow:inset 0 0 0 1px #ffffff14}
+.membership-plan-card.plan-pro{border-color:#49356f}.membership-plan-card.plan-elite{border-color:#644619}
+.membership-plan-card>header{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:8px;align-items:start}
+.membership-plan-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;background:#ffffff08}
+.membership-plan-icon svg{width:18px;height:18px}
+.membership-plan-card>header>div{display:grid;gap:3px}.membership-plan-card>header strong{font-size:12px}.membership-plan-card>header small{font-size:8px;line-height:1.35;color:#777}
+.membership-plan-card>header>b{padding:3px 6px;border:1px solid #ffffff14;border-radius:8px;color:#999;font-size:8px}
+.membership-plan-benefits{display:grid;gap:7px;margin:13px 0;flex:1}
+.membership-plan-benefits span{display:flex;align-items:center;gap:6px;color:#b5b5b5;font-size:9px}.membership-plan-benefits span.muted{color:#505050}
+.membership-plan-benefits svg{width:13px;height:13px;flex:none;color:#5ebd73}.membership-plan-benefits .muted svg{color:#6a4744}
+.membership-current,.membership-request-button{width:100%;min-height:34px;justify-content:center!important}
+.membership-current{border:1px solid #ffffff12;border-radius:5px;color:#666}
+.membership-cosmetics,.membership-admin-panel{padding:13px;border:1px solid #ffffff10;border-radius:8px;background:#141414}
+.membership-cosmetics>header,.membership-admin-panel>header{display:flex;align-items:center;gap:9px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #ffffff0d}
+.membership-cosmetics>header>svg,.membership-admin-panel>header>svg{width:21px;color:#d49a43}
+.membership-cosmetics>header>div,.membership-admin-panel>header>div{display:grid}.membership-cosmetics header strong,.membership-admin-panel header strong{font-size:12px}.membership-cosmetics header small,.membership-admin-panel header small{font-size:8px;color:#777}
+.membership-cosmetics>label{display:grid;gap:5px;margin:9px 0;color:#aaa;font-size:10px}
+.membership-cosmetics input,.membership-cosmetics select{width:100%;min-height:38px;padding:0 10px;border:1px solid #ffffff13;border-radius:5px;background:#222;color:#ddd}
+.membership-cosmetics input:disabled,.membership-cosmetics select:disabled{opacity:.45;cursor:not-allowed}
+.membership-color-field{display:grid;grid-template-columns:54px 1fr;gap:7px}.membership-color-field input[type=color]{padding:4px}
+.elite-access-card{padding:13px;display:flex;align-items:center;gap:10px;border:1px solid #765420;border-radius:8px;background:linear-gradient(135deg,#2a1c0c,#141414)}
+.elite-access-card>svg{width:26px;color:#eab85a}.elite-access-card>div{display:grid;gap:2px}.elite-access-card strong{font-size:12px}.elite-access-card small{font-size:8px;color:#8a7962}
+.membership-admin-panel>article{padding:9px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #ffffff0c}
+.membership-admin-panel>article:last-child{border-bottom:0}.membership-admin-panel>article>div:first-child{display:grid;gap:2px}.membership-admin-panel article strong{font-size:10px}.membership-admin-panel article small{font-size:8px;color:#777}.membership-admin-panel article p{font-size:8px;color:#999}
+.membership-admin-panel>article>div:last-child{display:flex;flex-wrap:wrap;gap:5px}
+
+.elite-area-page .community-page-card{border:1px solid #674619}
+.elite-lounge{padding:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:9px;background:radial-gradient(circle at 50% 0,#37230e,#101010 52%)}
+.elite-lounge>section{min-height:150px;padding:14px;display:flex;align-items:flex-start;gap:9px;border:1px solid #735020;border-radius:8px;background:#15120d}
+.elite-lounge>section>svg{width:28px;height:28px;flex:none;color:#e5ae54}.elite-lounge>section>div{display:grid;gap:4px}.elite-lounge strong{font-size:12px}.elite-lounge small{font-size:9px;color:#8d806d;line-height:1.45}
+.elite-locked{padding:40px 18px;display:grid;justify-items:center;gap:12px;text-align:center}.elite-locked>svg{width:52px;height:52px;color:#a87730}
+
+:root[data-theme="light"] .identity-badge{background:#fff;border-color:#e7ddda;color:#555}
+:root[data-theme="light"] .identity-badge.architect{background:#fff7e7;color:#80500d;border-color:#d9a448}
+:root[data-theme="light"] .identity-badge.membership-pro{background:#f5f0ff;color:#6246a4;border-color:#b9a0ea}
+:root[data-theme="light"] .identity-badge.membership-elite{background:#fff6e5;color:#8b5b14;border-color:#e1b763}
+:root[data-theme="light"] .membership-current-card,:root[data-theme="light"] .membership-plan-card,:root[data-theme="light"] .membership-cosmetics,:root[data-theme="light"] .membership-admin-panel{background:#fff;border-color:#e4dad7}
+:root[data-theme="light"] .membership-current-card.plan-pro{background:#faf7ff}:root[data-theme="light"] .membership-current-card.plan-elite{background:#fffaf0}
+:root[data-theme="light"] .membership-cosmetics input,:root[data-theme="light"] .membership-cosmetics select{background:#f5f1f0;color:#222;border-color:#ddd0cd}
+:root[data-theme="light"] .elite-lounge{background:radial-gradient(circle at 50% 0,#fff2d4,#fff 60%)}
+:root[data-theme="light"] .elite-lounge>section{background:#fffaf1;border-color:#e1bd7b}
+
+@media(max-width:760px){
+  .membership-current-card{grid-template-columns:44px minmax(0,1fr)}.membership-current-card>b{grid-column:1/-1;width:max-content}
+  .membership-current-icon{width:42px;height:42px}.membership-current-icon svg{width:22px}
+  .membership-plan-grid{grid-template-columns:1fr}.membership-plan-card{min-height:auto}
+  .membership-admin-panel>article{align-items:flex-start;flex-direction:column}
+  .elite-lounge{grid-template-columns:1fr}.elite-lounge>section{min-height:auto}
+  .public-avatar-frame{width:106px;height:106px}.public-avatar-frame>.community-avatar{width:98px!important;height:98px!important}
+}
