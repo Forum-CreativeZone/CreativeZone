@@ -268,6 +268,7 @@ export async function getNotifications(userId, limit = 50) {
     new_reply: settings?.inapp_reply ?? true,
     topic_watch: settings?.inapp_watch ?? true,
     mention: settings?.inapp_mention ?? true,
+    chat_mention: settings?.inapp_mention ?? true,
     quote: settings?.inapp_quote ?? true,
     reaction: settings?.inapp_reaction ?? true,
     new_follower: settings?.inapp_follower ?? true,
