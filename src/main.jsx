@@ -460,7 +460,7 @@ function ComposerPage({ onPublish, notify, categories, navigate, session }) {
         >
           {categories.map((category) => (
             <option value={category.id} key={category.id}>
-              {category.name}
+              {category.pathLabel || category.name}
             </option>
           ))}
         </select>
@@ -1052,7 +1052,14 @@ function App() {
     [categories, routeTopic?.categoryId]
   )
   const forumCategories = useMemo(
-    () => categories.filter((category) => category.node_type === 'forum'),
+    () => categories
+      .filter((category) => category.node_type === 'forum')
+      .map((category) => ({
+        ...category,
+        pathLabel: getCategoryPath(categories, category.id)
+          .map((item) => item.name)
+          .join(' › '),
+      })),
     [categories]
   )
 
