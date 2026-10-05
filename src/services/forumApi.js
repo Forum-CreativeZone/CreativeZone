@@ -13,7 +13,8 @@ export async function getCategories() {
   const client = requireSupabase()
   const { data, error } = await client
     .from('categories')
-    .select('id, name, slug, description, icon')
+    .select('id, name, slug, description, icon, parent_id, node_type, sort_order')
+    .order('sort_order')
     .order('name')
 
   if (error) throw error
@@ -209,5 +210,54 @@ export async function updatePost(postId, content) {
 export async function deletePost(postId) {
   const client = requireSupabase()
   const { error } = await client.from('posts').delete().eq('id', postId)
+  if (error) throw error
+}
+
+
+export async function getForumAuthorStats(authorIds = []) {
+  const client = requireSupabase()
+  const ids = [...new Set((authorIds || []).filter(Boolean))]
+  if (!ids.length) return {}
+
+  const { data, error } = await client.rpc('get_forum_author_stats', {
+    p_author_ids: ids,
+  })
+  if (error) throw error
+
+  return Object.fromEntries((data || []).map((item) => [item.profile_id, {
+    topic_count: Number(item.topic_count || 0),
+    post_count: Number(item.post_count || 0),
+  }]))
+}
+
+export async function isWatchingTopic(userId, topicId) {
+  const client = requireSupabase()
+  if (!userId || !topicId) return false
+  const { data, error } = await client
+    .from('topic_watches')
+    .select('topic_id')
+    .eq('topic_id', topicId)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (error) throw error
+  return Boolean(data)
+}
+
+export async function watchTopic(userId, topicId) {
+  const client = requireSupabase()
+  const { error } = await client
+    .from('topic_watches')
+    .upsert({ topic_id: topicId, user_id: userId }, { onConflict: 'topic_id,user_id' })
+  if (error) throw error
+}
+
+export async function unwatchTopic(userId, topicId) {
+  const client = requireSupabase()
+  const { error } = await client
+    .from('topic_watches')
+    .delete()
+    .eq('topic_id', topicId)
+    .eq('user_id', userId)
   if (error) throw error
 }
