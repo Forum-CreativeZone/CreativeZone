@@ -115,16 +115,21 @@ export async function updateProject(projectId, payload) {
   return data
 }
 
-export async function requestProjectParticipation(projectId, userId, message = '') {
+export async function updateProjectStatus(projectId, status) {
   const client = requireSupabase()
-  const { error } = await client.from('project_members').upsert({
-    project_id: projectId,
-    user_id: userId,
-    role: 'interested',
-    status: 'pending',
-    message,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'project_id,user_id' })
+  const { error } = await client.rpc('update_project_status', {
+    p_project_id: projectId,
+    p_status: status,
+  })
+  if (error) throw error
+}
+
+export async function requestProjectParticipation(projectId, _userId, message = '') {
+  const client = requireSupabase()
+  const { error } = await client.rpc('request_project_participation', {
+    p_project_id: projectId,
+    p_message: message,
+  })
   if (error) throw error
 }
 
