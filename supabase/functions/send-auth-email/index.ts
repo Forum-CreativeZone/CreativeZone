@@ -1,14 +1,21 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { createClient } from "npm:@supabase/supabase-js@2"
 import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0"
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
+const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!
 const RESEND_FROM = Deno.env.get("RESEND_FROM") || "CreativeZone <onboarding@resend.dev>"
 const SEND_EMAIL_HOOK_SECRET = Deno.env.get("SEND_EMAIL_HOOK_SECRET") || ""
 const SITE_URL = "https://assets-forum.gestao-quiroz.workers.dev"
 const LOGO_URL = "https://raw.githubusercontent.com/Inosuke-Company/CreativeZone/main/assets/logo.png"
 
+const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+  auth: { persistSession: false, autoRefreshToken: false },
+})
+
 type AuthUser = {
+  id?: string
   email?: string
   new_email?: string
   user_metadata?: Record<string, unknown>
@@ -240,7 +247,20 @@ Deno.serve(async (req: Request) => {
     const data = event.email_data
     const type = data.email_action_type || "unknown"
     const copy = copyFor(type)
+
+    let forumProfile: { display_name?: string | null; username?: string | null } | null = null
+    if (user.id) {
+      const { data } = await admin
+        .from("profiles")
+        .select("display_name,username")
+        .eq("id", user.id)
+        .maybeSingle()
+      forumProfile = data
+    }
+
     const displayName = String(
+      forumProfile?.display_name?.trim() ||
+      forumProfile?.username?.trim() ||
       user.user_metadata?.display_name ||
       user.user_metadata?.name ||
       user.email?.split("@")[0] ||
