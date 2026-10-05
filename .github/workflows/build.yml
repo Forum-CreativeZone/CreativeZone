@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   quality:
@@ -23,8 +23,17 @@ jobs:
           node-version: 20.19.5
           cache: npm
 
-      - name: Install dependencies
+      - name: Install dependencies and generate lockfile
         run: npm install
+
+      - name: Commit regenerated lockfile
+        if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git diff --cached --quiet || git commit -m "Regenerate package lockfile"
+          git push
 
       - name: Lint
         run: npm run lint
