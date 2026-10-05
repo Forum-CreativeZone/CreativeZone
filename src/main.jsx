@@ -182,7 +182,7 @@ function ForumText({ content = '' }) {
 
   if (lastIndex < content.length) {
     parts.push(
-      <span className="forum-text-plain" key={'text-' + index++}>
+      <span className="forum-text-plain" key={'text-' + index}>
         {content.slice(lastIndex)}
       </span>
     )
