@@ -341,6 +341,7 @@ function ComposerPage({ onPublish, notify, categories, navigate }) {
   const [title, setTitle] = useState(draft.title || '')
   const [categoryId, setCategoryId] = useState(draft.categoryId || firstCategory)
   const [description, setDescription] = useState(draft.description || '')
+  const [attachments, setAttachments] = useState([])
   const [publishing, setPublishing] = useState(false)
   const editor = useRef()
 
@@ -378,6 +379,7 @@ function ComposerPage({ onPublish, notify, categories, navigate }) {
         title: title.trim(),
         categoryId,
         description: description.trim(),
+        attachments,
       })
       localStorage.removeItem('creativezone-draft')
     } finally {
@@ -439,6 +441,21 @@ function ComposerPage({ onPublish, notify, categories, navigate }) {
             placeholder="Escreva sua publicação..."
           />
         </div>
+
+        <label className="attachment-picker">
+          <Paperclip /> Anexar arquivos
+          <input
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain"
+            onChange={(event) => setAttachments(Array.from(event.target.files || []).slice(0, 4))}
+          />
+        </label>
+        {attachments.length > 0 && (
+          <div className="attachment-selection">
+            {attachments.map((file) => <span key={file.name + file.size}>{file.name}</span>)}
+          </div>
+        )}
 
         <div className="composer-actions">
           <button
@@ -600,10 +617,10 @@ function AuthPage({ mode, navigate, notify }) {
           type="password"
           autoComplete={isSignup ? 'new-password' : 'current-password'}
           required
-          minLength={6}
+          minLength={10}
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          placeholder="Mínimo de 6 caracteres"
+          placeholder="Mínimo de 10 caracteres"
         />
 
         {error && (
@@ -616,6 +633,11 @@ function AuthPage({ mode, navigate, notify }) {
           {isSignup ? <UserPlus /> : <LogIn />}
           {busy ? 'Aguarde...' : isSignup ? 'Criar conta' : 'Entrar'}
         </button>
+        {!isSignup && (
+          <button className="forgot-password-link" type="button" onClick={() => navigate('/esqueci-senha')}>
+            Esqueci minha senha
+          </button>
+        )}
       </form>
     </PageShell>
   )
