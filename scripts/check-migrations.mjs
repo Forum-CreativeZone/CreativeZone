@@ -36,4 +36,4 @@ for (const name of required) {
   if (!names.includes(name)) throw new Error(`Required migration missing: ${name}`)
 }
 
-console.log(`Migration check passed: ${names.length} files, ${versions.size} unique versions.`)
+process.stdout.write(`Migration check passed: ${names.length} files, ${versions.size} unique versions.\n`)
