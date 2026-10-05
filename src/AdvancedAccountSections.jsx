@@ -317,7 +317,7 @@ export function NotificationPreferencesSection({ userId, settings, setSettings, 
     try {
       const payload = {}
       for (const [key] of notificationRows) {
-        payload[`inapp_${key}`] = Boolean(settings[`inapp_${key}`])
+        payload[`inapp_${key}`] = key === 'membership' ? true : Boolean(settings[`inapp_${key}`])
         payload[`email_${key}`] = Boolean(settings[`email_${key}`])
         payload[`push_${key}`] = Boolean(settings[`push_${key}`])
       }
@@ -396,7 +396,13 @@ export function NotificationPreferencesSection({ userId, settings, setSettings, 
         {notificationRows.map(([key,label]) => (
           <div className="pref-row" key={key}>
             <span>{label}</span>
-            <input type="checkbox" checked={Boolean(settings[`inapp_${key}`])} onChange={(e) => patch(`inapp_${key}`, e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={key === 'membership' ? true : Boolean(settings[`inapp_${key}`])}
+              disabled={key === 'membership'}
+              title={key === 'membership' ? 'Avisos de vencimento VIP permanecem ativos no fórum.' : undefined}
+              onChange={(e) => patch(`inapp_${key}`, e.target.checked)}
+            />
             <input type="checkbox" checked={Boolean(settings[`email_${key}`])} onChange={(e) => patch(`email_${key}`, e.target.checked)} />
             <input type="checkbox" checked={Boolean(settings[`push_${key}`])} onChange={(e) => patch(`push_${key}`, e.target.checked)} />
           </div>
