@@ -263,6 +263,12 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
             {profile.allow_follow && <button className="action" onClick={follow}>{following ? <UserMinus /> : <UserPlus />}{following ? 'Deixar de seguir' : 'Seguir'}</button>}
             {profile.allow_dm !== 'none' && <button className="action" onClick={() => navigate(`/mensagens/${profile.username}`)}><MessageCircle /> Mensagem</button>}
             <button className="action subtle" onClick={ignore}><UserX /> {ignored ? 'Parar de ignorar' : 'Ignorar'}</button>
+            <ReportButton
+              session={session}
+              targetType="profile"
+              targetId={profile.id}
+              notify={notify}
+            />
           </div>
         )}
       </div>
