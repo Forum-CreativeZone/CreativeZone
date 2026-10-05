@@ -86,6 +86,59 @@ function ChatText({ text = '', navigate }) {
   )
 }
 
+function OnlineMembersPanel({ members, navigate }) {
+  return (
+    <aside className="community-chat-online-panel" aria-label="Membros online no fórum">
+      <div className="community-chat-online-head">
+        <span>
+          <i className="community-chat-online-dot" />
+          Membros online
+        </span>
+        <b className="community-chat-online-count">{members.length}</b>
+      </div>
+
+      <div className="community-chat-online-list">
+        {members.length ? members.map((member) => {
+          const username = member.username || ''
+          const name = member.display_name || username || 'Membro'
+          const tag = roleLabel(member.role)
+
+          return (
+            <button
+              type="button"
+              className="community-chat-online-member"
+              key={member.user_id}
+              onClick={() => username && navigate('/membro/' + encodeURIComponent(username))}
+              disabled={!username}
+              title={username ? 'Abrir perfil de @' + username : name}
+            >
+              <span className="community-chat-online-avatar">
+                {member.avatar_url ? (
+                  <img src={member.avatar_url} alt="" />
+                ) : (
+                  <span>{name.slice(0, 1).toUpperCase()}</span>
+                )}
+                <i />
+              </span>
+
+              <span className="community-chat-online-identity">
+                <strong>{name}</strong>
+                {username && name !== username && <small>@{username}</small>}
+              </span>
+
+              {tag && (
+                <b className={'community-chat-role role-' + (member.role || 'member')}>{tag}</b>
+              )}
+            </button>
+          )
+        }) : (
+          <p className="community-chat-online-empty">Nenhum membro online agora.</p>
+        )}
+      </div>
+    </aside>
+  )
+}
+
 function PresenceAvatars({ members }) {
   const visible = members.slice(0, 5)
   const rest = Math.max(0, members.length - visible.length)
@@ -115,6 +168,7 @@ function PresenceAvatars({ members }) {
 export function CommunityChat({
   session,
   profile,
+  onlineMembers = [],
   ignoredIds = [],
   navigate,
   notify,
@@ -128,7 +182,6 @@ export function CommunityChat({
   const [busy, setBusy] = useState(false)
   const [menuId, setMenuId] = useState(null)
   const [emojiOpen, setEmojiOpen] = useState(false)
-  const [onlineMembers, setOnlineMembers] = useState([])
   const [connection, setConnection] = useState('connecting')
   const [restriction, setRestriction] = useState({ mute: null, ban: null })
   const [collapsed, setCollapsed] = useState(() => {
@@ -150,7 +203,15 @@ export function CommunityChat({
 
   const isStaff = ['moderator', 'admin'].includes(profile?.role)
   const visibleOnlineMembers = useMemo(
-    () => onlineMembers.filter((item) => !ignoredIds.includes(item.user_id)),
+    () => onlineMembers
+      .filter((item) => !ignoredIds.includes(item.user_id))
+      .sort((a, b) =>
+        String(a.display_name || a.username || '').localeCompare(
+          String(b.display_name || b.username || ''),
+          'pt-BR',
+          { sensitivity: 'base' }
+        )
+      ),
     [onlineMembers, ignoredIds]
   )
 
@@ -205,28 +266,9 @@ export function CommunityChat({
       return undefined
     }
 
-    const options = userId
-      ? { config: { presence: { key: userId } } }
-      : undefined
-
-    const channel = supabase.channel('creativezone-community-chat-v1', options)
-
-    const syncPresence = () => {
-      const state = channel.presenceState()
-      const byUser = new Map()
-
-      Object.values(state || {}).flat().forEach((presence) => {
-        if (!presence?.user_id) return
-        if (!byUser.has(presence.user_id)) byUser.set(presence.user_id, presence)
-      })
-
-      setOnlineMembers([...byUser.values()])
-    }
+    const channel = supabase.channel('creativezone-community-chat-v1')
 
     channel
-      .on('presence', { event: 'sync' }, syncPresence)
-      .on('presence', { event: 'join' }, syncPresence)
-      .on('presence', { event: 'leave' }, syncPresence)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'chat_messages' },
@@ -251,17 +293,6 @@ export function CommunityChat({
         if (status === 'SUBSCRIBED') {
           setConnection('online')
           await loadMessages(true)
-
-          if (userId && profile) {
-            await channel.track({
-              user_id: userId,
-              username: profile.username,
-              display_name: profile.display_name || profile.username,
-              avatar_url: profile.avatar_url || '',
-              role: profile.role || 'member',
-              online_at: new Date().toISOString(),
-            })
-          }
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           setConnection('reconnecting')
         } else if (status === 'CLOSED') {
@@ -270,16 +301,9 @@ export function CommunityChat({
       })
 
     return () => {
-      if (userId) channel.untrack().catch(() => {})
       supabase.removeChannel(channel)
     }
-  }, [
-    userId,
-    profile?.username,
-    profile?.display_name,
-    profile?.avatar_url,
-    profile?.role,
-  ])
+  }, [userId])
 
   useEffect(() => {
     if (connection === 'online') return undefined
@@ -538,8 +562,9 @@ export function CommunityChat({
 
       {!collapsed && (
         <>
-          <div
-            className="community-chat-messages"
+          <div className="community-chat-body">
+            <div
+              className="community-chat-messages"
             ref={messagesRef}
             onScroll={onMessagesScroll}
           >
@@ -747,6 +772,9 @@ export function CommunityChat({
                 <span>Comece uma conversa com a comunidade.</span>
               </div>
             )}
+            </div>
+
+            <OnlineMembersPanel members={visibleOnlineMembers} navigate={navigate} />
           </div>
 
           <div className="community-chat-composer">
