@@ -121,7 +121,7 @@ export function SecuritySection({ session, profile, setProfile, navigate, notify
 
   async function changePassword(event) {
     event.preventDefault()
-    if (password.length < 8) return notify('Use uma senha com pelo menos 8 caracteres.')
+    if (password.length < 10) return notify('Use uma senha com pelo menos 10 caracteres.')
     if (password !== password2) return notify('As duas senhas não são iguais.')
     if (!passwordNonce.trim()) return notify('Informe o código de segurança enviado por e-mail.')
 
