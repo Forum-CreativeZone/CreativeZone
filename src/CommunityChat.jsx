@@ -154,11 +154,13 @@ export function CommunityChat({
     [onlineMembers, ignoredIds]
   )
 
-  async function loadMessages() {
+  async function loadMessages(silent = false) {
     try {
       setMessages(await getChatMessages(120))
     } catch (error) {
-      notify?.(error?.message || 'Não foi possível carregar o Chat da Comunidade.')
+      if (!silent) {
+        notify?.(error?.message || 'Não foi possível carregar o Chat da Comunidade.')
+      }
     }
   }
 
@@ -248,7 +250,7 @@ export function CommunityChat({
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           setConnection('online')
-          await loadMessages()
+          await loadMessages(true)
 
           if (userId && profile) {
             await channel.track({
@@ -283,7 +285,7 @@ export function CommunityChat({
     if (connection === 'online') return undefined
 
     const timer = window.setInterval(() => {
-      loadMessages()
+      loadMessages(true)
     }, 15000)
 
     return () => window.clearInterval(timer)
@@ -292,7 +294,7 @@ export function CommunityChat({
   useEffect(() => {
     const handleOnline = () => {
       setConnection((current) => current === 'online' ? current : 'connecting')
-      loadMessages()
+      loadMessages(true)
     }
     const handleOffline = () => setConnection('offline')
 
