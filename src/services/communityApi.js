@@ -110,7 +110,7 @@ export async function getPublicProfile(username) {
 
   const [topicsRes, postsRes, followersRes, followingRes, badgesRes, featuredRes] = await Promise.all([
     client.from('topics').select('id,title,slug,created_at,views').eq('author_id', profile.id).order('created_at', { ascending: false }),
-    client.from('posts').select('id,topic_id,content,created_at,topics(id,title)').eq('author_id', profile.id).order('created_at', { ascending: false }).limit(30),
+    client.from('posts').select('id,topic_id,content,created_at,topics:topics!posts_topic_id_fkey(id,title)').eq('author_id', profile.id).order('created_at', { ascending: false }).limit(30),
     client.from('follows').select('follower_id').eq('following_id', profile.id),
     client.from('follows').select('following_id').eq('follower_id', profile.id),
     client.from('user_badges').select('awarded_at,badges(*)').eq('user_id', profile.id).order('awarded_at', { ascending: false }),
@@ -323,7 +323,7 @@ export async function getMyContent(userId) {
   const client = requireSupabase()
   const [topics, posts] = await Promise.all([
     client.from('topics').select('id,title,slug,created_at,views').eq('author_id', userId).order('created_at', { ascending: false }),
-    client.from('posts').select('id,topic_id,content,created_at,topics(id,title)').eq('author_id', userId).order('created_at', { ascending: false }),
+    client.from('posts').select('id,topic_id,content,created_at,topics:topics!posts_topic_id_fkey(id,title)').eq('author_id', userId).order('created_at', { ascending: false }),
   ])
   if (topics.error) throw topics.error
   if (posts.error) throw posts.error
@@ -334,7 +334,7 @@ export async function getReceivedReactions(userId) {
   const client = requireSupabase()
   const [topics, posts] = await Promise.all([
     client.from('topics').select('id,title').eq('author_id', userId),
-    client.from('posts').select('id,topic_id,topics(id,title)').eq('author_id', userId),
+    client.from('posts').select('id,topic_id,topics:topics!posts_topic_id_fkey(id,title)').eq('author_id', userId),
   ])
   if (topics.error) throw topics.error
   if (posts.error) throw posts.error
