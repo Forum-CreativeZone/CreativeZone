@@ -27,6 +27,6 @@ test('projects module is routable', async ({ page }) => {
 test('category directory uses category terminology and suggestion shortcut', async ({ page }) => {
   await page.goto('/categorias')
   await expect(page.getByRole('heading', { name: 'Categorias da CreativeZone', exact: true })).toBeVisible()
-  await expect(page.getByText('Organize as conversas sem engessar a comunidade.')).toBeVisible()
+  await expect(page.getByText('Categoria → Subcategoria → Fórum → Tópicos.')).toBeVisible()
   await expect(page.getByRole('button', { name: /Sugerir categoria/ })).toBeVisible()
 })
