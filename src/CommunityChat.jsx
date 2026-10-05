@@ -327,7 +327,11 @@ export function CommunityChat({
 
     setBusy(true)
     try {
-      await sendChatMessage(content, replyTo?.id || null)
+      const messageId = await sendChatMessage(content, replyTo?.id || null)
+      try {
+        const item = await getChatMessage(messageId)
+        if (item) upsertMessage(item)
+      } catch {}
       setText('')
       setReplyTo(null)
       setEmojiOpen(false)
@@ -346,6 +350,10 @@ export function CommunityChat({
     setBusy(true)
     try {
       await editChatMessage(messageId, editingText.trim())
+      try {
+        const item = await getChatMessage(messageId)
+        if (item) upsertMessage(item)
+      } catch {}
       setEditingId(null)
       setEditingText('')
       notify?.('Mensagem atualizada.')
@@ -366,6 +374,10 @@ export function CommunityChat({
       } else {
         await deleteChatMessage(message.id)
       }
+      try {
+        const item = await getChatMessage(message.id)
+        if (item) upsertMessage(item)
+      } catch {}
       setMenuId(null)
       notify?.('Mensagem removida.')
     } catch (error) {
@@ -385,6 +397,12 @@ export function CommunityChat({
     setBusy(true)
     try {
       await moderateChatMessage(message.id, action, reason)
+      if (action === 'delete') {
+        try {
+          const item = await getChatMessage(message.id)
+          if (item) upsertMessage(item)
+        } catch {}
+      }
       setMenuId(null)
       notify?.(label)
     } catch (error) {
