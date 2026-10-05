@@ -20,6 +20,10 @@ import {
   UserPlus,
   Quote,
   X,
+  Paperclip,
+  Edit3,
+  Trash2,
+  Briefcase,
 } from 'lucide-react'
 import '@fontsource-variable/dm-sans'
 import * as A from './design-assets'
@@ -38,7 +42,13 @@ import {
   getMembers,
   getPosts,
   getRecentPosts,
-  getTopics,
+  getTopicById,
+  getTopicsPage,
+  searchForum,
+  updateTopic,
+  deleteTopic,
+  updatePost,
+  deletePost,
 } from './services/forumApi'
 import { useAuth } from './hooks/useAuth'
 import {
@@ -49,6 +59,19 @@ import {
   ReactionButton,
   UserQuickMenu,
 } from './CommunityPages'
+import {
+  ModerationPage,
+  ProjectPage,
+  ProjectsPage,
+  ReportButton,
+} from './ExtendedCommunityPages'
+import { PasswordRecoveryPage } from './AuthRecoveryPages'
+import {
+  getPostMedia,
+  getTopicMedia,
+  isImageMedia,
+  uploadForumMedia,
+} from './services/mediaApi'
 import {
   getAccountSettings,
   getBookmarkIds,
@@ -82,6 +105,34 @@ function slugify(value) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '')
+}
+
+function mapTopic(topic) {
+  if (!topic) return null
+  return {
+    id: topic.id,
+    user:
+      topic.author_display_name ||
+      topic.profiles?.display_name ||
+      topic.author_username ||
+      topic.profiles?.username ||
+      'Membro',
+    title: topic.title,
+    description: topic.content,
+    category: topic.category_name || topic.categories?.name || 'Geral',
+    categoryId: topic.category_id,
+    avatarUrl: topic.author_avatar_url || topic.profiles?.avatar_url || '',
+    views: topic.views || 0,
+    stars: topic.views || 0,
+    replies: Number(topic.reply_count || 0),
+    locked: Boolean(topic.locked),
+    pinned: Boolean(topic.pinned),
+    authorId: topic.author_id,
+    authorUsername: topic.author_username || topic.profiles?.username || '',
+    signature: topic.author_signature || topic.profiles?.signature || '',
+    createdAt: topic.created_at,
+    updatedAt: topic.updated_at,
+  }
 }
 
 function Icon({ name }) {
