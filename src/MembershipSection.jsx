@@ -15,6 +15,8 @@ import {
   getMembershipRequests,
   getMembershipState,
   getProfileCosmetics,
+  getHistoricalBadgeAdminData,
+  manageHistoricalBadge,
   rejectMembershipRequest,
   requestMembershipUpgrade,
   saveProfileCosmetics,
@@ -232,6 +234,86 @@ function AdminRequests({ session, requests, reload, notify }) {
   )
 }
 
+
+function AdminHistoricalBadges({ notify }) {
+  const [data,setData] = useState({ profiles:[],badges:[],awards:[] })
+  const [busy,setBusy] = useState('')
+
+  async function reload() {
+    setData(await getHistoricalBadgeAdminData())
+  }
+
+  useEffect(() => {
+    reload().catch(() => {})
+  }, [])
+
+  const active = useMemo(
+    () => new Set(data.awards.map((award) => award.user_id + ':' + award.badge_id)),
+    [data.awards]
+  )
+
+  async function toggle(profile, badge) {
+    const key = profile.id + ':' + badge.id
+    const granted = active.has(key)
+    setBusy(key)
+    try {
+      await manageHistoricalBadge(profile.id,badge.slug,!granted)
+      notify((granted ? 'Insígnia removida: ' : 'Insígnia concedida: ') + badge.name + '.')
+      await reload()
+    } catch (error) {
+      notify(error?.message || 'Não foi possível alterar a insígnia.')
+    } finally {
+      setBusy('')
+    }
+  }
+
+  return (
+    <section className="historical-badge-admin">
+      <header>
+        <Star />
+        <div>
+          <strong>Insígnias históricas</strong>
+          <small>Beta Tester, Pioneiro e Early Supporter são concedidas manualmente pela administração.</small>
+        </div>
+      </header>
+
+      <div className="historical-badge-member-list">
+        {data.profiles.map((profile) => (
+          <article key={profile.id}>
+            <div className="historical-member-name">
+              {profile.avatar_url
+                ? <img src={profile.avatar_url} alt="" />
+                : <span>{(profile.display_name || profile.username || 'M').slice(0,1).toUpperCase()}</span>}
+              <div>
+                <strong>{profile.display_name || profile.username}</strong>
+                <small>@{profile.username}{profile.system_owner ? ' · Arquiteto' : ''}</small>
+              </div>
+            </div>
+            <div className="historical-badge-actions">
+              {data.badges.map((badge) => {
+                const key = profile.id + ':' + badge.id
+                const granted = active.has(key)
+                return (
+                  <button
+                    type="button"
+                    key={badge.id}
+                    className={'historical-badge-toggle ' + (granted ? 'active' : '')}
+                    disabled={busy===key}
+                    onClick={() => toggle(profile,badge)}
+                    title={badge.description}
+                  >
+                    <span>{badge.icon}</span> {badge.name}
+                  </button>
+                )
+              })}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export function MembershipSection({ session, profile, state, setState, notify }) {
   const [plans,setPlans] = useState([])
   const [cosmetics,setCosmetics] = useState({
@@ -360,12 +442,15 @@ export function MembershipSection({ session, profile, state, setState, notify })
       )}
 
       {isAdmin && (
-        <AdminRequests
-          session={session}
-          requests={requests}
-          reload={async () => setRequests(await getMembershipRequests())}
-          notify={notify}
-        />
+        <>
+          <AdminRequests
+            session={session}
+            requests={requests}
+            reload={async () => setRequests(await getMembershipRequests())}
+            notify={notify}
+          />
+          <AdminHistoricalBadges notify={notify} />
+        </>
       )}
     </div>
   )
