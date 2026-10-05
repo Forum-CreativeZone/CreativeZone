@@ -1307,12 +1307,85 @@ function App() {
       return (
         <PageShell title="CreativeZone" onBack={() => navigate('/')}>
           <div className="panel-content about-page">
-            <p>
-              Comunidade CreativeZone para tecnologia, software, hardware, games e troca de
-              conhecimento entre membros.
-            </p>
-            <p>
-              Aqui cada tópico e resposta pertence à comunidade e fica persistido no fórum.
+            <section className="about-intro">
+              <span className="about-kicker">COMUNIDADE • IDEIAS • PROJETOS</span>
+              <h2>Um espaço para conversar, aprender e construir juntos.</h2>
+              <p>
+                A <strong>CreativeZone</strong> é uma comunidade criada para reunir pessoas curiosas,
+                criativas e apaixonadas por tecnologia. Aqui falamos sobre desenvolvimento de
+                software, automação, inteligência artificial, infraestrutura, hardware, games,
+                negócios digitais e tudo aquilo que nasce quando conhecimento e criatividade se
+                encontram.
+              </p>
+              <p>
+                Mais do que um fórum para tirar dúvidas, queremos que a CreativeZone seja um lugar
+                onde ideias possam evoluir. Uma conversa pode virar um experimento, um tópico pode
+                se transformar em uma ferramenta útil e membros que nunca trabalharam juntos podem
+                acabar criando algo incrível em equipe.
+              </p>
+            </section>
+
+            <section className="about-highlight">
+              <h3>Na CreativeZone, todo membro pode criar.</h3>
+              <p>
+                Todos os membros são bem-vindos para propor novos projetos, participar de projetos
+                existentes, formar equipes, compartilhar conhecimento e contribuir da maneira que
+                fizer mais sentido. Você pode ajudar com código, documentação, design, testes,
+                pesquisa, ideias, organização ou simplesmente com uma boa discussão que ajude o
+                projeto a evoluir.
+              </p>
+            </section>
+
+            <div className="about-project-grid">
+              <article>
+                <strong>Crie seu projeto</strong>
+                <p>
+                  Tem uma ideia? Apresente-a à comunidade, encontre pessoas interessadas e comece a
+                  transformar o conceito em algo real.
+                </p>
+              </article>
+              <article>
+                <strong>Participe e colabore</strong>
+                <p>
+                  Entre em projetos de outros membros, contribua com o que você sabe e aproveite a
+                  oportunidade para aprender com pessoas de diferentes áreas.
+                </p>
+              </article>
+              <article>
+                <strong>Aprenda construindo</strong>
+                <p>
+                  Você não precisa ser especialista. Projetos comunitários também são espaços para
+                  experimentar, errar, receber feedback e desenvolver novas habilidades.
+                </p>
+              </article>
+            </div>
+
+            <section className="about-github-card">
+              <div>
+                <span className="about-kicker">CREATIVEZONE NO GITHUB</span>
+                <h3>Nossa comunidade também constrói em código aberto.</h3>
+                <p>
+                  A organização <strong>Creatiive-Lab</strong> no GitHub é o espaço onde projetos da
+                  comunidade podem ganhar vida, receber contribuições e evoluir de forma
+                  colaborativa. Se você faz parte da CreativeZone, considere este espaço seu também:
+                  explore os projetos, participe das discussões e ajude a construir o próximo.
+                </p>
+              </div>
+              <a
+                className="github-community-link"
+                href="https://github.com/Creatiive-Lab"
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                <img src={githubIcon} alt="" aria-hidden="true" />
+                Visitar a comunidade no GitHub
+              </a>
+            </section>
+
+            <p className="about-closing">
+              <strong>CreativeZone é feita por quem participa.</strong> Compartilhe o que você sabe,
+              pergunte o que ainda não sabe e, quando surgir uma boa ideia, convide a comunidade
+              para construir com você.
             </p>
           </div>
         </PageShell>
