@@ -1225,6 +1225,15 @@
 .community-chat-message:hover{background:#ffffff025}
 .community-chat-message.is-own{background:#b8291908}
 .community-chat-message.is-deleted{opacity:.72}
+.community-chat-message.is-focused-report{
+  outline:1px solid #c9372e;
+  background:#5a171222;
+  animation:chatReportFocus 2.6s ease;
+}
+@keyframes chatReportFocus{
+  0%,100%{box-shadow:none}
+  25%,65%{box-shadow:0 0 0 3px #b8291926,0 0 28px #b8291926}
+}
 .community-chat-avatar{
   width:34px;height:34px;display:grid;place-items:center;border-radius:5px;overflow:hidden;background:#242424;
 }
