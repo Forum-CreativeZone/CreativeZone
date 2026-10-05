@@ -72,6 +72,23 @@ Os projetos da comunidade também podem ganhar vida na organização **[Creatiiv
 - Web Push para navegadores compatíveis;
 - suporte a notificações em desktop e dispositivos móveis.
 
+### Chat da Comunidade
+
+- chat em tempo real com Supabase Realtime;
+- presença online dos membros com Realtime Presence;
+- perfis, avatares e badges de função integrados;
+- respostas a mensagens, emojis e menções com `@usuario`;
+- edição da própria mensagem por até 10 minutos;
+- exclusão da própria mensagem e moderação pela equipe;
+- denúncias integradas à Central de moderação;
+- silenciamento e banimento específicos do chat;
+- anti-flood e cooldown aplicados no servidor;
+- bloqueio de protocolos suspeitos e limite de links;
+- usuários ignorados ocultados do chat;
+- fallback por REST quando o WebSocket estiver reconectando;
+- histórico rotativo de 30 dias;
+- opção de transformar uma conversa em rascunho de tópico.
+
 ### Conta e segurança
 
 - login por e-mail e senha;
@@ -263,6 +280,7 @@ CreativeZone/
 │   ├── hooks/
 │   ├── services/
 │   ├── AdvancedAccountSections.jsx
+│   ├── CommunityChat.jsx
 │   ├── CommunityPages.jsx
 │   ├── main.jsx
 │   └── styles.css
