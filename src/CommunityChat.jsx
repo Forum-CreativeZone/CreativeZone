@@ -542,11 +542,11 @@ export function CommunityChat({
             onScroll={onMessagesScroll}
           >
             {visibleMessages.map((message) => {
+              const authorUsername = message.author?.username || message.author_username || ''
               const author =
                 message.author?.display_name ||
                 message.author_display_name ||
-                message.author?.username || message.author_username ||
-                message.author_username ||
+                authorUsername ||
                 visibleOnlineMembers.find((item) => item.user_id === message.user_id)?.display_name ||
                 'Membro'
               const avatar =
@@ -580,8 +580,8 @@ export function CommunityChat({
                   <button
                     type="button"
                     className="community-chat-avatar"
-                    onClick={() => message.author?.username || message.author_username && navigate('/membro/' + encodeURIComponent(message.author.username))}
-                    disabled={!message.author?.username || message.author_username}
+                    onClick={() => authorUsername && navigate('/membro/' + encodeURIComponent(authorUsername))}
+                    disabled={!authorUsername}
                   >
                     {avatar ? (
                       <img src={avatar} alt="" />
@@ -594,8 +594,8 @@ export function CommunityChat({
                     <div className="community-chat-message-meta">
                       <button
                         type="button"
-                        onClick={() => message.author?.username || message.author_username && navigate('/membro/' + encodeURIComponent(message.author.username))}
-                        disabled={!message.author?.username || message.author_username}
+                        onClick={() => authorUsername && navigate('/membro/' + encodeURIComponent(authorUsername))}
+                        disabled={!authorUsername}
                       >
                         {author}
                       </button>
@@ -685,7 +685,7 @@ export function CommunityChat({
                             </button>
                           )}
 
-                          {session && !own && message.author?.username || message.author_username && (
+                          {session && !own && authorUsername && (
                             <button onClick={() => mentionUser(message)}>
                               <AtSign /> Mencionar
                             </button>
