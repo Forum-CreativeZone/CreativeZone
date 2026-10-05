@@ -24,6 +24,7 @@ import {
   leaveProject,
   moderatePost,
   moderateTopic,
+  moderateChatMessage,
   requestProjectParticipation,
   reviewProjectMember,
   reviewReport,
@@ -161,6 +162,7 @@ export function ModerationPage({ profile, session, navigate, notify }) {
     try {
       if (report.target_type === 'topic') await moderateTopic(report.target_id,action,'Ação aplicada a partir da fila de denúncias.')
       else if (report.target_type === 'post' && action === 'delete') await moderatePost(report.target_id,'delete','Ação aplicada a partir da fila de denúncias.')
+      else if (report.target_type === 'chat_message') await moderateChatMessage(report.target_id,action,'Ação aplicada a partir da fila de denúncias do chat.')
       else return
       notify?.('Ação de moderação aplicada.')
       load()
@@ -210,6 +212,19 @@ export function ModerationPage({ profile, session, navigate, notify }) {
                 <span>{report.reporter?.display_name || report.reporter?.username || 'Membro'}</span>
               </div>
               {report.details && <p>{report.details}</p>}
+              {report.target_type === 'chat_message' && (
+                <div className="resolution-note">
+                  <strong>Mensagem denunciada:</strong>{' '}
+                  {report.target_preview?.deleted_at
+                    ? 'Mensagem removida.'
+                    : report.target_preview?.content || 'Mensagem não disponível.'}
+                  {report.target_preview?.author && (
+                    <small>
+                      {' '}— {report.target_preview.author.display_name || report.target_preview.author.username}
+                    </small>
+                  )}
+                </div>
+              )}
               {report.resolution_note && <p className="resolution-note">Nota: {report.resolution_note}</p>}
               <div className="report-actions">
                 <button className="action" onClick={()=>openTarget(report)}>Abrir alvo</button>
@@ -222,6 +237,12 @@ export function ModerationPage({ profile, session, navigate, notify }) {
                   {profile.role==='admin' && <button className="action danger-action" onClick={()=>actionOn(report,'delete')}>Excluir tópico</button>}
                 </>}
                 {report.target_type==='post' && <button className="action danger-action" onClick={()=>actionOn(report,'delete')}>Excluir resposta</button>}
+                {report.target_type==='chat_message' && <>
+                  <button className="action danger-action" onClick={()=>actionOn(report,'delete')}>Excluir mensagem</button>
+                  <button className="action" onClick={()=>actionOn(report,'mute_10m')}>Silenciar 10 min</button>
+                  <button className="action" onClick={()=>actionOn(report,'mute_1h')}>Silenciar 1 hora</button>
+                  <button className="action danger-action" onClick={()=>actionOn(report,'ban')}>Banir do chat</button>
+                </>}
               </div>
             </article>
           ))}
