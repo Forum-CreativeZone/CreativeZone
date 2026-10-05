@@ -58,6 +58,7 @@ import {
   NotificationPreferencesSection,
   SecuritySection,
 } from './AdvancedAccountSections'
+import { ReportButton } from './ExtendedCommunityPages'
 
 function Avatar({ profile, size = 56 }) {
   const name = profile?.display_name || profile?.username || 'Membro'
@@ -179,7 +180,11 @@ export function UserQuickMenu({ profile, session, onClose, navigate, onSignOut }
           <button onClick={() => { onClose(); navigate('/conta/conteudo') }}><FileText /> Meu conteúdo</button>
           <button onClick={() => { onClose(); navigate('/conta/favoritos') }}><Bookmark /> Favoritos</button>
           <button onClick={() => { onClose(); navigate('/mensagens') }}><MessageCircle /> Mensagens</button>
+          <button onClick={() => { onClose(); navigate('/projetos') }}><Briefcase /> Projetos</button>
           <button onClick={() => { onClose(); navigate('/conta/notificacoes') }}><Bell /> Notificações</button>
+          {['moderator','admin'].includes(profile?.role) && (
+            <button onClick={() => { onClose(); navigate('/moderacao') }}><Shield /> Moderação</button>
+          )}
           <button onClick={() => { onClose(); onSignOut() }}><UserMinus /> Sair</button>
         </div>
         <small className="quick-email">{session?.user?.email}</small>
