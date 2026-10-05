@@ -287,6 +287,7 @@ export function SecuritySection({ session, profile, setProfile, navigate, notify
 
 const notificationRows = [
   ['reply','Respostas aos meus tópicos'],
+  ['watch','Atualizações de tópicos que estou assistindo'],
   ['mention','Menções com @usuário'],
   ['quote','Quando citarem uma publicação minha'],
   ['reaction','Reações recebidas'],
