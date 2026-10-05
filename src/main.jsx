@@ -1452,6 +1452,26 @@ function App() {
               Buscar
             </button>
           </form>
+          {query.trim().length >= 2 && (
+            <div className="search-popover-results">
+              {searchResults.map((result) => (
+                <button
+                  key={result.result_type + '-' + result.id}
+                  onClick={() => {
+                    setOverlay(null)
+                    openTopic(result.topic_id)
+                  }}
+                >
+                  <span>
+                    <strong>{result.title}</strong>
+                    <small>{result.result_type === 'post' ? 'Resposta' : 'Tópico'} · {result.author_display_name || result.author_username || 'Membro'}</small>
+                  </span>
+                  <p>{result.excerpt}</p>
+                </button>
+              ))}
+              {!searchResults.length && <small className="search-no-results">Nenhum resultado encontrado.</small>}
+            </div>
+          )}
         </PageShell>
       )
     }
@@ -2076,7 +2096,7 @@ function App() {
                     key={item.id}
                     onClick={() => {
                       setOverlay(null)
-                      if (topic) openTopic(topic)
+                      openTopic(item.topicId)
                     }}
                   >
                     <Avatar src={item.avatarUrl} small />
