@@ -226,7 +226,7 @@ function Pagination({ page, setPage, total }) {
   )
 }
 
-function OverlayPanel({ title, onClose, children, wide = false }) {
+function OverlayPanel({ title, onClose, children, wide = false, variant = '' }) {
   useEffect(() => {
     const handleKey = (event) => {
       if (event.key === 'Escape') onClose()
@@ -236,9 +236,12 @@ function OverlayPanel({ title, onClose, children, wide = false }) {
   }, [onClose])
 
   return (
-    <div className="overlay-backdrop" onMouseDown={onClose}>
+    <div
+      className={'overlay-backdrop ' + (variant ? 'overlay-backdrop-' + variant : '')}
+      onMouseDown={onClose}
+    >
       <section
-        className={'overlay-panel ' + (wide ? 'wide' : '')}
+        className={'overlay-panel ' + (wide ? 'wide ' : '') + (variant ? 'overlay-panel-' + variant : '')}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -1461,7 +1464,14 @@ function App() {
             Novo Tópico
           </button>
 
-          <button className="search-trigger" onClick={() => setOverlay('search')}>
+          <button
+            className="search-trigger"
+            aria-expanded={overlay === 'search'}
+            onClick={() => {
+              setUserMenuOpen(false)
+              setOverlay((current) => current === 'search' ? null : 'search')
+            }}
+          >
             <Icon name="search" />
             Buscar
           </button>
@@ -1478,7 +1488,11 @@ function App() {
           <button
             className="notifications"
             aria-label="Últimas publicações"
-            onClick={() => setOverlay('notifications')}
+            aria-expanded={overlay === 'notifications'}
+            onClick={() => {
+              setUserMenuOpen(false)
+              setOverlay((current) => current === 'notifications' ? null : 'notifications')
+            }}
           >
             <Icon name="bell" />
           </button>
@@ -1488,7 +1502,10 @@ function App() {
               className="profile"
               aria-label={profileName}
               aria-expanded={userMenuOpen}
-              onClick={() => setUserMenuOpen((value) => !value)}
+              onClick={() => {
+                setOverlay(null)
+                setUserMenuOpen((value) => !value)
+              }}
             >
               <img src={profileImage} alt="" />
               <ChevronDown />
@@ -1593,7 +1610,11 @@ function App() {
       </nav>
 
       {overlay === 'search' && (
-        <OverlayPanel title="Buscar no fórum" onClose={() => setOverlay(null)}>
+        <OverlayPanel
+          title="Buscar no fórum"
+          onClose={() => setOverlay(null)}
+          variant="search"
+        >
           <form
             className="panel-content overlay-search-form"
             onSubmit={(event) => {
@@ -1625,6 +1646,7 @@ function App() {
           title={session ? 'Notificações' : 'Últimas publicações'}
           onClose={() => setOverlay(null)}
           wide
+          variant="notifications"
         >
           {session ? (
             <NotificationsPanel
