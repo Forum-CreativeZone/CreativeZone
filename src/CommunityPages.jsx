@@ -206,6 +206,9 @@ export function UserQuickMenu({ profile, session, onClose, navigate, onSignOut }
           {summary?.membership?.entitlements?.elite_area && (
             <button onClick={() => { onClose(); navigate('/elite') }}><Trophy /> Elite Lounge</button>
           )}
+          {profile?.role === 'admin' && (
+            <button onClick={() => { onClose(); navigate('/admin') }}><Shield /> Painel administrativo</button>
+          )}
           {['moderator','admin'].includes(profile?.role) && (
             <button onClick={() => { onClose(); navigate('/moderacao') }}><Shield /> Moderação</button>
           )}
@@ -827,6 +830,9 @@ function notificationTitle(item) {
     direct_message: 'Nova mensagem direta',
     moderation: 'Aviso da moderação',
     category_suggestion: 'Nova sugestão de categoria',
+    membership_granted: 'Seu VIP foi ativado',
+    membership_expiring: 'Seu VIP está perto de vencer',
+    membership_expired: 'Seu VIP expirou',
   }[item.type] || 'Nova notificação'
 }
 
