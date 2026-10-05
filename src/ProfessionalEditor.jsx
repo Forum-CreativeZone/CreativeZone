@@ -329,21 +329,23 @@ export function ProfessionalEditor({
       )}
 
       <div className="professional-editor-foot">
-        <label className="professional-file-button">
-          <Paperclip /> Anexar
-          <input
-            type="file"
-            multiple
-            accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain"
-            hidden
-            onChange={(e) => { addFiles(e.target.files); e.target.value = '' }}
-          />
-        </label>
-        <span>Arraste arquivos aqui · até {MAX_FILES} anexos · 10 MB cada</span>
+        {onFilesChange && (
+          <label className="professional-file-button">
+            <Paperclip /> Anexar
+            <input
+              type="file"
+              multiple
+              accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain"
+              hidden
+              onChange={(e) => { addFiles(e.target.files); e.target.value = '' }}
+            />
+          </label>
+        )}
+        <span>{onFilesChange ? 'Arraste arquivos aqui · até ' + MAX_FILES + ' anexos · 10 MB cada' : 'Markdown e embeds suportados'}</span>
         <small className={length > maxLength * .9 ? 'near-limit' : ''}>{length}/{maxLength}</small>
       </div>
 
-      {acceptedFiles.length > 0 && (
+      {onFilesChange && acceptedFiles.length > 0 && (
         <div className="professional-attachments">
           {acceptedFiles.map((file,index) => (
             <AttachmentPreview
@@ -354,7 +356,7 @@ export function ProfessionalEditor({
           ))}
         </div>
       )}
-      {dragging && <div className="professional-drop-hint">Solte os arquivos para anexar</div>}
+      {onFilesChange && dragging && <div className="professional-drop-hint">Solte os arquivos para anexar</div>}
     </div>
   )
 }
