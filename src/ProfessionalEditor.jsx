@@ -238,18 +238,22 @@ export function ProfessionalEditor({
   placeholder = 'Escreva sua publicação...',
   required = false,
   maxLength = 12000,
+  maxFiles = MAX_FILES,
+  maxBytes = MAX_BYTES,
 }) {
   const textarea = useRef(null)
   const [preview, setPreview] = useState(false)
   const [dragging, setDragging] = useState(false)
   const length = String(value).length
-  const acceptedFiles = useMemo(() => files.slice(0, MAX_FILES), [files])
+  const fileLimit = Math.max(1, Number(maxFiles) || MAX_FILES)
+  const byteLimit = Math.max(1024 * 1024, Number(maxBytes) || MAX_BYTES)
+  const acceptedFiles = useMemo(() => files.slice(0, fileLimit), [files,fileLimit])
 
   function addFiles(incoming) {
     const next = [...acceptedFiles]
     for (const file of Array.from(incoming || [])) {
-      if (next.length >= MAX_FILES) break
-      if (!ACCEPTED.has(file.type) || file.size > MAX_BYTES) continue
+      if (next.length >= fileLimit) break
+      if (!ACCEPTED.has(file.type) || file.size > byteLimit) continue
       const duplicate = next.some((item) => item.name === file.name && item.size === file.size)
       if (!duplicate) next.push(file)
     }
@@ -341,7 +345,9 @@ export function ProfessionalEditor({
             />
           </label>
         )}
-        <span>{onFilesChange ? 'Arraste arquivos aqui · até ' + MAX_FILES + ' anexos · 10 MB cada' : 'Markdown e embeds suportados'}</span>
+        <span>{onFilesChange
+          ? 'Arraste arquivos aqui · até ' + fileLimit + ' anexos · ' + Math.round(byteLimit / (1024 * 1024)) + ' MB cada'
+          : 'Markdown e embeds suportados'}</span>
         <small className={length > maxLength * .9 ? 'near-limit' : ''}>{length}/{maxLength}</small>
       </div>
 
