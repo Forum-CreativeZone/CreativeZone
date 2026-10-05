@@ -90,6 +90,7 @@ import {
 import { getPageCount, slugify } from './utils/forumUtils'
 import { ProfessionalEditor, RichForumContent } from './ProfessionalEditor'
 import { EliteAreaPage } from './MembershipSection'
+import { AdminDashboard } from './AdminDashboard'
 import { getMemberDecorations, getMembershipState } from './services/membershipApi'
 import {
   AchievementsPage,
@@ -1592,6 +1593,16 @@ function App() {
   }
 
   function renderRoutePage() {
+    if (path === '/admin') {
+      return (
+        <AdminDashboard
+          session={session}
+          profile={profile}
+          navigate={navigate}
+          notify={setToast}
+        />
+      )
+    }
     if (path === '/elite') return <EliteAreaPage session={session} navigate={navigate} />
     if (isRanking) return <RankingsPage navigate={navigate} />
     if (isAchievements) return <AchievementsPage session={session} navigate={navigate} />
