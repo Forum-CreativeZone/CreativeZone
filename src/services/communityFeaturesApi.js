@@ -303,9 +303,10 @@ export async function getEligibleFeaturedProjects(userId) {
   return [...new Map(all.map((project) => [project.id, project])).values()]
 }
 
-export async function saveFeaturedProjects(userId, projectIds = []) {
+export async function saveFeaturedProjects(userId, projectIds = [], maxProjects = 3) {
   const client = requireSupabase()
-  const unique = [...new Set((projectIds || []).filter(Boolean))].slice(0, 3)
+  const limit = Math.max(1, Math.min(Number(maxProjects) || 3, 99))
+  const unique = [...new Set((projectIds || []).filter(Boolean))].slice(0, limit)
   const { error: deleteError } = await client
     .from('profile_featured_projects')
     .delete()
