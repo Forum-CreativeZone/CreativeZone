@@ -59,6 +59,14 @@ function copyFor(job: any) {
       excerpt,
       cta: "Abrir menção",
     },
+    chat_mention: {
+      subject: `${actor} mencionou você no Chat da Comunidade — CreativeZone`,
+      eyebrow: "MENÇÃO NO CHAT",
+      title: "Chamaram você no Chat da Comunidade",
+      message: `${actor} mencionou seu nome no chat da CreativeZone.`,
+      excerpt,
+      cta: "Abrir chat",
+    },
     quote: {
       subject: `${actor} citou sua publicação — CreativeZone`,
       eyebrow: "SUA PUBLICAÇÃO FOI CITADA",
@@ -113,6 +121,7 @@ function copyFor(job: any) {
 
 function targetUrl(job: any) {
   const data = job.notification_data || job.payload || {}
+  if (data.path) return SITE_URL + data.path
   if (job.notification_type === "direct_message" && job.actor?.username) {
     return `${SITE_URL}/mensagens/${encodeURIComponent(job.actor.username)}`
   }
