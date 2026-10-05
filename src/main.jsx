@@ -24,6 +24,8 @@ import {
   Edit3,
   Trash2,
   Briefcase,
+  Bell,
+  BellOff,
 } from 'lucide-react'
 import '@fontsource-variable/dm-sans'
 import * as A from './design-assets'
@@ -49,6 +51,10 @@ import {
   deleteTopic,
   updatePost,
   deletePost,
+  getForumAuthorStats,
+  isWatchingTopic,
+  watchTopic,
+  unwatchTopic,
 } from './services/forumApi'
 import { useAuth } from './hooks/useAuth'
 import {
@@ -66,6 +72,7 @@ import {
   ReportButton,
 } from './ExtendedCommunityPages'
 import { PasswordRecoveryPage } from './AuthRecoveryPages'
+import { ThreadPostCard } from './ForumThreadComponents'
 import { CategoriesPage, CategorySuggestionButton } from './CategoryPages'
 import {
   getPostMedia,
@@ -116,9 +123,53 @@ function mapTopic(topic) {
     authorId: topic.author_id,
     authorUsername: topic.author_username || topic.profiles?.username || '',
     signature: topic.author_signature || topic.profiles?.signature || '',
+    profile: topic.profiles || null,
     createdAt: topic.created_at,
     updatedAt: topic.updated_at,
   }
+}
+
+function getCategoryPath(categories, categoryId) {
+  if (!categoryId) return []
+  const byId = new Map((categories || []).map((item) => [item.id, item]))
+  const path = []
+  const seen = new Set()
+  let current = byId.get(categoryId)
+
+  while (current && !seen.has(current.id) && path.length < 8) {
+    seen.add(current.id)
+    path.unshift(current)
+    current = current.parent_id ? byId.get(current.parent_id) : null
+  }
+
+  return path
+}
+
+function flattenCategoryTree(categories) {
+  const byParent = new Map()
+  for (const category of categories || []) {
+    const key = category.parent_id || 'root'
+    const items = byParent.get(key) || []
+    items.push(category)
+    byParent.set(key, items)
+  }
+
+  for (const items of byParent.values()) {
+    items.sort((a, b) =>
+      Number(a.sort_order || 0) - Number(b.sort_order || 0) ||
+      String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
+    )
+  }
+
+  const result = []
+  const walk = (parentId, depth) => {
+    for (const category of byParent.get(parentId) || []) {
+      result.push({ ...category, depth })
+      walk(category.id, depth + 1)
+    }
+  }
+  walk('root', 0)
+  return result
 }
 
 function Icon({ name }) {
