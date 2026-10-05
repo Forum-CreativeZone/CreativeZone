@@ -202,27 +202,46 @@ export function UserQuickMenu({ profile, session, onClose, navigate, onSignOut }
 
 export function PublicProfilePage({ username, session, navigate, notify }) {
   const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [tab, setTab] = useState('atividade')
   const [following, setFollowing] = useState(false)
   const [ignored, setIgnored] = useState(false)
   const currentId = session?.user?.id
 
   async function load() {
+    setLoading(true)
+    setLoadError('')
     try {
       const next = await getPublicProfile(username)
       setData(next)
       if (currentId && currentId !== next.profile.id) {
-        setFollowing(await getFollowState(currentId, next.profile.id))
+        try {
+          setFollowing(await getFollowState(currentId, next.profile.id))
+        } catch {
+          setFollowing(false)
+        }
       }
-    } catch {
+    } catch (error) {
       setData(null)
+      setLoadError(error?.message || 'Não foi possível carregar este perfil.')
+    } finally {
+      setLoading(false)
     }
   }
 
   useEffect(() => { load() }, [username, currentId])
 
+  if (loading) {
+    return <CommunityShell title="Perfil" onBack={() => navigate('/membros')}><p className="community-empty">Carregando perfil...</p></CommunityShell>
+  }
+
   if (!data) {
-    return <CommunityShell title="Perfil" onBack={() => navigate('/membros')}><p className="community-empty">Perfil não encontrado.</p></CommunityShell>
+    return (
+      <CommunityShell title="Perfil" onBack={() => navigate('/membros')}>
+        <p className="community-empty">{loadError || 'Perfil não encontrado.'}</p>
+      </CommunityShell>
+    )
   }
 
   const { profile, stats, topics, posts, badges, featuredProjects = [] } = data
