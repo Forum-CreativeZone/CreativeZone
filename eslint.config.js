@@ -26,6 +26,7 @@ export default [
         ...globals.browser,
         ...globals.nodeBuiltin,
         ...globals.node,
+        checkCompromisedPassword: 'readonly',
       },
     },
     rules: {
