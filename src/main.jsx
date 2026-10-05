@@ -6,13 +6,6 @@ import {
   ChevronDown,
   Send,
   Save,
-  Link as LinkIcon,
-  Smile,
-  Bold,
-  Italic,
-  Underline,
-  Film,
-  EyeOff,
   Sun,
   Moon,
   LogIn,
@@ -26,6 +19,8 @@ import {
   Briefcase,
   Bell,
   BellOff,
+  CheckCircle2,
+  Users,
 } from 'lucide-react'
 import '@fontsource-variable/dm-sans'
 import * as A from './design-assets'
@@ -93,6 +88,21 @@ import {
   touchLastSeen,
 } from './services/communityApi'
 import { getPageCount, slugify } from './utils/forumUtils'
+import { ProfessionalEditor, RichForumContent } from './ProfessionalEditor'
+import {
+  AchievementsPage,
+  AdvancedSearchPage,
+  PersonalizedFeed,
+  RankingsPage,
+  TagPage,
+} from './CommunityFeatures'
+import {
+  getRelatedTopics,
+  getTopicTags,
+  markAcceptedAnswer,
+  recordTopicView,
+  setTopicTags,
+} from './services/communityFeaturesApi'
 import './styles.css'
 
 function readLocal(key, fallback) {
@@ -129,6 +139,7 @@ function mapTopic(topic) {
     profile: topic.profiles || null,
     createdAt: topic.created_at,
     updatedAt: topic.updated_at,
+    acceptedAnswerId: topic.accepted_answer_id || null,
   }
 }
 
@@ -204,39 +215,7 @@ function Avatar({ name, mobileName, src, status, mobileStatus, small = false }) 
 }
 
 function ForumText({ content = '' }) {
-  const parts = []
-  const regex = /\[quote=@([^\]]+)\]([\s\S]*?)\[\/quote\]/g
-  let lastIndex = 0
-  let match
-  let index = 0
-
-  while ((match = regex.exec(content)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(
-        <span className="forum-text-plain" key={'text-' + index++}>
-          {content.slice(lastIndex, match.index)}
-        </span>
-      )
-    }
-
-    parts.push(
-      <blockquote className="forum-quote" key={'quote-' + index++}>
-        <strong>@{match[1]} escreveu:</strong>
-        <span>{match[2].trim()}</span>
-      </blockquote>
-    )
-    lastIndex = regex.lastIndex
-  }
-
-  if (lastIndex < content.length) {
-    parts.push(
-      <span className="forum-text-plain" key={'text-' + index}>
-        {content.slice(lastIndex)}
-      </span>
-    )
-  }
-
-  return <div className="forum-rendered-text">{parts.length ? parts : content}</div>
+  return <RichForumContent content={content} />
 }
 
 function ForumMediaList({ items = [] }) {
@@ -405,34 +384,26 @@ function ComposerPage({ onPublish, notify, categories, navigate, session }) {
   const [title, setTitle] = useState(draft.title || '')
   const [categoryId, setCategoryId] = useState(draft.categoryId || firstCategory)
   const [description, setDescription] = useState(draft.description || '')
+  const [tagText, setTagText] = useState((draft.tags || []).join(', '))
   const [attachments, setAttachments] = useState([])
   const [publishing, setPublishing] = useState(false)
-  const editor = useRef()
 
   useEffect(() => {
     if (!categoryId && firstCategory) setCategoryId(firstCategory)
   }, [categoryId, firstCategory])
 
+  function parsedTags() {
+    return [...new Set(
+      tagText.split(',').map((value) => value.replace(/^#+/, '').trim()).filter(Boolean)
+    )].slice(0,6)
+  }
+
   function save() {
     localStorage.setItem(
       'creativezone-draft',
-      JSON.stringify({ title, categoryId, description })
+      JSON.stringify({ title, categoryId, description, tags: parsedTags() })
     )
     notify('Rascunho salvo neste navegador.')
-  }
-
-  function insert(text) {
-    const el = editor.current
-    const start = el.selectionStart
-    const end = el.selectionEnd
-    setDescription(description.slice(0, start) + text + description.slice(end))
-    queueMicrotask(() => el.focus())
-  }
-
-  function format(mark) {
-    const el = editor.current
-    const selection = description.slice(el.selectionStart, el.selectionEnd)
-    insert(mark + (selection || 'texto') + mark)
   }
 
   async function submit(event) {
@@ -443,6 +414,7 @@ function ComposerPage({ onPublish, notify, categories, navigate, session }) {
         title: title.trim(),
         categoryId,
         description: description.trim(),
+        tags: parsedTags(),
         attachments,
       })
       localStorage.removeItem('creativezone-draft')
@@ -453,86 +425,49 @@ function ComposerPage({ onPublish, notify, categories, navigate, session }) {
 
   return (
     <PageShell title="Adicionar novo tópico" onBack={() => navigate('/')} wide>
-      <form className="composer standalone-composer" onSubmit={submit}>
+      <form className="composer standalone-composer professional-composer" onSubmit={submit}>
         <label htmlFor="topic-category">Categoria</label>
-        <select
-          id="topic-category"
-          required
-          value={categoryId}
-          onChange={(event) => setCategoryId(event.target.value)}
-        >
+        <select id="topic-category" required value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
           {categories.map((category) => (
-            <option value={category.id} key={category.id}>
-              {category.pathLabel || category.name}
-            </option>
+            <option value={category.id} key={category.id}>{category.pathLabel || category.name}</option>
           ))}
         </select>
         <div className="composer-category-help">
           <small>Não encontrou a categoria certa para sua publicação?</small>
-          <CategorySuggestionButton
-            session={session}
-            navigate={navigate}
-            notify={notify}
-            label="Sugerir nova categoria"
-          />
+          <CategorySuggestionButton session={session} navigate={navigate} notify={notify} label="Sugerir nova categoria" />
         </div>
 
         <label htmlFor="topic-title">Título</label>
+        <input id="topic-title" required maxLength={160} placeholder="Título do tópico" value={title} onChange={(event) => setTitle(event.target.value)} />
+
+        <label htmlFor="topic-tags">Tags</label>
         <input
-          id="topic-title"
-          required
-          maxLength={160}
-          placeholder="Título do tópico"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
+          id="topic-tags"
+          maxLength={240}
+          placeholder="#React, #IA, #Python, #Cloud"
+          value={tagText}
+          onChange={(event) => setTagText(event.target.value)}
         />
+        <small className="field-help">Até 6 tags separadas por vírgula. Elas alimentam recomendações e tópicos relacionados.</small>
 
         <label htmlFor="topic-description">Mensagem</label>
-        <div className="editor">
-          <div className="toolbar">
-            {[
-              [Bold, 'Negrito', () => format('**')],
-              [Italic, 'Itálico', () => format('_')],
-              [Underline, 'Sublinhar', () => format('__')],
-              [Smile, 'Inserir emoji', () => insert(' 🙂 ')],
-              [Film, 'Adicionar link de vídeo', () => insert(' https:// ')],
-              [LinkIcon, 'Inserir link', () => insert(' https:// ')],
-              [EyeOff, 'Inserir spoiler', () => format('||')],
-              [Save, 'Salvar rascunho', save],
-            ].map(([ButtonIcon, label, action]) => (
-              <button type="button" aria-label={label} title={label} key={label} onClick={action}>
-                <ButtonIcon />
-              </button>
-            ))}
-          </div>
-          <textarea
-            id="topic-description"
-            ref={editor}
-            required
-            placeholder="Escreva sua publicação..."
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-          />
+        <ProfessionalEditor
+          id="topic-description"
+          value={description}
+          onChange={setDescription}
+          files={attachments}
+          onFilesChange={setAttachments}
+          required
+          maxLength={12000}
+          placeholder="Escreva sua publicação em Markdown. Links do YouTube, GitHub, CodePen e imagens são incorporados automaticamente."
+        />
+
+        <div className="composer-submit-row">
+          <button className="action" type="button" onClick={save}><Save /> Salvar rascunho</button>
+          <button className="publish" type="submit" disabled={publishing}>
+            <Send /> {publishing ? 'Publicando...' : 'Publicar tópico'}
+          </button>
         </div>
-
-        <label className="attachment-picker">
-          <Paperclip /> Anexar arquivos
-          <input
-            type="file"
-            multiple
-            accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain"
-            onChange={(event) => setAttachments(Array.from(event.target.files || []).slice(0, 4))}
-          />
-        </label>
-        {attachments.length > 0 && (
-          <div className="attachment-selection">
-            {attachments.map((file) => <span key={file.name + file.size}>{file.name}</span>)}
-          </div>
-        )}
-
-        <button className="publish" type="submit" disabled={publishing}>
-          <Send /> {publishing ? 'Publicando...' : 'Publicar tópico'}
-        </button>
       </form>
     </PageShell>
   )
@@ -732,6 +667,9 @@ function App() {
   const [topicCount, setTopicCount] = useState(0)
   const [popularTopicCount, setPopularTopicCount] = useState(0)
   const [routeTopic, setRouteTopic] = useState(null)
+  const [routeTags, setRouteTags] = useState([])
+  const [relatedTopics, setRelatedTopics] = useState([])
+  const [topicViewers, setTopicViewers] = useState([])
   const [threadAuthorStats, setThreadAuthorStats] = useState({})
   const [watchingTopic, setWatchingTopic] = useState(false)
   const [watchBusy, setWatchBusy] = useState(false)
@@ -998,6 +936,8 @@ function App() {
   const messageUsername = messagesMatch?.[1] ? decodeURIComponent(messagesMatch[1]) : null
   const projectMatch = path.match(/^\/projetos\/([^/]+)$/)
   const routeProjectSlug = projectMatch?.[1] ? decodeURIComponent(projectMatch[1]) : null
+  const tagMatch = path.match(/^\/tag\/([^/]+)$/)
+  const routeTagSlug = tagMatch?.[1] ? decodeURIComponent(tagMatch[1]) : null
 
   useEffect(() => {
     let cancelled = false
@@ -1010,19 +950,26 @@ function App() {
         setWatchingTopic(false)
         setTopicMedia([])
         setPostMedia({})
+        setRouteTags([])
+        setRelatedTopics([])
+        setTopicViewers([])
         return
       }
 
       try {
-        const [rawTopic, posts, media] = await Promise.all([
+        const [rawTopic, posts, media, tags, related] = await Promise.all([
           getTopicById(routeTopicId),
           getPosts(routeTopicId),
           getTopicMedia(routeTopicId),
+          getTopicTags(routeTopicId),
+          getRelatedTopics(routeTopicId).catch(() => []),
         ])
         if (cancelled) return
         setRouteTopic(mapTopic(rawTopic))
         setThreadReplies(posts)
         setTopicMedia(media)
+        setRouteTags(tags)
+        setRelatedTopics(related)
 
         const authorIds = [
           rawTopic?.author_id,
@@ -1048,6 +995,8 @@ function App() {
           setThreadAuthorStats({})
           setTopicMedia([])
           setPostMedia({})
+          setRouteTags([])
+          setRelatedTopics([])
           setToast('Não foi possível carregar o tópico.')
         }
       }
@@ -1056,6 +1005,65 @@ function App() {
     loadThread()
     return () => { cancelled = true }
   }, [routeTopicId])
+
+  useEffect(() => {
+    if (!routeTopicId) return undefined
+    recordTopicView(routeTopicId, user?.id || null).catch(() => {})
+    return undefined
+  }, [routeTopicId, user?.id])
+
+  useEffect(() => {
+    if (!supabase || !routeTopicId) {
+      setTopicViewers([])
+      return undefined
+    }
+
+    let guestKey
+    try {
+      guestKey = sessionStorage.getItem('creativezone-viewer-key')
+      if (!guestKey) {
+        guestKey = globalThis.crypto?.randomUUID?.() || 'guest-' + Date.now().toString(36)
+        sessionStorage.setItem('creativezone-viewer-key', guestKey)
+      }
+    } catch {
+      guestKey = 'guest-' + Date.now().toString(36)
+    }
+
+    const presenceKey = user?.id || guestKey
+    const channel = supabase.channel('creativezone-topic-presence-' + routeTopicId, {
+      config: { presence: { key: presenceKey } },
+    })
+
+    const sync = () => {
+      const map = new Map()
+      Object.values(channel.presenceState() || {}).flat().forEach((viewer) => {
+        if (!viewer?.viewer_key) return
+        if (!map.has(viewer.viewer_key)) map.set(viewer.viewer_key, viewer)
+      })
+      setTopicViewers([...map.values()])
+    }
+
+    channel
+      .on('presence', { event: 'sync' }, sync)
+      .on('presence', { event: 'join' }, sync)
+      .on('presence', { event: 'leave' }, sync)
+      .subscribe(async (status) => {
+        if (status !== 'SUBSCRIBED') return
+        await channel.track({
+          viewer_key: presenceKey,
+          user_id: user?.id || null,
+          username: profile?.username || '',
+          display_name: profile?.display_name || profile?.username || 'Visitante',
+          avatar_url: profile?.avatar_url || '',
+          viewed_at: new Date().toISOString(),
+        })
+      })
+
+    return () => {
+      channel.untrack().catch(() => {})
+      supabase.removeChannel(channel)
+    }
+  }, [routeTopicId, user?.id, profile?.username, profile?.display_name, profile?.avatar_url])
 
   useEffect(() => {
     let cancelled = false
@@ -1228,6 +1236,8 @@ function App() {
         slug: slugify(topic.title) + '-' + Date.now().toString(36),
       })
 
+      await setTopicTags(created.id, session.user.id, topic.tags || [])
+
       for (const file of topic.attachments || []) {
         await uploadForumMedia({
           file,
@@ -1285,6 +1295,18 @@ function App() {
       setToast('Resposta publicada.')
     } catch (error) {
       setToast(error?.message || 'Não foi possível publicar a resposta.')
+    }
+  }
+
+  async function chooseAcceptedAnswer(postId) {
+    if (!routeTopicId || session?.user?.id !== routeTopic?.authorId) return
+    try {
+      const nextId = routeTopic.acceptedAnswerId === postId ? null : postId
+      await markAcceptedAnswer(routeTopicId, nextId)
+      setRouteTopic((current) => current ? { ...current, acceptedAnswerId: nextId } : current)
+      setToast(nextId ? 'Resposta marcada como solução. O autor recebeu XP.' : 'Marcação de solução removida.')
+    } catch (error) {
+      setToast(error?.message || 'Não foi possível alterar a solução do tópico.')
     }
   }
 
@@ -1398,6 +1420,8 @@ function App() {
   const isModeration = path === '/moderacao'
   const isAccount = Boolean(accountMatch)
   const isMessages = Boolean(messagesMatch)
+  const isRanking = path === '/ranking'
+  const isAchievements = path === '/conquistas'
 
   function renderHome() {
     const showingTopicSearch = Boolean(query || filter)
@@ -1464,12 +1488,15 @@ function App() {
                 </section>
               </>
             ) : (
-              <ForumIndex
+              <>
+                <PersonalizedFeed session={session} navigate={navigate} />
+                <ForumIndex
                 categories={categories}
                 navigate={navigate}
                 notify={setToast}
                 onOpenTopic={openTopic}
               />
+              </>
             )}
           </div>
 
@@ -1537,6 +1564,10 @@ function App() {
   }
 
   function renderRoutePage() {
+    if (isRanking) return <RankingsPage navigate={navigate} />
+    if (isAchievements) return <AchievementsPage session={session} navigate={navigate} />
+    if (routeTagSlug) return <TagPage slug={routeTagSlug} session={session} navigate={navigate} />
+
     if (isForgotPassword) {
       return <PasswordRecoveryPage mode="request" session={session} navigate={navigate} notify={setToast} />
     }
@@ -1673,52 +1704,7 @@ function App() {
     }
 
     if (isSearch) {
-      return (
-        <PageShell title="Buscar no fórum" onBack={() => navigate('/')}>
-          <form
-            className="panel-content standalone-form"
-            onSubmit={(event) => {
-              event.preventDefault()
-              setPage(1)
-              setPopularPage(1)
-              navigate('/')
-            }}
-          >
-            <label htmlFor="search-field">Palavra-chave ou membro</label>
-            <input
-              id="search-field"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              autoFocus
-              placeholder="O que você procura?"
-            />
-            <button className="action" type="submit">
-              <Icon name="search" />
-              Buscar
-            </button>
-          </form>
-          {query.trim().length >= 2 && (
-            <div className="search-popover-results">
-              {searchResults.map((result) => (
-                <button
-                  key={result.result_type + '-' + result.id}
-                  onClick={() => {
-                    setOverlay(null)
-                    openTopic(result.topic_id)
-                  }}
-                >
-                  <span>
-                    <strong>{result.title}</strong>
-                    <small>{result.result_type === 'post' ? 'Resposta' : 'Tópico'} · {result.author_display_name || result.author_username || 'Membro'}</small>
-                  </span>
-                  <p>{result.excerpt}</p>
-                </button>
-              ))}
-              {!searchResults.length && <small className="search-no-results">Nenhum resultado encontrado.</small>}
-            </div>
-          )}
-        </PageShell>
-      )
+      return <AdvancedSearchPage categories={forumCategories} navigate={navigate} initialQuery={query} />
     }
 
     if (isMembers) {
@@ -1917,6 +1903,16 @@ function App() {
                   : 'Acompanhe a discussão e receba as próximas atualizações.'}
               </span>
             </div>
+            <div className="thread-live-context">
+              <span><Users /> {topicViewers.length} visualizando agora</span>
+              {routeTags.length > 0 && (
+                <div className="thread-tag-list">
+                  {routeTags.map((tag) => (
+                    <button key={tag.id} onClick={() => navigate('/tag/' + encodeURIComponent(tag.slug))}>#{tag.name}</button>
+                  ))}
+                </div>
+              )}
+            </div>
             <button
               className={'action thread-watch-button ' + (watchingTopic ? 'watching' : '')}
               onClick={toggleTopicWatch}
@@ -2047,6 +2043,14 @@ function App() {
                   actions={
                     <>
                       <ReactionButton session={session} postId={post.id} notify={setToast} />
+                      {ownsTopic && post.author_id !== routeTopic.authorId && (
+                        <button
+                          className={'action solution-action ' + (routeTopic.acceptedAnswerId === post.id ? 'active' : '')}
+                          onClick={() => chooseAcceptedAnswer(post.id)}
+                        >
+                          <CheckCircle2 /> {routeTopic.acceptedAnswerId === post.id ? 'Solução aceita' : 'Marcar solução'}
+                        </button>
+                      )}
                       {post.profiles?.username && (
                         <button className="action quote-action" onClick={() => quoteToReply(post.profiles.username, post.content)}>
                           <Quote /> Citar
@@ -2079,6 +2083,9 @@ function App() {
                     </>
                   }
                 >
+                  {routeTopic.acceptedAnswerId === post.id && (
+                    <div className="accepted-answer-banner"><CheckCircle2 /> Solução aceita pelo autor do tópico</div>
+                  )}
                   {editingPostId === post.id ? (
                     <div className="inline-post-edit">
                       <textarea
@@ -2115,35 +2122,36 @@ function App() {
             )}
           </div>
 
+          {relatedTopics.length > 0 && (
+            <section className="related-topics">
+              <h2>Tópicos relacionados</h2>
+              <div>
+                {relatedTopics.map((item) => (
+                  <button key={item.id} onClick={() => navigate('/topico/' + item.id)}>
+                    <strong>{item.title}</strong>
+                    <span>{item.category_name} · {item.shared_tags} tag(s) em comum · {item.reply_count} respostas</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
           <div className="thread-reply-area">
             {routeTopic.locked ? (
               <p className="thread-empty">Este tópico está bloqueado para novas respostas.</p>
             ) : session ? (
               <form onSubmit={submitReply} className="reply-form">
                 <label htmlFor="reply">Responder ao tópico</label>
-                <textarea
+                <ProfessionalEditor
                   id="reply"
-                  required
                   value={reply}
-                  onChange={(event) => setReply(event.target.value)}
-                  placeholder="Escreva sua resposta..."
+                  onChange={setReply}
+                  files={replyFiles}
+                  onFilesChange={setReplyFiles}
+                  required
+                  maxLength={12000}
+                  placeholder="Escreva sua resposta. Markdown, embeds e arrastar arquivos são suportados."
                 />
-                <label className="attachment-picker">
-                  <Paperclip /> Anexar arquivos
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain"
-                    onChange={(event) => setReplyFiles(Array.from(event.target.files || []).slice(0,4))}
-                  />
-                </label>
-                {replyFiles.length > 0 && (
-                  <div className="attachment-selection">
-                    {replyFiles.map((file) => (
-                      <span key={file.name + file.size}>{file.name}</span>
-                    ))}
-                  </div>
-                )}
                 <button className="action primary-action" type="submit"><Send /> Enviar resposta</button>
               </form>
             ) : (
