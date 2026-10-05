@@ -81,6 +81,7 @@ import {
   toggleBookmark,
   touchLastSeen,
 } from './services/communityApi'
+import { getPageCount, slugify } from './utils/forumUtils'
 import './styles.css'
 
 const news = [
@@ -96,15 +97,6 @@ function readLocal(key, fallback) {
   } catch {
     return fallback
   }
-}
-
-function slugify(value) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
 }
 
 function mapTopic(topic) {
@@ -959,10 +951,10 @@ function App() {
     return () => clearTimeout(timer)
   }, [query])
 
-  const total = Math.max(1, Math.ceil(topicCount / 3))
+  const total = getPageCount(topicCount, 3)
   const currentPage = Math.min(page, total)
   const recent = topics
-  const popularTotal = Math.max(1, Math.ceil(popularTopicCount / 3))
+  const popularTotal = getPageCount(popularTopicCount, 3)
   const currentPopularPage = Math.min(popularPage, popularTotal)
   const displayedPopular = popularTopics
   const visibleActivity = activity.filter((item) => !ignoredIds.includes(item.authorId))
