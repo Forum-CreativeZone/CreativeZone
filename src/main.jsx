@@ -66,6 +66,7 @@ import {
   ReportButton,
 } from './ExtendedCommunityPages'
 import { PasswordRecoveryPage } from './AuthRecoveryPages'
+import { CategoriesPage, CategorySuggestionButton } from './CategoryPages'
 import {
   getPostMedia,
   getTopicMedia,
@@ -351,7 +352,7 @@ function PageShell({ title, children, onBack, wide = false, full = false }) {
   )
 }
 
-function ComposerPage({ onPublish, notify, categories, navigate }) {
+function ComposerPage({ onPublish, notify, categories, navigate, session }) {
   const draft = useMemo(() => readLocal('creativezone-draft', {}), [])
   const firstCategory = categories[0]?.id || ''
   const [title, setTitle] = useState(draft.title || '')
@@ -406,7 +407,7 @@ function ComposerPage({ onPublish, notify, categories, navigate }) {
   return (
     <PageShell title="Adicionar novo tópico" onBack={() => navigate('/')} wide>
       <form className="composer standalone-composer" onSubmit={submit}>
-        <label htmlFor="topic-category">Tema</label>
+        <label htmlFor="topic-category">Categoria</label>
         <select
           id="topic-category"
           required
@@ -419,6 +420,15 @@ function ComposerPage({ onPublish, notify, categories, navigate }) {
             </option>
           ))}
         </select>
+        <div className="composer-category-help">
+          <small>Não encontrou a categoria certa para sua publicação?</small>
+          <CategorySuggestionButton
+            session={session}
+            navigate={navigate}
+            notify={notify}
+            label="Sugerir nova categoria"
+          />
+        </div>
 
         <label htmlFor="topic-title">Título</label>
         <input
@@ -989,7 +999,7 @@ function App() {
     if (id) navigate('/topico/' + encodeURIComponent(id))
   }
 
-  function chooseTheme(name) {
+  function chooseCategory(name) {
     setFilter(name)
     setPage(1)
     setPopularPage(1)
@@ -1185,7 +1195,7 @@ function App() {
   const isSearch = path === '/buscar'
   const isMembers = path === '/membros'
   const isNotifications = path === '/notificacoes'
-  const isThemes = path === '/temas'
+  const isCategories = path === '/categorias' || path === '/temas'
   const isProfile = path === '/perfil'
   const isAbout = path === '/creativezone'
   const isProjects = path === '/projetos' || Boolean(routeProjectSlug)
@@ -1251,7 +1261,7 @@ function App() {
 
             <div className="news-grid">
               {news.map((title, index) => (
-                <button key={title} onClick={() => chooseTheme(categories[index]?.name || '')}>
+                <button key={title} onClick={() => chooseCategory(categories[index]?.name || '')}>
                   <img src={A['news' + (index + 1)]} alt="" />
                   <b>{title}</b>
                 </button>
@@ -1287,16 +1297,23 @@ function App() {
 
             <section className="themes">
               <h2>
-                Temas
-                <button aria-label="Ver temas" onClick={() => navigate('/temas')}>
+                Categorias
+                <button aria-label="Gerenciar categorias" onClick={() => navigate('/categorias')}>
                   <Icon name="plus" />
                 </button>
               </h2>
               {categories.map((category) => (
-                <button key={category.id} onClick={() => chooseTheme(category.name)}>
+                <button key={category.id} onClick={() => chooseCategory(category.name)}>
                   {category.name}
                 </button>
               ))}
+              <CategorySuggestionButton
+                session={session}
+                navigate={navigate}
+                notify={setToast}
+                className="category-suggest-side"
+                label="Sugerir categoria"
+              />
             </section>
           </aside>
         </main>
@@ -1415,6 +1432,7 @@ function App() {
           notify={setToast}
           categories={categories}
           navigate={navigate}
+          session={session}
         />
       )
     }
@@ -1517,18 +1535,17 @@ function App() {
       )
     }
 
-    if (isThemes) {
+    if (isCategories) {
       return (
-        <PageShell title="Temas da CreativeZone" onBack={() => navigate('/')}>
-          <div className="panel-content theme-options standalone-themes">
-            {categories.map((category) => (
-              <button key={category.id} onClick={() => chooseTheme(category.name)}>
-                <strong>{category.name}</strong>
-                {category.description && <small>{category.description}</small>}
-              </button>
-            ))}
-          </div>
-        </PageShell>
+        <CategoriesPage
+          categories={categories}
+          session={session}
+          profile={profile}
+          navigate={navigate}
+          notify={setToast}
+          onChoose={chooseCategory}
+          onChanged={refreshForum}
+        />
       )
     }
 
@@ -1967,13 +1984,13 @@ function App() {
         <div className="mobile-themes">
           <div ref={mobileThemes}>
             {categories.map((category) => (
-              <button key={category.id} onClick={() => chooseTheme(category.name)}>
+              <button key={category.id} onClick={() => chooseCategory(category.name)}>
                 {category.name}
               </button>
             ))}
           </div>
           <button
-            aria-label="Ver mais temas"
+            aria-label="Ver mais categorias"
             onClick={() => mobileThemes.current?.scrollBy({ left: 180, behavior: 'smooth' })}
           >
             <ChevronRight />
