@@ -71,6 +71,8 @@
 /* Dedicated page navigation: no forum screen uses modal/dialog overlays. */
 .standalone-page{margin:24px 44px 48px;min-height:520px}
 .standalone-page.wide-page .page-card{max-width:1180px}
+.standalone-page.full-page{margin-left:28px;margin-right:28px}
+.standalone-page.full-page .page-card{max-width:none;width:100%;margin:0}
 .page-card{max-width:760px;margin:0 auto;background:var(--surface);border-radius:8px;overflow:hidden}
 .page-titlebar{min-height:82px;border-bottom:1px solid var(--line);padding:16px 24px;display:flex;align-items:center}
 .page-titlebar>div{display:grid;gap:8px}
@@ -157,6 +159,7 @@
 }
 @media(max-width:760px){
   .standalone-page{margin:14px 15px 88px}
+  .standalone-page.full-page{margin:14px 15px 88px}
   .page-titlebar{padding:14px 18px;min-height:72px}
   .page-titlebar h1{font-size:20px;line-height:25px}
   .page-card{border-radius:6px}
