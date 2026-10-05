@@ -640,6 +640,18 @@ function App() {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [reply, setReply] = useState('')
   const [topics, setTopics] = useState([])
+  const [popularTopics, setPopularTopics] = useState([])
+  const [topicCount, setTopicCount] = useState(0)
+  const [popularTopicCount, setPopularTopicCount] = useState(0)
+  const [routeTopic, setRouteTopic] = useState(null)
+  const [topicMedia, setTopicMedia] = useState([])
+  const [postMedia, setPostMedia] = useState({})
+  const [replyFiles, setReplyFiles] = useState([])
+  const [searchResults, setSearchResults] = useState([])
+  const [editingTopic, setEditingTopic] = useState(false)
+  const [editingTopicDraft, setEditingTopicDraft] = useState({ title: '', content: '', categoryId: '' })
+  const [editingPostId, setEditingPostId] = useState(null)
+  const [editingPostText, setEditingPostText] = useState('')
   const [categories, setCategories] = useState([])
   const [activity, setActivity] = useState([])
   const [members, setMembers] = useState([])
@@ -705,35 +717,38 @@ function App() {
     setForumError('')
 
     try {
-      const [rawTopics, nextCategories, recentPosts, nextMembers] = await Promise.all([
-        getTopics(),
-        getCategories(),
+      const nextCategories = await getCategories()
+      const categoryId = filter
+        ? nextCategories.find((category) => category.name === filter)?.id || null
+        : null
+
+      const [recentPage, popularPageData, recentPosts, nextMembers] = await Promise.all([
+        getTopicsPage({
+          page,
+          pageSize: 3,
+          query,
+          categoryId,
+          sort: 'recent',
+          ignoredIds,
+        }),
+        getTopicsPage({
+          page: popularPage,
+          pageSize: 3,
+          query,
+          categoryId,
+          sort: 'popular',
+          ignoredIds,
+        }),
         getRecentPosts(),
         getMembers(),
       ])
 
       setCategories(nextCategories)
       setMembers(nextMembers)
-      setTopics(
-        rawTopics.map((topic) => ({
-          id: topic.id,
-          user: topic.profiles?.display_name || topic.profiles?.username || 'Membro',
-          title: topic.title,
-          description: topic.content,
-          category: topic.categories?.name || 'Geral',
-          categoryId: topic.category_id,
-          avatarUrl: topic.profiles?.avatar_url || '',
-          views: topic.views || 0,
-          stars: topic.views || 0,
-          replies: topic.reply_count || 0,
-          locked: topic.locked,
-          pinned: topic.pinned,
-          authorId: topic.author_id,
-          authorUsername: topic.profiles?.username || '',
-          signature: topic.profiles?.signature || '',
-          createdAt: topic.created_at,
-        }))
-      )
+      setTopics((recentPage.items || []).map(mapTopic))
+      setPopularTopics((popularPageData.items || []).map(mapTopic))
+      setTopicCount(recentPage.total || 0)
+      setPopularTopicCount(popularPageData.total || 0)
       setActivity(
         recentPosts.map((post) => ({
           id: post.id,
@@ -752,6 +767,8 @@ function App() {
     } finally {
       setForumLoading(false)
     }
+  }, [page, popularPage, query, filter, ignoredIds])
+
   }, [])
 
   useEffect(() => {
