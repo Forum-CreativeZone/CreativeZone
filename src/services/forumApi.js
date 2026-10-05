@@ -25,7 +25,7 @@ export async function getTopics() {
   const client = requireSupabase()
   const { data, error } = await client
     .from('topics')
-    .select('*, categories(*), profiles(*)')
+    .select('*, categories:categories!topics_category_id_fkey(*), profiles:profiles!topics_author_id_fkey(*)')
     .order('pinned', { ascending: false })
     .order('created_at', { ascending: false })
 
@@ -58,7 +58,7 @@ export async function createTopic(payload) {
   const { data, error } = await client
     .from('topics')
     .insert(payload)
-    .select('*, categories(*), profiles(*)')
+    .select('*, categories:categories!topics_category_id_fkey(*), profiles:profiles!topics_author_id_fkey(*)')
     .single()
 
   if (error) throw error
@@ -69,7 +69,7 @@ export async function getPosts(topicId) {
   const client = requireSupabase()
   const { data, error } = await client
     .from('posts')
-    .select('*, profiles(*)')
+    .select('*, profiles:profiles!posts_author_id_fkey(*)')
     .eq('topic_id', topicId)
     .order('created_at')
 
@@ -82,7 +82,7 @@ export async function createPost(payload) {
   const { data, error } = await client
     .from('posts')
     .insert(payload)
-    .select('*, profiles(*)')
+    .select('*, profiles:profiles!posts_author_id_fkey(*)')
     .single()
 
   if (error) throw error
@@ -93,7 +93,7 @@ export async function getRecentPosts(limit = 7) {
   const client = requireSupabase()
   const { data, error } = await client
     .from('posts')
-    .select('id, topic_id, content, created_at, profiles(*), topics(id, title)')
+    .select('id, topic_id, content, created_at, profiles:profiles!posts_author_id_fkey(*), topics:topics!posts_topic_id_fkey(id, title)')
     .order('created_at', { ascending: false })
     .limit(limit)
 
@@ -112,7 +112,6 @@ export async function getMembers(limit = 50) {
   if (error) throw error
   return data ?? []
 }
-
 
 export async function getTopicsPage({
   page = 1,
@@ -144,7 +143,7 @@ export async function getTopicById(topicId) {
   const client = requireSupabase()
   const { data, error } = await client
     .from('topics')
-    .select('*, categories(*), profiles(*)')
+    .select('*, categories:categories!topics_category_id_fkey(*), profiles:profiles!topics_author_id_fkey(*)')
     .eq('id', topicId)
     .maybeSingle()
   if (error) throw error
@@ -183,7 +182,7 @@ export async function updateTopic(topicId, changes) {
     .from('topics')
     .update(payload)
     .eq('id', topicId)
-    .select('*, categories(*), profiles(*)')
+    .select('*, categories:categories!topics_category_id_fkey(*), profiles:profiles!topics_author_id_fkey(*)')
     .single()
   if (error) throw error
   return data
@@ -201,7 +200,7 @@ export async function updatePost(postId, content) {
     .from('posts')
     .update({ content })
     .eq('id', postId)
-    .select('*, profiles(*)')
+    .select('*, profiles:profiles!posts_author_id_fkey(*)')
     .single()
   if (error) throw error
   return data
@@ -212,7 +211,6 @@ export async function deletePost(postId) {
   const { error } = await client.from('posts').delete().eq('id', postId)
   if (error) throw error
 }
-
 
 export async function getForumAuthorStats(authorIds = []) {
   const client = requireSupabase()
@@ -227,6 +225,29 @@ export async function getForumAuthorStats(authorIds = []) {
   return Object.fromEntries((data || []).map((item) => [item.profile_id, {
     topic_count: Number(item.topic_count || 0),
     post_count: Number(item.post_count || 0),
+  }]))
+}
+
+export async function getForumNodeSummaries(nodeIds = []) {
+  const client = requireSupabase()
+  const ids = [...new Set((nodeIds || []).filter(Boolean))]
+  if (!ids.length) return {}
+
+  const { data, error } = await client.rpc('get_forum_node_summaries', {
+    p_node_ids: ids,
+  })
+  if (error) throw error
+
+  return Object.fromEntries((data || []).map((item) => [item.node_id, {
+    topic_count: Number(item.topic_count || 0),
+    post_count: Number(item.post_count || 0),
+    last_topic_id: item.last_topic_id || null,
+    last_topic_title: item.last_topic_title || '',
+    last_activity_at: item.last_activity_at || null,
+    last_actor_id: item.last_actor_id || null,
+    last_actor_username: item.last_actor_username || '',
+    last_actor_display_name: item.last_actor_display_name || '',
+    last_actor_avatar_url: item.last_actor_avatar_url || '',
   }]))
 }
 
