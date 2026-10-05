@@ -30,3 +30,10 @@ test('category directory uses category terminology and suggestion shortcut', asy
   await expect(page.getByText('Categoria → Subcategoria → Fórum → Tópicos.')).toBeVisible()
   await expect(page.getByRole('button', { name: /Sugerir categoria/ })).toBeVisible()
 })
+
+
+test('community chat renders on the forum home', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByText('Chat da Comunidade', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Entre na CreativeZone para participar do chat/i })).toBeVisible()
+})
