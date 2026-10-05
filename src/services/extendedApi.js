@@ -55,6 +55,10 @@ export async function getReportTargetPath(report) {
     return data?.slug ? `/projetos/${encodeURIComponent(data.slug)}` : null
   }
 
+  if (report.target_type === 'chat_message') {
+    return '/'
+  }
+
   return null
 }
 
@@ -67,7 +71,27 @@ export async function getModerationReports(status = 'pending') {
   if (status !== 'all') query = query.eq('status', status)
   const { data, error } = await query.limit(100)
   if (error) throw error
-  return data ?? []
+
+  const rows = data ?? []
+  const chatIds = rows
+    .filter((item) => item.target_type === 'chat_message')
+    .map((item) => item.target_id)
+
+  if (!chatIds.length) return rows
+
+  const { data: chatMessages, error: chatError } = await client
+    .from('chat_messages')
+    .select('id,content,deleted_at,user_id,author:profiles!chat_messages_user_id_fkey(id,username,display_name,avatar_url)')
+    .in('id', chatIds)
+
+  if (chatError) throw chatError
+  const chatMap = new Map((chatMessages ?? []).map((item) => [item.id, item]))
+
+  return rows.map((item) => (
+    item.target_type === 'chat_message'
+      ? { ...item, target_preview: chatMap.get(item.target_id) || null }
+      : item
+  ))
 }
 
 export async function getModerationActions() {
@@ -105,6 +129,16 @@ export async function moderatePost(postId, action, reason = '') {
   const client = requireSupabase()
   const { error } = await client.rpc('moderate_post', {
     p_post_id: postId,
+    p_action: action,
+    p_reason: reason,
+  })
+  if (error) throw error
+}
+
+export async function moderateChatMessage(messageId, action, reason = '') {
+  const client = requireSupabase()
+  const { error } = await client.rpc('moderate_chat_message', {
+    p_message_id: messageId,
     p_action: action,
     p_reason: reason,
   })
