@@ -176,6 +176,9 @@ export function ModerationPage({ profile, session, navigate, notify }) {
         notify?.('O conteúdo denunciado não está mais disponível.')
         return
       }
+      if (report.target_type === 'chat_message') {
+        try { sessionStorage.setItem('creativezone-chat-focus', report.target_id) } catch {}
+      }
       navigate(targetPath)
     } catch (error) {
       notify?.(error?.message || 'Não foi possível abrir o conteúdo denunciado.')
