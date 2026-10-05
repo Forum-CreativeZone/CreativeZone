@@ -614,9 +614,14 @@ function AccountNotifications({ data, reload, userId, navigate }) {
 }
 
 function notificationTitle(item) {
+  if (item.type === 'topic_watch') {
+    if (item.data?.event === 'reply') return 'Nova resposta em tópico assistido'
+    if (item.data?.event === 'reply_update') return 'Resposta atualizada em tópico assistido'
+    return 'Tópico assistido foi atualizado'
+  }
+
   return {
     new_reply: 'Nova resposta no seu tópico',
-    topic_watch: 'Atualização em tópico assistido',
     mention: 'Você foi mencionado',
     quote: 'Sua publicação foi citada',
     reaction: 'Você recebeu uma reação',
