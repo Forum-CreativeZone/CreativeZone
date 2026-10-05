@@ -182,6 +182,7 @@ export function CommunityChat({
   const [busy, setBusy] = useState(false)
   const [menuId, setMenuId] = useState(null)
   const [emojiOpen, setEmojiOpen] = useState(false)
+  const [typingMembers, setTypingMembers] = useState([])
   const [connection, setConnection] = useState('connecting')
   const [restriction, setRestriction] = useState({ mute: null, ban: null })
   const [collapsed, setCollapsed] = useState(() => {
@@ -190,6 +191,8 @@ export function CommunityChat({
   const [expanded, setExpanded] = useState(false)
   const messagesRef = useRef(null)
   const shouldStickToBottom = useRef(true)
+  const chatChannelRef = useRef(null)
+  const typingStopRef = useRef(null)
 
   const visibleMessages = useMemo(
     () => messages.filter((item) => !ignoredIds.includes(item.user_id)),
@@ -267,8 +270,17 @@ export function CommunityChat({
     }
 
     const channel = supabase.channel('creativezone-community-chat-v1')
+    chatChannelRef.current = channel
 
     channel
+      .on('broadcast', { event: 'typing' }, ({ payload }) => {
+        if (!payload?.user_id || payload.user_id === userId) return
+        setTypingMembers((current) => {
+          const without = current.filter((item) => item.user_id !== payload.user_id)
+          if (!payload.is_typing) return without
+          return [...without, { ...payload, expires_at: Date.now() + 4500 }]
+        })
+      })
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'chat_messages' },
@@ -301,9 +313,18 @@ export function CommunityChat({
       })
 
     return () => {
+      if (chatChannelRef.current === channel) chatChannelRef.current = null
       supabase.removeChannel(channel)
     }
   }, [userId])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const now = Date.now()
+      setTypingMembers((current) => current.filter((item) => item.expires_at > now))
+    }, 1500)
+    return () => window.clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     if (connection === 'online') return undefined
@@ -375,6 +396,8 @@ export function CommunityChat({
         if (item) upsertMessage(item)
       } catch {}
       setText('')
+      sendTyping(false)
+      if (typingStopRef.current) window.clearTimeout(typingStopRef.current)
       setReplyTo(null)
       setEmojiOpen(false)
       shouldStickToBottom.current = true
@@ -492,6 +515,29 @@ export function CommunityChat({
     const element = event.currentTarget
     const distance = element.scrollHeight - element.scrollTop - element.clientHeight
     shouldStickToBottom.current = distance < 80
+  }
+
+  function sendTyping(isTyping) {
+    if (!userId || !profile || !chatChannelRef.current) return
+    chatChannelRef.current.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: {
+        user_id: userId,
+        username: profile.username || '',
+        display_name: profile.display_name || profile.username || 'Membro',
+        avatar_url: profile.avatar_url || '',
+        is_typing: isTyping,
+        at: Date.now(),
+      },
+    }).catch(() => {})
+  }
+
+  function onComposerChange(event) {
+    setText(event.target.value)
+    sendTyping(true)
+    if (typingStopRef.current) window.clearTimeout(typingStopRef.current)
+    typingStopRef.current = window.setTimeout(() => sendTyping(false), 1800)
   }
 
   function onComposerKeyDown(event) {
@@ -777,6 +823,18 @@ export function CommunityChat({
             <OnlineMembersPanel members={visibleOnlineMembers} navigate={navigate} />
           </div>
 
+          {typingMembers.filter((item) => !ignoredIds.includes(item.user_id)).length > 0 && (
+            <div className="community-chat-typing">
+              <span className="typing-dots"><i /><i /><i /></span>
+              {typingMembers
+                .filter((item) => !ignoredIds.includes(item.user_id))
+                .slice(0,3)
+                .map((item) => item.display_name || item.username || 'Membro')
+                .join(', ')}
+              {typingMembers.filter((item) => !ignoredIds.includes(item.user_id)).length === 1 ? ' está digitando…' : ' estão digitando…'}
+            </div>
+          )}
+
           <div className="community-chat-composer">
             {replyTo && (
               <div className="community-chat-replying">
@@ -810,7 +868,7 @@ export function CommunityChat({
                   maxLength={500}
                   rows={1}
                   value={text}
-                  onChange={(event) => setText(event.target.value)}
+                  onChange={onComposerChange}
                   onKeyDown={onComposerKeyDown}
                   placeholder="O que está em sua mente?"
                 />
