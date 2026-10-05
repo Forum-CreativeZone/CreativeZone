@@ -17,6 +17,47 @@ export async function createReport({ targetType, targetId, reason, details = '' 
   return data
 }
 
+export async function getReportTargetPath(report) {
+  const client = requireSupabase()
+  if (!report?.target_id) return null
+
+  if (report.target_type === 'topic') {
+    return `/topico/${report.target_id}`
+  }
+
+  if (report.target_type === 'post') {
+    const { data, error } = await client
+      .from('posts')
+      .select('topic_id')
+      .eq('id', report.target_id)
+      .maybeSingle()
+    if (error) throw error
+    return data?.topic_id ? `/topico/${data.topic_id}` : null
+  }
+
+  if (report.target_type === 'profile') {
+    const { data, error } = await client
+      .from('profiles')
+      .select('username')
+      .eq('id', report.target_id)
+      .maybeSingle()
+    if (error) throw error
+    return data?.username ? `/membro/${encodeURIComponent(data.username)}` : null
+  }
+
+  if (report.target_type === 'project') {
+    const { data, error } = await client
+      .from('projects')
+      .select('slug')
+      .eq('id', report.target_id)
+      .maybeSingle()
+    if (error) throw error
+    return data?.slug ? `/projetos/${encodeURIComponent(data.slug)}` : null
+  }
+
+  return null
+}
+
 export async function getModerationReports(status = 'pending') {
   const client = requireSupabase()
   let query = client
