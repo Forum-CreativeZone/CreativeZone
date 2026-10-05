@@ -1821,125 +1821,214 @@ function App() {
 
       return (
         <PageShell title={routeTopic.title} onBack={() => navigate('/')} wide>
-          <div className="panel-content thread standalone-thread">
-            <div className="thread-author">
-              <Avatar src={routeTopic.avatarUrl} />
-              <strong>{routeTopic.user}</strong>
-              <span>{routeTopic.category}</span>
+          <div className="thread-watchbar">
+            <div>
+              <strong>{routeTopic.category}</strong>
+              <span>
+                {routeTopic.locked
+                  ? 'Tópico fechado para novas respostas'
+                  : 'Acompanhe a discussão e receba as próximas atualizações.'}
+              </span>
             </div>
+            <button
+              className={'action thread-watch-button ' + (watchingTopic ? 'watching' : '')}
+              onClick={toggleTopicWatch}
+              disabled={watchBusy}
+            >
+              {watchingTopic ? <BellOff /> : <Bell />}
+              {watchBusy ? 'Aguarde...' : watchingTopic ? 'Deixar de assistir' : 'Assistir tópico'}
+            </button>
+          </div>
 
-            {editingTopic ? (
-              <form className="inline-edit-form" onSubmit={saveTopicEdit}>
-                <label>Título
-                  <input
-                    required
-                    maxLength={160}
-                    value={editingTopicDraft.title}
-                    onChange={(event) => setEditingTopicDraft((draft) => ({ ...draft, title: event.target.value }))}
-                  />
-                </label>
-                <label>Categoria
-                  <select
-                    value={editingTopicDraft.categoryId}
-                    onChange={(event) => setEditingTopicDraft((draft) => ({ ...draft, categoryId: event.target.value }))}
-                  >
-                    {forumCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-                  </select>
-                </label>
-                <label>Conteúdo
-                  <textarea
-                    required
-                    value={editingTopicDraft.content}
-                    onChange={(event) => setEditingTopicDraft((draft) => ({ ...draft, content: event.target.value }))}
-                  />
-                </label>
-                <div className="route-actions">
-                  <button className="action primary-action" type="submit"><Save/>Salvar</button>
-                  <button className="action" type="button" onClick={() => setEditingTopic(false)}>Cancelar</button>
-                </div>
-              </form>
-            ) : (
-              <ForumText content={routeTopic.description} />
-            )}
-
-            <ForumMediaList items={topicMedia} />
-
-            <div className="thread-engagement">
-              <ReactionButton session={session} topicId={routeTopic.id} notify={setToast} />
-              {routeTopic.authorUsername && (
-                <button className="action quote-action" onClick={() => quoteToReply(routeTopic.authorUsername, routeTopic.description)}>
-                  <Quote /> Citar
-                </button>
-              )}
-              {session && <ReportButton session={session} targetType="topic" targetId={routeTopic.id} notify={setToast} />}
-              {ownsTopic && !editingTopic && (
-                <button
-                  className="action"
-                  onClick={() => {
-                    setEditingTopicDraft({
-                      title: routeTopic.title,
-                      content: routeTopic.description,
-                      categoryId: routeTopic.categoryId,
-                    })
-                    setEditingTopic(true)
-                  }}
-                >
-                  <Edit3/>Editar
-                </button>
-              )}
-              {ownsTopic && <button className="action danger-action" onClick={removeTopic}><Trash2/>Excluir</button>}
-            </div>
-            {routeTopic.signature && <div className="post-signature">{routeTopic.signature}</div>}
-
-            <div className="thread-replies">
-              {threadReplies.map((post) => {
-                const ownsPost = session?.user?.id === post.author_id
-                return (
-                  <div key={post.id}>
-                    <button
-                      className="reply-author-link"
-                      onClick={() => post.profiles?.username && navigate('/membro/' + encodeURIComponent(post.profiles.username))}
-                    >
-                      <strong>{post.profiles?.display_name || post.profiles?.username || 'Membro'}</strong>
-                      {post.profiles?.occupation && <small>{post.profiles.occupation}</small>}
+          <div className="thread-board">
+            <ThreadPostCard
+              profile={routeTopic.profile}
+              stats={threadAuthorStats[routeTopic.authorId]}
+              navigate={navigate}
+              fallbackName={routeTopic.user}
+              fallbackAvatar={routeTopic.avatarUrl}
+              createdAt={routeTopic.createdAt}
+              number={1}
+              original
+              signature={routeTopic.signature}
+              actions={
+                <>
+                  <ReactionButton session={session} topicId={routeTopic.id} notify={setToast} />
+                  {routeTopic.authorUsername && (
+                    <button className="action quote-action" onClick={() => quoteToReply(routeTopic.authorUsername, routeTopic.description)}>
+                      <Quote /> Citar
                     </button>
+                  )}
+                  {session && (
+                    <ReportButton
+                      session={session}
+                      targetType="topic"
+                      targetId={routeTopic.id}
+                      notify={setToast}
+                    />
+                  )}
+                  {ownsTopic && !editingTopic && (
+                    <button
+                      className="action"
+                      onClick={() => {
+                        setEditingTopicDraft({
+                          title: routeTopic.title,
+                          content: routeTopic.description,
+                          categoryId: routeTopic.categoryId,
+                        })
+                        setEditingTopic(true)
+                      }}
+                    >
+                      <Edit3 /> Editar
+                    </button>
+                  )}
+                  {ownsTopic && (
+                    <button className="action danger-action" onClick={removeTopic}>
+                      <Trash2 /> Excluir
+                    </button>
+                  )}
+                </>
+              }
+            >
+              {editingTopic ? (
+                <form className="inline-edit-form" onSubmit={saveTopicEdit}>
+                  <label>
+                    Título
+                    <input
+                      required
+                      maxLength={160}
+                      value={editingTopicDraft.title}
+                      onChange={(event) => setEditingTopicDraft((draft) => ({
+                        ...draft,
+                        title: event.target.value,
+                      }))}
+                    />
+                  </label>
+                  <label>
+                    Fórum
+                    <select
+                      value={editingTopicDraft.categoryId}
+                      onChange={(event) => setEditingTopicDraft((draft) => ({
+                        ...draft,
+                        categoryId: event.target.value,
+                      }))}
+                    >
+                      {forumCategories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Conteúdo
+                    <textarea
+                      required
+                      value={editingTopicDraft.content}
+                      onChange={(event) => setEditingTopicDraft((draft) => ({
+                        ...draft,
+                        content: event.target.value,
+                      }))}
+                    />
+                  </label>
+                  <div className="route-actions">
+                    <button className="action primary-action" type="submit"><Save /> Salvar</button>
+                    <button className="action" type="button" onClick={() => setEditingTopic(false)}>
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <ForumText content={routeTopic.description} />
+              )}
+              <ForumMediaList items={topicMedia} />
+            </ThreadPostCard>
 
-                    {editingPostId === post.id ? (
-                      <div className="inline-post-edit">
-                        <textarea value={editingPostText} onChange={(event) => setEditingPostText(event.target.value)} />
-                        <div className="route-actions">
-                          <button className="action primary-action" onClick={() => savePostEdit(post.id)}><Save/>Salvar</button>
-                          <button className="action" onClick={() => { setEditingPostId(null); setEditingPostText('') }}>Cancelar</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <ForumText content={post.content} />
-                    )}
-
-                    <ForumMediaList items={postMedia[post.id] || []} />
-
-                    <div className="reply-engagement">
+            {threadReplies.map((post, index) => {
+              const ownsPost = session?.user?.id === post.author_id
+              return (
+                <ThreadPostCard
+                  key={post.id}
+                  profile={post.profiles}
+                  stats={threadAuthorStats[post.author_id]}
+                  navigate={navigate}
+                  fallbackName={post.profiles?.display_name || post.profiles?.username || 'Membro'}
+                  fallbackAvatar={post.profiles?.avatar_url || ''}
+                  createdAt={post.created_at}
+                  number={index + 2}
+                  signature={post.profiles?.signature}
+                  actions={
+                    <>
                       <ReactionButton session={session} postId={post.id} notify={setToast} />
                       {post.profiles?.username && (
                         <button className="action quote-action" onClick={() => quoteToReply(post.profiles.username, post.content)}>
                           <Quote /> Citar
                         </button>
                       )}
-                      {session && <ReportButton session={session} targetType="post" targetId={post.id} notify={setToast} />}
-                      {ownsPost && editingPostId !== post.id && (
-                        <button className="action" onClick={() => { setEditingPostId(post.id); setEditingPostText(post.content) }}><Edit3/>Editar</button>
+                      {session && (
+                        <ReportButton
+                          session={session}
+                          targetType="post"
+                          targetId={post.id}
+                          notify={setToast}
+                        />
                       )}
-                      {ownsPost && <button className="action danger-action" onClick={() => removePost(post.id)}><Trash2/>Excluir</button>}
+                      {ownsPost && editingPostId !== post.id && (
+                        <button
+                          className="action"
+                          onClick={() => {
+                            setEditingPostId(post.id)
+                            setEditingPostText(post.content)
+                          }}
+                        >
+                          <Edit3 /> Editar
+                        </button>
+                      )}
+                      {ownsPost && (
+                        <button className="action danger-action" onClick={() => removePost(post.id)}>
+                          <Trash2 /> Excluir
+                        </button>
+                      )}
+                    </>
+                  }
+                >
+                  {editingPostId === post.id ? (
+                    <div className="inline-post-edit">
+                      <textarea
+                        value={editingPostText}
+                        onChange={(event) => setEditingPostText(event.target.value)}
+                      />
+                      <div className="route-actions">
+                        <button className="action primary-action" onClick={() => savePostEdit(post.id)}>
+                          <Save /> Salvar
+                        </button>
+                        <button
+                          className="action"
+                          onClick={() => {
+                            setEditingPostId(null)
+                            setEditingPostText('')
+                          }}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
                     </div>
-                    {post.profiles?.signature && <div className="post-signature">{post.profiles.signature}</div>}
-                  </div>
-                )
-              })}
-              {!threadReplies.length && (
-                <p className="thread-empty">Ainda não há respostas. Seja o primeiro a responder.</p>
-              )}
-            </div>
+                  ) : (
+                    <ForumText content={post.content} />
+                  )}
+                  <ForumMediaList items={postMedia[post.id] || []} />
+                </ThreadPostCard>
+              )
+            })}
 
+            {!threadReplies.length && (
+              <p className="thread-empty thread-empty-board">
+                Ainda não há respostas neste tópico.
+              </p>
+            )}
+          </div>
+
+          <div className="thread-reply-area">
             {routeTopic.locked ? (
               <p className="thread-empty">Este tópico está bloqueado para novas respostas.</p>
             ) : session ? (
@@ -1961,15 +2050,23 @@ function App() {
                     onChange={(event) => setReplyFiles(Array.from(event.target.files || []).slice(0,4))}
                   />
                 </label>
-                {replyFiles.length > 0 && <div className="attachment-selection">{replyFiles.map((file)=><span key={file.name+file.size}>{file.name}</span>)}</div>}
-                <button className="action" type="submit"><Send /> Enviar</button>
+                {replyFiles.length > 0 && (
+                  <div className="attachment-selection">
+                    {replyFiles.map((file) => (
+                      <span key={file.name + file.size}>{file.name}</span>
+                    ))}
+                  </div>
+                )}
+                <button className="action primary-action" type="submit"><Send /> Enviar resposta</button>
               </form>
             ) : (
               <div className="reply-login-box">
-                <p>Entre para responder a este tópico.</p>
+                <p>Entre para responder ou assistir a este tópico.</p>
                 <div className="route-actions">
                   <button className="action" onClick={() => navigate('/entrar')}><LogIn /> Entrar</button>
-                  <button className="action primary-action" onClick={() => navigate('/cadastro')}><UserPlus /> Criar conta</button>
+                  <button className="action primary-action" onClick={() => navigate('/cadastro')}>
+                    <UserPlus /> Criar conta
+                  </button>
                 </div>
               </div>
             )}
