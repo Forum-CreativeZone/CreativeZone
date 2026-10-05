@@ -27,6 +27,15 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(new Date(value))
 }
 
+function formatMoney(cents = 0, currency = 'BRL') {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency,
+  }).format((Number(cents) || 0) / 100)
+}
+
+const WHATSAPP_NUMBER = '5511932212697'
+
 const benefits = [
   ['name_color','Cor personalizada do nome'],
   ['custom_title','Título personalizado'],
@@ -38,9 +47,14 @@ const benefits = [
   ['ads_free','Experiência sem anúncios'],
 ]
 
-function PlanCard({ plan, current, onRequest, busy }) {
+function PlanCard({ plan, current, onRequest, busy, months, setMonths }) {
   const active = current?.plan_id === plan.id
   const e = plan.entitlements || {}
+  const paid = plan.id !== 'free'
+  const permanentCurrent = active && current?.permanent
+  const lowerThanCurrent = paid && current?.plan_id && current.plan_id !== 'free' && plan.rank < (current?.rank ?? 0)
+  const total = (plan.price_cents || 0) * (Number(months) || 1)
+
   return (
     <article className={'membership-plan-card plan-' + plan.id + (active ? ' active' : '')}>
       <header>
@@ -50,6 +64,9 @@ function PlanCard({ plan, current, onRequest, busy }) {
         <div>
           <strong>{plan.name}</strong>
           <small>{plan.description}</small>
+          <span className="membership-price">
+            {paid ? <><b>{formatMoney(plan.price_cents,plan.currency)}</b><small>/mês</small></> : <b>Grátis</b>}
+          </span>
         </div>
         <b>{plan.badge}</b>
       </header>
@@ -65,13 +82,33 @@ function PlanCard({ plan, current, onRequest, busy }) {
         ))}
       </div>
 
-      {active ? (
-        <button className="membership-current" disabled>Plano atual</button>
-      ) : plan.id !== 'free' ? (
-        <button className="action membership-request-button" disabled={busy} onClick={() => onRequest(plan.id)}>
-          Solicitar {plan.badge}
-        </button>
-      ) : null}
+      {paid && !permanentCurrent && !lowerThanCurrent && (
+        <div className="membership-buy-box">
+          <label>
+            Período
+            <select value={months} onChange={(event)=>setMonths(Number(event.target.value))}>
+              {[1,2,3,6,12].map((value)=>(
+                <option key={value} value={value}>{value} mês{value>1?'es':''}</option>
+              ))}
+            </select>
+          </label>
+          <div>
+            <span>Total</span>
+            <strong>{formatMoney(total,plan.currency)}</strong>
+          </div>
+          <button
+            className="action membership-request-button whatsapp"
+            disabled={busy}
+            onClick={() => onRequest(plan.id,months)}
+          >
+            Continuar com WhatsApp
+          </button>
+        </div>
+      )}
+
+      {permanentCurrent && <button className="membership-current" disabled>Plano permanente</button>}
+      {!paid && active && <button className="membership-current" disabled>Plano atual</button>}
+      {lowerThanCurrent && <small className="membership-downgrade-note">Seu plano atual já possui benefícios superiores.</small>}
     </article>
   )
 }
@@ -178,14 +215,15 @@ function AdminRequests({ session, requests, reload, notify }) {
     setBusyId(request.id)
     try {
       await adminGrantMembership({
-        adminId: session.user.id,
         userId: request.user_id,
         planId: request.plan_id,
         permanent,
-        days: 30,
+        months: request.months_requested || 1,
         requestId: request.id,
       })
-      notify(permanent ? 'Plano permanente concedido.' : 'Plano concedido por 30 dias.')
+      notify(permanent
+        ? 'Plano permanente concedido.'
+        : 'Plano concedido por ' + (request.months_requested || 1) + ' mês(es).')
       await reload()
     } catch (error) {
       notify(error?.message || 'Não foi possível aprovar o plano.')
@@ -219,11 +257,18 @@ function AdminRequests({ session, requests, reload, notify }) {
         <article key={request.id}>
           <div>
             <strong>{request.profile?.display_name || request.profile?.username || 'Membro'}</strong>
-            <small>@{request.profile?.username || 'membro'} · {request.plan?.badge || request.plan_id.toUpperCase()}</small>
+            <small>
+              @{request.profile?.username || 'membro'} · {request.plan?.badge || request.plan_id.toUpperCase()}
+              {' · '}{request.months_requested || 1} mês(es)
+              {request.reference_code ? ' · ' + request.reference_code : ''}
+            </small>
+            <b>{formatMoney(request.total_price_cents || 0,request.currency || 'BRL')}</b>
             {request.message && <p>{request.message}</p>}
           </div>
           <div>
-            <button className="action" disabled={busyId===request.id} onClick={() => approve(request,false)}>30 dias</button>
+            <button className="action" disabled={busyId===request.id} onClick={() => approve(request,false)}>
+              Aprovar {request.months_requested || 1} mês(es)
+            </button>
             <button className="action primary-action" disabled={busyId===request.id} onClick={() => approve(request,true)}>Permanente</button>
             <button className="action danger-action" disabled={busyId===request.id} onClick={() => reject(request)}>Recusar</button>
           </div>
@@ -324,6 +369,7 @@ export function MembershipSection({ session, profile, state, setState, notify })
     badge_style:'default',
   })
   const [requests,setRequests] = useState([])
+  const [planMonths,setPlanMonths] = useState({ pro:1, elite:1 })
   const [busy,setBusy] = useState(false)
 
   const isAdmin = profile?.role === 'admin'
@@ -343,7 +389,10 @@ export function MembershipSection({ session, profile, state, setState, notify })
 
     const [nextPlans,nextState,nextCosmetics,nextRequests] = await Promise.all(tasks)
     setPlans(nextPlans)
-    setState?.(nextState)
+    setState?.(nextState ? {
+      ...nextState,
+      rank: nextPlans.find((plan)=>plan.id===nextState.plan_id)?.rank ?? 0,
+    } : nextState)
     setCosmetics(nextCosmetics || {
       name_color:null,
       profile_title:null,
@@ -358,21 +407,68 @@ export function MembershipSection({ session, profile, state, setState, notify })
     reload().catch((error) => notify(error?.message || 'Não foi possível carregar os planos.'))
   }, [session?.user?.id,isAdmin])
 
-  async function request(planId) {
+  async function request(planId, months = 1) {
     const plan = plans.find((item) => item.id === planId)
-    if (!plan || plan.rank <= currentRank) return
+    if (!plan) return
     setBusy(true)
     try {
-      await requestMembershipUpgrade(session.user.id,planId)
-      notify('Solicitação ' + plan.badge + ' enviada para análise.')
+      const purchase = await requestMembershipUpgrade(
+        session.user.id,
+        planId,
+        months,
+        'Solicitação iniciada pela página Assinatura & VIP.'
+      )
+
+      const accountName = profile?.display_name || profile?.username || 'Membro'
+      const username = profile?.username || 'membro'
+      const email = session?.user?.email || ''
+      const message = [
+        'Olá! Quero apoiar a CreativeZone e ativar/renovar meu VIP.',
+        '',
+        'Referência: ' + purchase.reference_code,
+        'Plano: ' + purchase.plan_name + ' (' + purchase.badge + ')',
+        'Período: ' + purchase.months + ' mês(es)',
+        'Valor total: ' + formatMoney(purchase.total_price_cents,purchase.currency),
+        '',
+        'Conta CreativeZone:',
+        'Nome: ' + accountName,
+        'Usuário: @' + username,
+        'E-mail: ' + email,
+        'ID da conta: ' + session.user.id,
+        '',
+        'Vou enviar por aqui o comprovante do pagamento.',
+      ].join('\n')
+
+      window.open(
+        'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(message),
+        '_blank',
+        'noopener,noreferrer'
+      )
+      notify('Pedido criado. Continue pelo WhatsApp e envie o comprovante.')
       if (isAdmin) setRequests(await getMembershipRequests())
     } catch (error) {
-      notify(error?.code === '23505'
-        ? 'Você já possui uma solicitação de upgrade pendente.'
-        : (error?.message || 'Não foi possível solicitar o upgrade.'))
+      notify(error?.message || 'Não foi possível iniciar a solicitação.')
     } finally {
       setBusy(false)
     }
+  }
+
+  function supportWithoutVip() {
+    const message = [
+      'Olá! Quero fazer uma contribuição avulsa para apoiar a CreativeZone.',
+      '',
+      'Conta: @' + (profile?.username || 'membro'),
+      'Nome: ' + (profile?.display_name || profile?.username || 'Membro'),
+      'E-mail: ' + (session?.user?.email || ''),
+      'ID da conta: ' + session.user.id,
+      '',
+      'Pode me orientar sobre o pagamento?',
+    ].join('\n')
+    window.open(
+      'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(message),
+      '_blank',
+      'noopener,noreferrer'
+    )
   }
 
   async function saveCosmetics(event) {
@@ -419,9 +515,29 @@ export function MembershipSection({ session, profile, state, setState, notify })
             current={state}
             onRequest={request}
             busy={busy}
+            months={planMonths[plan.id] || 1}
+            setMonths={(value)=>setPlanMonths((current)=>({...current,[plan.id]:value}))}
           />
         ))}
       </div>
+
+      <section className="membership-support-note">
+        <div>
+          <strong>❤️ Apoiar sem assinatura</strong>
+          <small>
+            Se você só quer ajudar com a VPS, infraestrutura e futuros projetos, também pode fazer uma contribuição avulsa.
+          </small>
+        </div>
+        <button className="action" onClick={supportWithoutVip}>Falar pelo WhatsApp</button>
+      </section>
+
+      <section className="membership-transparency">
+        <strong>Como o apoio é utilizado</strong>
+        <p>
+          As assinaturas ajudam a manter VPS, banco, armazenamento e serviços da comunidade, além de financiar a evolução da CreativeZone e novos projetos.
+          VIP não compra XP, reputação, autoridade ou poder de moderação.
+        </p>
+      </section>
 
       <CosmeticsForm
         state={state}
