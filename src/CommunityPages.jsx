@@ -50,7 +50,14 @@ import {
   toggleIgnore,
   toggleReaction,
   uploadAvatar,
+  uploadProfileCover,
 } from './services/communityApi'
+import {
+  getEligibleFeaturedProjects,
+  getFeaturedProjects,
+  reputationLevel,
+  saveFeaturedProjects,
+} from './services/communityFeaturesApi'
 import { supabase } from './services/supabaseClient'
 import {
   AccountUpdatesSection,
@@ -218,7 +225,7 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
     return <CommunityShell title="Perfil" onBack={() => navigate('/membros')}><p className="community-empty">Perfil não encontrado.</p></CommunityShell>
   }
 
-  const { profile, stats, topics, posts, badges } = data
+  const { profile, stats, topics, posts, badges, featuredProjects = [] } = data
   const isSelf = currentId === profile.id
   const activity = [...topics.map((item) => ({ kind: 'topic', date: item.created_at, item })), ...posts.map((item) => ({ kind: 'post', date: item.created_at, item }))].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,30)
   const birthParts = []
@@ -243,7 +250,10 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
 
   return (
     <CommunityShell title={profile.display_name || profile.username} onBack={() => navigate('/membros')}>
-      <div className="public-profile-hero">
+      <div
+        className={'public-profile-hero ' + (profile.cover_url ? 'has-cover' : '')}
+        style={profile.cover_url ? { '--profile-cover': `url("${profile.cover_url}")` } : undefined}
+      >
         <Avatar profile={profile} size={128} />
         <div className="public-profile-main">
           <h2>{profile.display_name || profile.username}</h2>
@@ -256,6 +266,7 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
             {profile.location && <span><MapPin /> {profile.location}</span>}
             {birthParts.length > 0 && <span><Calendar /> {birthParts.join('/')}</span>}
             {profile.login_streak > 0 && <span>🔥 Sequência de {profile.login_streak} dia{profile.login_streak === 1 ? '' : 's'}</span>}
+            <span><Trophy /> {reputationLevel(stats.reputation)} · {stats.reputation} XP</span>
           </div>
         </div>
         {!isSelf && currentId && (
@@ -277,7 +288,7 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
         <span><b>{stats.topics}</b>Tópicos</span>
         <span><b>{stats.posts}</b>Respostas</span>
         <span><b>{stats.reactions}</b>Reações</span>
-        <span><b>{stats.reputation}</b>Reputação</span>
+        <span><b>{stats.reputation}</b>XP</span>
         <span><b>{profile.show_followers ? stats.followers : '—'}</b>Seguidores</span>
         <span><b>{profile.show_followers ? stats.following : '—'}</b>Seguindo</span>
       </div>
@@ -315,11 +326,27 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
             <p>{profile.bio || 'Este membro ainda não escreveu uma apresentação.'}</p>
             <h3>Áreas de interesse</h3>
             <div className="interest-chips">{(profile.interests ?? []).map((interest) => <span key={interest}>{interest}</span>)}</div>
-            {(profile.website_url || profile.github_url || profile.linkedin_url || profile.discord_handle) && (
+            {(profile.skills || []).length > 0 && <><h3>Habilidades</h3><div className="interest-chips skill-chips">{profile.skills.map((skill) => <span key={skill}>{skill}</span>)}</div></>}
+            {(profile.technologies || []).length > 0 && <><h3>Tecnologias favoritas</h3><div className="interest-chips tech-chips">{profile.technologies.map((tech) => <span key={tech}>{tech}</span>)}</div></>}
+            {featuredProjects.length > 0 && (
+              <>
+                <h3>Projetos destacados</h3>
+                <div className="featured-projects-public">
+                  {featuredProjects.map((project) => (
+                    <button key={project.id} onClick={() => navigate('/projetos/' + encodeURIComponent(project.slug))}>
+                      <Briefcase />
+                      <span><strong>{project.title}</strong><small>{project.summary}</small></span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+            {(profile.website_url || profile.portfolio_url || profile.github_url || profile.linkedin_url || profile.discord_handle) && (
               <>
                 <h3>Links e redes</h3>
                 <div className="public-links">
                   {profile.website_url && <a href={profile.website_url} target="_blank" rel="noreferrer">Website</a>}
+                  {profile.portfolio_url && <a href={profile.portfolio_url} target="_blank" rel="noreferrer">Portfólio</a>}
                   {profile.github_url && <a href={profile.github_url} target="_blank" rel="noreferrer">GitHub</a>}
                   {profile.linkedin_url && <a href={profile.linkedin_url} target="_blank" rel="noreferrer">LinkedIn</a>}
                   {profile.discord_handle && <span>Discord: {profile.discord_handle}</span>}
@@ -364,6 +391,8 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
   const [draft, setDraft] = useState(profile || {})
   const [busy, setBusy] = useState(false)
   const [extra, setExtra] = useState(null)
+  const [projectChoices, setProjectChoices] = useState([])
+  const [featuredProjectIds, setFeaturedProjectIds] = useState([])
 
   async function loadBase() {
     if (!userId) return
@@ -390,6 +419,18 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
 
   useEffect(() => { loadBase() }, [userId, profile?.id])
   useEffect(() => { loadExtra() }, [userId, section])
+  useEffect(() => {
+    if (!userId) return
+    Promise.all([getEligibleFeaturedProjects(userId), getFeaturedProjects(userId)])
+      .then(([choices, featured]) => {
+        setProjectChoices(choices)
+        setFeaturedProjectIds(featured.map((item) => item.id))
+      })
+      .catch(() => {
+        setProjectChoices([])
+        setFeaturedProjectIds([])
+      })
+  }, [userId])
 
   if (!session) {
     return <CommunityShell title="Sua conta" onBack={() => navigate('/')}><p className="community-empty">Entre para acessar as configurações.</p></CommunityShell>
@@ -425,6 +466,9 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
         github_url: draft.github_url?.trim() || null,
         linkedin_url: draft.linkedin_url?.trim() || null,
         discord_handle: draft.discord_handle?.trim() || null,
+        portfolio_url: draft.portfolio_url?.trim() || null,
+        skills: Array.isArray(draft.skills) ? draft.skills : [],
+        technologies: Array.isArray(draft.technologies) ? draft.technologies : [],
       }
       const result = await saveAccountProfile(userId, {
         profile: payload,
@@ -441,6 +485,7 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
           show_location: Boolean(settings.show_location),
         },
       })
+      await saveFeaturedProjects(userId, featuredProjectIds)
       setProfile(result.profile)
       setDraft(result.profile)
       if (settings.theme !== 'system') setAppearance(settings.theme)
@@ -464,6 +509,30 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
     finally { setBusy(false) }
   }
 
+  async function coverChange(event) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setBusy(true)
+    try {
+      const next = await uploadProfileCover(userId, file)
+      setProfile(next)
+      setDraft(next)
+      notify('Capa do perfil atualizada.')
+    } catch (error) { notify(error?.message || 'Não foi possível atualizar a capa.') }
+    finally { setBusy(false) }
+  }
+
+  function toggleFeaturedProject(projectId) {
+    setFeaturedProjectIds((current) => {
+      if (current.includes(projectId)) return current.filter((id) => id !== projectId)
+      if (current.length >= 3) {
+        notify('Você pode destacar até 3 projetos.')
+        return current
+      }
+      return [...current, projectId]
+    })
+  }
+
   const identities = session.user.identities ?? []
   const providers = new Set(identities.map((identity) => identity.provider))
 
@@ -479,6 +548,10 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
           {section === 'perfil' && (
             <form className="account-form" onSubmit={save}>
               {!draft.profile_completed && <div className="profile-required-note">Complete os campos obrigatórios para finalizar seu perfil.</div>}
+              <div className="profile-cover-editor" style={draft.cover_url ? { backgroundImage: `url("${draft.cover_url}")` } : undefined}>
+                <span>{draft.cover_url ? 'Capa atual' : 'Adicione uma capa ao seu perfil'}</span>
+                <label className="action"><Upload /> Alterar capa<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={coverChange} hidden /></label>
+              </div>
               <div className="avatar-editor">
                 <Avatar profile={draft} size={96} />
                 <label className="action"><Upload /> Alterar avatar<input type="file" accept="image/*" onChange={avatarChange} hidden /></label>
@@ -499,6 +572,10 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
               <label>Localização (opcional)<input maxLength={100} value={settings.location_private || ''} onChange={(e) => setSetting('location_private', e.target.value)} placeholder="Cidade, estado ou país" /></label>
               <label>Ocupação *<input required maxLength={100} value={draft.occupation || ''} onChange={(e) => setProfileField('occupation', e.target.value)} placeholder="Ex.: Desenvolvedor, Designer, Estudante" /></label>
               <label>Áreas de interesse<input value={(draft.interests || []).join(', ')} onChange={(e) => setProfileField('interests', e.target.value.split(',').map((v) => v.trim()).filter(Boolean).slice(0,20))} placeholder="IA, programação, hardware, games..." /></label>
+              <label>Habilidades<input value={(draft.skills || []).join(', ')} onChange={(e) => setProfileField('skills', e.target.value.split(',').map((v) => v.trim()).filter(Boolean).slice(0,30))} placeholder="Frontend, UX, DevOps, escrita..." /></label>
+              <label>Tecnologias favoritas<input value={(draft.technologies || []).join(', ')} onChange={(e) => setProfileField('technologies', e.target.value.split(',').map((v) => v.trim()).filter(Boolean).slice(0,30))} placeholder="React, Python, Supabase, Docker..." /></label>
+              <label>Site pessoal<input type="url" maxLength={250} value={draft.website_url || ''} onChange={(e) => setProfileField('website_url', e.target.value)} placeholder="https://seusite.com" /></label>
+              <label>Portfólio<input type="url" maxLength={250} value={draft.portfolio_url || ''} onChange={(e) => setProfileField('portfolio_url', e.target.value)} placeholder="https://portfolio.dev" /></label>
               <label>Site / Portfólio<input type="url" maxLength={250} value={draft.website_url || ''} onChange={(e) => setProfileField('website_url', e.target.value)} placeholder="https://seusite.com" /></label>
               <label>GitHub público<input type="url" maxLength={250} value={draft.github_url || ''} onChange={(e) => setProfileField('github_url', e.target.value)} placeholder="https://github.com/usuario" /></label>
               <label>LinkedIn<input type="url" maxLength={250} value={draft.linkedin_url || ''} onChange={(e) => setProfileField('linkedin_url', e.target.value)} placeholder="https://linkedin.com/in/usuario" /></label>
@@ -506,6 +583,21 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
               <label>Status<input maxLength={120} value={draft.status_message || ''} onChange={(e) => setProfileField('status_message', e.target.value)} placeholder="Uma frase curta sobre você" /></label>
               <label>Sobre você<textarea maxLength={1200} value={draft.bio || ''} onChange={(e) => setProfileField('bio', e.target.value)} /></label>
               <label>Assinatura do fórum<textarea maxLength={500} value={draft.signature || ''} onChange={(e) => setProfileField('signature', e.target.value)} placeholder="Aparecerá abaixo das suas respostas." /></label>
+              {projectChoices.length > 0 && (
+                <fieldset className="featured-project-picker">
+                  <legend>Projetos destacados no perfil <small>(até 3)</small></legend>
+                  {projectChoices.map((project) => (
+                    <label key={project.id}>
+                      <input
+                        type="checkbox"
+                        checked={featuredProjectIds.includes(project.id)}
+                        onChange={() => toggleFeaturedProject(project.id)}
+                      />
+                      <span><strong>{project.title}</strong><small>{project.summary}</small></span>
+                    </label>
+                  ))}
+                </fieldset>
+              )}
               <button className="action primary-action" disabled={busy}><Save /> Salvar</button>
             </form>
           )}
