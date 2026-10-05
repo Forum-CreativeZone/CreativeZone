@@ -258,7 +258,7 @@ export async function getNotifications(userId, limit = 50) {
       .limit(limit),
     client
       .from('account_settings')
-      .select('inapp_reply,inapp_mention,inapp_quote,inapp_reaction,inapp_follower,inapp_dm,inapp_moderation')
+      .select('inapp_reply,inapp_watch,inapp_mention,inapp_quote,inapp_reaction,inapp_follower,inapp_dm,inapp_moderation')
       .eq('user_id', userId)
       .maybeSingle(),
   ])
@@ -266,7 +266,7 @@ export async function getNotifications(userId, limit = 50) {
 
   const pref = {
     new_reply: settings?.inapp_reply ?? true,
-    topic_watch: settings?.inapp_reply ?? true,
+    topic_watch: settings?.inapp_watch ?? true,
     mention: settings?.inapp_mention ?? true,
     quote: settings?.inapp_quote ?? true,
     reaction: settings?.inapp_reaction ?? true,
