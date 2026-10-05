@@ -74,6 +74,7 @@ import {
 import { PasswordRecoveryPage } from './AuthRecoveryPages'
 import { ThreadPostCard } from './ForumThreadComponents'
 import { ForumNodePage } from './ForumNodePage'
+import { ForumIndex } from './ForumIndex'
 import { CategoriesPage, CategorySuggestionButton } from './CategoryPages'
 import {
   getPostMedia,
@@ -498,7 +499,7 @@ function ComposerPage({ onPublish, notify, categories, navigate, session }) {
               [EyeOff, 'Inserir spoiler', () => format('||')],
               [Save, 'Salvar rascunho', save],
             ].map(([ButtonIcon, label, action]) => (
-              <button type="button" title={label} aria-label={label} key={label} onClick={action}>
+              <button type="button" aria-label={label} title={label} key={label} onClick={action}>
                 <ButtonIcon />
               </button>
             ))}
@@ -507,9 +508,9 @@ function ComposerPage({ onPublish, notify, categories, navigate, session }) {
             id="topic-description"
             ref={editor}
             required
+            placeholder="Escreva sua publicação..."
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="Escreva sua publicação..."
           />
         </div>
 
@@ -528,15 +529,9 @@ function ComposerPage({ onPublish, notify, categories, navigate, session }) {
           </div>
         )}
 
-        <div className="composer-actions">
-          <button
-            type="submit"
-            disabled={publishing || !title.trim() || !description.trim() || !categoryId}
-          >
-            <Send />
-            {publishing ? 'Publicando...' : 'Publicar'}
-          </button>
-        </div>
+        <button className="publish" type="submit" disabled={publishing}>
+          <Send /> {publishing ? 'Publicando...' : 'Publicar tópico'}
+        </button>
       </form>
     </PageShell>
   )
@@ -544,62 +539,68 @@ function ComposerPage({ onPublish, notify, categories, navigate, session }) {
 
 function AuthPage({ mode, navigate, notify }) {
   const isSignup = mode === 'signup'
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [tab, setTab] = useState(mode)
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [socialBusy, setSocialBusy] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [oauthProvider, setOauthProvider] = useState('')
 
-  async function socialLogin(provider) {
-    setSocialBusy(provider)
+  useEffect(() => setTab(mode), [mode])
+
+  async function handleOAuth(provider) {
     setError('')
+    setOauthProvider(provider)
     try {
-      await signInWithOAuthProvider(provider)
+      await signInWithOAuthProvider(provider, window.location.origin + '/')
     } catch (authError) {
-      setError(
-        authError?.message ||
-          `Não foi possível entrar com ${provider === 'google' ? 'Google' : 'GitHub'}.`
-      )
-      setSocialBusy('')
+      const message = getAuthErrorMessage(authError)
+      setError(message)
+      notify(message)
+      setOauthProvider('')
     }
   }
 
-  async function submit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
-    setBusy(true)
     setError('')
+    setBusy(true)
 
     try {
-      if (isSignup) {
-        const cleanUsername = username.trim().replace(/\s+/g, '_')
-        if (cleanUsername.length < 3) {
-          throw new Error('O nome de usuário precisa ter pelo menos 3 caracteres.')
+      if (tab === 'signup') {
+        const compromised = await checkCompromisedPassword(password)
+        if (compromised) {
+          throw new Error(
+            'Esta senha foi bloqueada porque já apareceu em vazamentos de dados. Escolha uma senha nova e exclusiva.'
+          )
         }
-
-        const data = await signUp(email.trim(), password, {
-          username: cleanUsername,
-          display_name: displayName.trim() || cleanUsername,
+        await signUp({
+          email,
+          password,
+          username,
+          displayName,
         })
-
-        if (!data.session) {
-          notify('Cadastro criado. Confira seu e-mail para confirmar a conta.')
-          navigate('/entrar')
-        } else {
-          notify('Conta criada e sessão iniciada.')
-          navigate('/')
-        }
+        notify('Conta criada. Sua sessão será iniciada automaticamente quando permitido pelo provedor.')
       } else {
-        await signIn(email.trim(), password)
+        await signIn({ email, password })
         notify('Login realizado com sucesso.')
-        navigate('/')
       }
+      navigate('/')
     } catch (authError) {
-      setError(getAuthErrorMessage(authError))
+      const message = getAuthErrorMessage(authError)
+      setError(message)
+      notify(message)
     } finally {
       setBusy(false)
     }
+  }
+
+  function switchMode(nextMode) {
+    setTab(nextMode)
+    setError('')
+    navigate(nextMode === 'signup' ? '/cadastro' : '/entrar')
   }
 
   return (
@@ -607,54 +608,46 @@ function AuthPage({ mode, navigate, notify }) {
       title={isSignup ? 'Criar conta na CreativeZone' : 'Entrar na CreativeZone'}
       onBack={() => navigate('/')}
     >
-      <div className="auth-tabs page-auth-tabs">
-        <button
-          className={!isSignup ? 'active' : ''}
-          onClick={() => navigate('/entrar')}
-          type="button"
-        >
-          <LogIn /> Entrar
-        </button>
-        <button
-          className={isSignup ? 'active' : ''}
-          onClick={() => navigate('/cadastro')}
-          type="button"
-        >
-          <UserPlus /> Criar conta
-        </button>
-      </div>
+      <form className="auth-form" onSubmit={handleSubmit}>
+        <div className="auth-tabs">
+          <button
+            type="button"
+            className={tab === 'login' ? 'active' : ''}
+            onClick={() => switchMode('login')}
+          >
+            <LogIn />
+            Entrar
+          </button>
+          <button
+            type="button"
+            className={tab === 'signup' ? 'active' : ''}
+            onClick={() => switchMode('signup')}
+          >
+            <UserPlus />
+            Criar conta
+          </button>
+        </div>
 
-      <div className="social-auth">
-        <button
-          className="social-auth-button google-auth"
-          type="button"
-          disabled={Boolean(socialBusy || busy)}
-          onClick={() => socialLogin('google')}
-        >
-          <img className="social-auth-icon" src={googleIcon} alt="" aria-hidden="true" />
-          {socialBusy === 'google' ? 'Conectando...' : 'Continuar com Google'}
-        </button>
-        <button
-          className="social-auth-button github-auth"
-          type="button"
-          disabled={Boolean(socialBusy || busy)}
-          onClick={() => socialLogin('github')}
-        >
-          <img className="social-auth-icon" src={githubIcon} alt="" aria-hidden="true" />
-          {socialBusy === 'github' ? 'Conectando...' : 'Continuar com GitHub'}
-        </button>
-      </div>
-      <div className="auth-divider"><span>ou use e-mail e senha</span></div>
+        <div className="oauth-actions">
+          <button type="button" onClick={() => handleOAuth('google')} disabled={Boolean(oauthProvider)}>
+            <img src={googleIcon} alt="" />
+            {oauthProvider === 'google' ? 'Conectando...' : 'Continuar com Google'}
+          </button>
+          <button type="button" onClick={() => handleOAuth('github')} disabled={Boolean(oauthProvider)}>
+            <img src={githubIcon} alt="" />
+            {oauthProvider === 'github' ? 'Conectando...' : 'Continuar com GitHub'}
+          </button>
+        </div>
 
-      <form className="panel-content auth-form standalone-auth-form" onSubmit={submit}>
-        {isSignup && (
+        <div className="auth-divider"><span>ou use e-mail e senha</span></div>
+
+        {tab === 'signup' && (
           <>
             <label htmlFor="auth-username">Nome de usuário</label>
             <input
               id="auth-username"
               required
               minLength={3}
-              maxLength={30}
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               placeholder="ex.: miguel"
@@ -663,7 +656,8 @@ function AuthPage({ mode, navigate, notify }) {
             <label htmlFor="auth-display-name">Nome exibido</label>
             <input
               id="auth-display-name"
-              maxLength={60}
+              required
+              minLength={2}
               value={displayName}
               onChange={(event) => setDisplayName(event.target.value)}
               placeholder="Como você quer aparecer"
@@ -793,18 +787,20 @@ function App() {
     getIgnored(user.id)
       .then((rows) => setIgnoredIds(rows.map((row) => row.ignored_id || row.profile?.id).filter(Boolean)))
       .catch(() => setIgnoredIds([]))
-    touchLastSeen(user.id).catch(() => {})
   }, [user?.id])
 
   useEffect(() => {
-    if (!toast) return undefined
-    const timer = setTimeout(() => setToast(''), 4500)
-    return () => clearTimeout(timer)
-  }, [toast])
+    if (!user?.id) return
+    touchLastSeen(user.id).catch(() => {})
+    const timer = setInterval(() => touchLastSeen(user.id).catch(() => {}), 60_000)
+    return () => clearInterval(timer)
+  }, [user?.id])
 
   const refreshForum = useCallback(async () => {
     if (!hasSupabaseConfig) {
-      setForumError('Supabase não configurado no build.')
+      setForumError(
+        'Configure VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY (ou VITE_SUPABASE_ANON_KEY) para carregar o fórum.'
+      )
       setForumLoading(false)
       return
     }
@@ -813,34 +809,23 @@ function App() {
     setForumError('')
 
     try {
-      const nextCategories = await getCategories()
-      const categoryId = filter
-        ? nextCategories.find((category) => category.name === filter)?.id || null
-        : null
-
-      const [recentPage, popularPageData, recentPosts, nextMembers] = await Promise.all([
-        getTopicsPage({
-          page,
-          pageSize: 3,
-          query,
-          categoryId,
-          sort: 'recent',
-          ignoredIds,
-        }),
-        getTopicsPage({
-          page: popularPage,
-          pageSize: 3,
-          query,
-          categoryId,
-          sort: 'popular',
-          ignoredIds,
-        }),
+      const selectedCategory = categories.find((category) => category.name === filter)?.id || null
+      const [
+        categoryRows,
+        recentPage,
+        popularPageData,
+        recentPosts,
+        memberRows,
+      ] = await Promise.all([
+        getCategories(),
+        getTopicsPage({ page, pageSize: 3, query, categoryId: selectedCategory, ignoredIds }),
+        getTopicsPage({ page: popularPage, pageSize: 3, query, categoryId: selectedCategory, sort: 'popular', ignoredIds }),
         getRecentPosts(),
         getMembers(),
       ])
 
-      setCategories(nextCategories)
-      setMembers(nextMembers)
+      setCategories(categoryRows)
+      setMembers(memberRows)
       setTopics((recentPage.items || []).map(mapTopic))
       setPopularTopics((popularPageData.items || []).map(mapTopic))
       setTopicCount(recentPage.total || 0)
@@ -1349,94 +1334,88 @@ function App() {
   const isMessages = Boolean(messagesMatch)
 
   function renderHome() {
+    const showingTopicSearch = Boolean(query || filter)
+
     return (
       <>
         <main>
           <div className="maincolumn">
-            <section>
-              <h1>{query ? 'Resultados da busca' : filter || 'Tópicos Recentes'}</h1>
-              {(query || filter) && (
-                <button
-                  className="clear-filter"
-                  onClick={() => {
-                    setQuery('')
-                    setFilter('')
-                  }}
-                >
-                  Limpar filtros ×
-                </button>
-              )}
+            {showingTopicSearch ? (
+              <>
+                <section>
+                  <h1>{query ? 'Resultados da busca' : filter}</h1>
+                  <button
+                    className="clear-filter"
+                    onClick={() => {
+                      setQuery('')
+                      setFilter('')
+                    }}
+                  >
+                    Limpar filtros ×
+                  </button>
 
-              <div className="topiclist">
-                {forumLoading ? (
-                  <p className="empty">Carregando tópicos...</p>
-                ) : (
-                  recent.map((topic) => <Topic topic={topic} key={topic.id} {...topicProps} />)
-                )}
+                  <div className="topiclist">
+                    {forumLoading ? (
+                      <p className="empty">Carregando tópicos...</p>
+                    ) : (
+                      recent.map((topic) => <Topic topic={topic} key={topic.id} {...topicProps} />)
+                    )}
 
-                {!forumLoading && !recent.length && (
-                  <p className="empty">
-                    Ainda não há tópicos nesta área.{' '}
-                    <button onClick={() => requireAuth('/novo-topico')}>Crie o primeiro tópico</button>.
-                  </p>
-                )}
-              </div>
+                    {!forumLoading && !recent.length && (
+                      <p className="empty">Nenhum tópico encontrado.</p>
+                    )}
+                  </div>
 
-              <Pagination page={currentPage} setPage={setPage} total={total} />
-            </section>
+                  <Pagination page={currentPage} setPage={setPage} total={total} />
+                </section>
 
-            <section className="popular">
-              <h2>Mais Visualizados</h2>
-              <div className="desktop-topics">
-                {displayedPopular.map((topic) => (
-                  <Topic topic={topic} key={topic.id} {...topicProps} />
-                ))}
-              </div>
-              <div className="mobile-topics">
-                {displayedPopular.map((topic) => (
-                  <Topic topic={topic} key={topic.id} {...topicProps} />
-                ))}
-              </div>
-              <Pagination
-                page={currentPopularPage}
-                setPage={setPopularPage}
-                total={popularTotal}
+                <section className="popular">
+                  <h2>Mais visualizados nesta busca</h2>
+                  <div className="desktop-topics">
+                    {displayedPopular.map((topic) => (
+                      <Topic topic={topic} key={topic.id} {...topicProps} />
+                    ))}
+                  </div>
+                  <div className="mobile-topics">
+                    {displayedPopular.map((topic) => (
+                      <Topic topic={topic} key={topic.id} {...topicProps} />
+                    ))}
+                  </div>
+                  <Pagination
+                    page={currentPopularPage}
+                    setPage={setPopularPage}
+                    total={popularTotal}
+                  />
+                </section>
+              </>
+            ) : (
+              <ForumIndex
+                categories={categories}
+                navigate={navigate}
+                notify={setToast}
+                onOpenTopic={openTopic}
               />
-            </section>
-
-            <div className="news-grid">
-              {forumCategories.slice(0, 4).map((category, index) => (
-                <button key={category.id} onClick={() => openCategoryNode(category)}>
-                  <img src={A['news' + ((index % 4) + 1)]} alt="" />
-                  <b>
-                    {category.name}: {category.description || 'acompanhe as discussões desta categoria.'}
-                  </b>
-                </button>
-              ))}
-            </div>
+            )}
           </div>
 
           <aside>
             <section className="activity">
               <h2>Últimas publicações</h2>
               {activity.length ? (
-                visibleActivity.map((item) => {
-                  const topic = topics.find((candidate) => candidate.id === item.topicId)
-                  return (
-                    <button
-                      className="activityitem"
-                      key={item.id}
-                      onClick={() => openTopic(item.topicId)}
-                    >
-                      <Avatar src={item.avatarUrl} small />
-                      <span>
-                        <strong>{item.user}</strong> &gt; <strong>{item.topicTitle}</strong>
-                        <br />
-                        “{item.text.slice(0, 62)}{item.text.length > 62 ? '...' : ''}”
-                      </span>
-                    </button>
-                  )
-                })
+                visibleActivity.map((item) => (
+                  <button
+                    className="activityitem"
+                    key={item.id}
+                    onClick={() => openTopic(item.topicId)}
+                  >
+                    <Avatar src={item.avatarUrl} small />
+                    <span>
+                      <strong>{item.user}</strong> &gt; <strong>{item.topicTitle}</strong>
+                      <br />
+                      “{item.text.slice(0, 62)}{item.text.length > 62 ? '...' : ''}”
+                    </span>
+                  </button>
+                ))
               ) : (
                 <p className="side-empty">As respostas da comunidade aparecerão aqui.</p>
               )}
@@ -1700,7 +1679,10 @@ function App() {
             {visibleActivity.map((item) => {
               const topic = topics.find((candidate) => candidate.id === item.topicId)
               return (
-                <button key={item.id} onClick={() => openTopic(item.topicId)}>
+                <button
+                  key={item.id}
+                  onClick={() => openTopic(item.topicId)}
+                >
                   <Avatar src={item.avatarUrl} small />
                   <span>
                     <strong>{item.user} &gt; {item.topicTitle}</strong>
@@ -1731,37 +1713,17 @@ function App() {
     }
 
     if (isProfile) {
-      if (!session) {
-        return (
-          <PageShell title="Minha conta" onBack={() => navigate('/')}>
-            <div className="panel-content guest-page">
-              <p>Você ainda não está conectado.</p>
-              <div className="route-actions">
-                <button className="action" onClick={() => navigate('/entrar')}><LogIn /> Entrar</button>
-                <button className="action primary-action" onClick={() => navigate('/cadastro')}><UserPlus /> Criar conta</button>
-              </div>
-            </div>
-          </PageShell>
-        )
-      }
-
       return (
         <PageShell title="Meu perfil" onBack={() => navigate('/')}>
-          <div className="panel-content">
-            <div className="thread-author profile-page-head">
-              <Avatar src={profile?.avatar_url} />
-              <div>
-                <strong>{profileName}</strong>
-                <p className="profile-email">{session.user.email}</p>
-              </div>
+          <div className="panel-content profile-page">
+            <Avatar src={profileImage} />
+            <div>
+              <strong>{profileName}</strong>
+              <small>{user?.email}</small>
             </div>
-            <p>
-              {topics.filter((topic) => topic.authorId === session.user.id).length} tópicos publicados
-              {' · '}
-              {favorites.length} salvos
-            </p>
-            <div className="profile-actions">
-              <button className="action" onClick={() => navigate('/novo-topico')}>Criar tópico</button>
+            <p>{favorites.length} tópico(s) salvo(s)</p>
+            <div className="route-actions">
+              <button className="action" onClick={() => requireAuth('/novo-topico')}>Criar tópico</button>
               <button className="action" onClick={leaveAccount}><LogOut /> Sair</button>
             </div>
           </div>
@@ -1846,10 +1808,6 @@ function App() {
                 <img src={githubIcon} alt="" aria-hidden="true" />
                 Visitar a comunidade no GitHub
               </a>
-              <button className="github-community-link" onClick={() => navigate('/projetos')}>
-                <Briefcase />
-                Explorar projetos da CreativeZone
-              </button>
             </section>
 
             <p className="about-closing">
