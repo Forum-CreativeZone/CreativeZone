@@ -9,9 +9,12 @@ function requireSupabase() {
   return supabase
 }
 
-function validateFile(file) {
+function validateFile(file, maxBytes = MAX_FORUM_ATTACHMENT_BYTES) {
   if (!file) throw new Error('Selecione um arquivo.')
-  if (file.size > MAX_FORUM_ATTACHMENT_BYTES) throw new Error('Cada anexo pode ter no máximo 10 MB.')
+  if (file.size > maxBytes) {
+    const maxMb = Math.max(1, Math.round(maxBytes / (1024 * 1024)))
+    throw new Error('Cada anexo pode ter no máximo ' + maxMb + ' MB no seu plano.')
+  }
   if (!isAllowedForumAttachment(file)) {
     throw new Error('Formato não permitido. Use imagens, PDF ou arquivo de texto.')
   }
@@ -32,11 +35,27 @@ export async function uploadForumMedia({
   topicId = null,
   postId = null,
 }) {
-  validateFile(file)
   if (!userId) throw new Error('Autenticação necessária.')
   if (!topicId && !postId) throw new Error('O anexo precisa estar ligado a uma publicação.')
 
   const client = requireSupabase()
+  const { data: membershipRows, error: membershipError } = await client.rpc('get_membership_state', {
+    p_user_id: userId,
+  })
+  if (membershipError) throw membershipError
+
+  const entitlements = membershipRows?.[0]?.entitlements || {}
+  const maxMb = Math.max(10, Number(entitlements.forum_upload_mb) || 10)
+  const maxCount = Math.max(4, Number(entitlements.forum_upload_count) || 4)
+  validateFile(file, maxMb * 1024 * 1024)
+
+  let countQuery = client.from('media').select('id', { count: 'exact', head: true })
+  countQuery = topicId ? countQuery.eq('topic_id', topicId) : countQuery.eq('post_id', postId)
+  const { count: currentCount, error: countError } = await countQuery
+  if (countError) throw countError
+  if ((currentCount || 0) >= maxCount) {
+    throw new Error('Seu plano permite até ' + maxCount + ' anexos por publicação.')
+  }
   const unique = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
   const path = `${userId}/${unique}-${cleanName(file.name)}`
 
