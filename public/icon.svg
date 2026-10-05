@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CreativeZone">
+  <rect width="512" height="512" rx="112" fill="#0c0c0c"/>
+  <path d="M78 138c0-33 27-60 60-60h236c33 0 60 27 60 60v236c0 33-27 60-60 60H138c-33 0-60-27-60-60V138Z" fill="#151515" stroke="#b82919" stroke-width="12"/>
+  <text x="256" y="308" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="174" font-weight="900" fill="#ffffff">C<tspan fill="#e42c20">Z</tspan></text>
+  <path d="M126 374h260" stroke="#e42c20" stroke-width="12" stroke-linecap="round"/>
+</svg>
