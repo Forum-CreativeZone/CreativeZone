@@ -30,7 +30,11 @@ import {
   formatMoney,
   getAdminDashboard,
 } from './services/adminApi'
-import { getMembershipPlans } from './services/membershipApi'
+import {
+  getHistoricalBadgeAdminData,
+  getMembershipPlans,
+  manageHistoricalBadge,
+} from './services/membershipApi'
 
 const tabs = [
   ['overview','Visão geral',Activity],
@@ -277,7 +281,75 @@ function VipTab({ data, plans, notify, reload }) {
           </article>
         ))}
       </section>
+
+      <HistoricalBadgesPanel notify={notify} />
     </div>
+  )
+}
+
+
+function HistoricalBadgesPanel({ notify }) {
+  const [data,setData]=useState({profiles:[],badges:[],awards:[]})
+  const [busy,setBusy]=useState('')
+
+  async function load() {
+    setData(await getHistoricalBadgeAdminData())
+  }
+
+  useEffect(()=>{ load().catch(()=>{}) },[])
+
+  const active=useMemo(
+    ()=>new Set((data.awards || []).map((award)=>award.user_id+':'+award.badge_id)),
+    [data.awards]
+  )
+
+  async function toggle(profile,badge) {
+    const key=profile.id+':'+badge.id
+    setBusy(key)
+    try {
+      const granted=active.has(key)
+      await manageHistoricalBadge(profile.id,badge.slug,!granted)
+      notify((granted?'Insígnia removida: ':'Insígnia concedida: ')+badge.name+'.')
+      await load()
+    } catch(error) {
+      notify(error?.message || 'Não foi possível alterar a insígnia.')
+    } finally {
+      setBusy('')
+    }
+  }
+
+  return (
+    <section className="admin-card admin-historical-badges">
+      <header><BadgeCheck /><div><h2>Insígnias históricas</h2><p>Beta Tester, Pioneiro e Early Supporter.</p></div></header>
+      <div className="admin-historical-list">
+        {(data.profiles || []).map((profile)=>(
+          <article key={profile.id}>
+            <div className="admin-historical-person">
+              {profile.avatar_url
+                ? <img src={profile.avatar_url} alt="" />
+                : <span>{(profile.display_name || profile.username || 'M').slice(0,1).toUpperCase()}</span>}
+              <div><strong>{profile.display_name || profile.username}</strong><small>@{profile.username}</small></div>
+            </div>
+            <div className="admin-historical-actions">
+              {(data.badges || []).map((badge)=>{
+                const key=profile.id+':'+badge.id
+                const granted=active.has(key)
+                return (
+                  <button
+                    key={badge.id}
+                    className={'historical-badge-toggle '+(granted?'active':'')}
+                    disabled={busy===key}
+                    onClick={()=>toggle(profile,badge)}
+                  >
+                    {badge.icon} {badge.name}
+                  </button>
+                )
+              })}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
   )
 }
 
