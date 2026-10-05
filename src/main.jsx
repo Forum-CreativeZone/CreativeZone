@@ -75,6 +75,7 @@ import { PasswordRecoveryPage } from './AuthRecoveryPages'
 import { ThreadPostCard } from './ForumThreadComponents'
 import { ForumNodePage } from './ForumNodePage'
 import { ForumIndex } from './ForumIndex'
+import { CommunityChat } from './CommunityChat'
 import { CategoriesPage, CategorySuggestionButton } from './CategoryPages'
 import {
   getPostMedia,
@@ -1338,6 +1339,14 @@ function App() {
 
     return (
       <>
+        <CommunityChat
+          session={session}
+          profile={profile}
+          ignoredIds={ignoredIds}
+          navigate={navigate}
+          notify={setToast}
+        />
+
         <main>
           <div className="maincolumn">
             {showingTopicSearch ? (
