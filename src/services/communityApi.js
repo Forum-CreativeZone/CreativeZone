@@ -266,6 +266,7 @@ export async function getNotifications(userId, limit = 50) {
 
   const pref = {
     new_reply: settings?.inapp_reply ?? true,
+    topic_watch: settings?.inapp_reply ?? true,
     mention: settings?.inapp_mention ?? true,
     quote: settings?.inapp_quote ?? true,
     reaction: settings?.inapp_reaction ?? true,
