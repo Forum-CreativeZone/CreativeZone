@@ -6,7 +6,13 @@ function requireSupabase() {
   return supabase
 }
 
-export async function createCategory({ name, description = '' }) {
+export async function createCategory({
+  name,
+  description = '',
+  parentId = null,
+  nodeType = 'forum',
+  sortOrder = 0,
+}) {
   const client = requireSupabase()
   const cleanName = String(name || '').trim()
   const cleanDescription = String(description || '').trim()
@@ -18,8 +24,11 @@ export async function createCategory({ name, description = '' }) {
       name: cleanName,
       slug: slugify(cleanName),
       description: cleanDescription,
+      parent_id: parentId || null,
+      node_type: nodeType,
+      sort_order: Number(sortOrder) || 0,
     })
-    .select('id,name,slug,description,icon')
+    .select('id,name,slug,description,icon,parent_id,node_type,sort_order')
     .single()
 
   if (error) {
@@ -31,7 +40,13 @@ export async function createCategory({ name, description = '' }) {
   return data
 }
 
-export async function updateCategory(categoryId, { name, description = '' }) {
+export async function updateCategory(categoryId, {
+  name,
+  description = '',
+  parentId = null,
+  nodeType = 'forum',
+  sortOrder = 0,
+}) {
   const client = requireSupabase()
   const cleanName = String(name || '').trim()
   if (cleanName.length < 3) throw new Error('Use pelo menos 3 caracteres no nome da categoria.')
@@ -42,9 +57,12 @@ export async function updateCategory(categoryId, { name, description = '' }) {
       name: cleanName,
       slug: slugify(cleanName),
       description: String(description || '').trim(),
+      parent_id: parentId || null,
+      node_type: nodeType,
+      sort_order: Number(sortOrder) || 0,
     })
     .eq('id', categoryId)
-    .select('id,name,slug,description,icon')
+    .select('id,name,slug,description,icon,parent_id,node_type,sort_order')
     .single()
 
   if (error) {
@@ -65,7 +83,7 @@ export async function deleteCategory(categoryId) {
 
   if (error) {
     if (error.code === '23503') {
-      throw new Error('Esta categoria possui tópicos. Mova ou exclua os tópicos antes de remover a categoria.')
+      throw new Error('Esta categoria possui tópicos ou subcategorias. Mova ou exclua o conteúdo antes de removê-la.')
     }
     throw error
   }
