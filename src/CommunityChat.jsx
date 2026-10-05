@@ -148,6 +148,10 @@ export function CommunityChat({
   )
 
   const isStaff = ['moderator', 'admin'].includes(profile?.role)
+  const visibleOnlineMembers = useMemo(
+    () => onlineMembers.filter((item) => !ignoredIds.includes(item.user_id)),
+    [onlineMembers, ignoredIds]
+  )
 
   async function loadMessages() {
     try {
@@ -347,7 +351,8 @@ export function CommunityChat({
   }
 
   async function staffAction(message, action, label) {
-    const reason = window.prompt('Motivo da ação de moderação:', '') ?? ''
+    const reason = window.prompt('Motivo da ação de moderação:', '')
+    if (reason === null) return
     if (action === 'ban' && !window.confirm('Bloquear este membro permanentemente no Chat da Comunidade?')) {
       return
     }
@@ -433,7 +438,7 @@ export function CommunityChat({
         </div>
 
         <div className="community-chat-head-actions">
-          <PresenceAvatars members={onlineMembers} />
+          <PresenceAvatars members={visibleOnlineMembers} />
           {!collapsed && (
             <button
               type="button"
@@ -466,15 +471,15 @@ export function CommunityChat({
               const author =
                 message.author?.display_name ||
                 message.author?.username ||
-                onlineMembers.find((item) => item.user_id === message.user_id)?.display_name ||
+                visibleOnlineMembers.find((item) => item.user_id === message.user_id)?.display_name ||
                 'Membro'
               const avatar =
                 message.author?.avatar_url ||
-                onlineMembers.find((item) => item.user_id === message.user_id)?.avatar_url ||
+                visibleOnlineMembers.find((item) => item.user_id === message.user_id)?.avatar_url ||
                 ''
               const role =
                 message.author?.role ||
-                onlineMembers.find((item) => item.user_id === message.user_id)?.role ||
+                visibleOnlineMembers.find((item) => item.user_id === message.user_id)?.role ||
                 'member'
               const reply = message.reply_to ? messageMap.get(message.reply_to) : null
               const own = message.user_id === userId
@@ -632,6 +637,12 @@ export function CommunityChat({
                               </button>
                               <button className="danger" onClick={() => staffAction(message, 'ban', 'Membro bloqueado no chat.')}>
                                 <Ban /> Banir do chat
+                              </button>
+                              <button onClick={() => staffAction(message, 'unmute', 'Silenciamento removido.')}>
+                                <VolumeX /> Remover silêncio
+                              </button>
+                              <button onClick={() => staffAction(message, 'unban', 'Banimento removido.')}>
+                                <Ban /> Remover banimento
                               </button>
                             </>
                           )}
