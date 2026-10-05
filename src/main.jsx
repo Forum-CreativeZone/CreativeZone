@@ -1373,7 +1373,7 @@ function App() {
             </section>
 
             <div className="news-grid">
-              {categories.slice(0, 4).map((category, index) => (
+              {forumCategories.slice(0, 4).map((category, index) => (
                 <button key={category.id} onClick={() => chooseCategory(category.name)}>
                   <img src={A['news' + ((index % 4) + 1)]} alt="" />
                   <b>
@@ -1417,9 +1417,21 @@ function App() {
                   <Icon name="plus" />
                 </button>
               </h2>
-              {categories.map((category) => (
-                <button key={category.id} onClick={() => chooseCategory(category.name)}>
-                  {category.name}
+              {categoryTree.map((category) => (
+                <button
+                  key={category.id}
+                  className={'category-side-node category-side-' + category.node_type}
+                  style={{ '--category-depth': category.depth }}
+                  onClick={() => chooseCategory(category.name)}
+                >
+                  <span>{category.name}</span>
+                  <small>
+                    {category.node_type === 'category'
+                      ? 'Categoria'
+                      : category.node_type === 'section'
+                        ? 'Subcategoria'
+                        : 'Fórum'}
+                  </small>
                 </button>
               ))}
               <CategorySuggestionButton
@@ -1545,7 +1557,7 @@ function App() {
         <ComposerPage
           onPublish={publish}
           notify={setToast}
-          categories={categories}
+          categories={forumCategories}
           navigate={navigate}
           session={session}
         />
@@ -1831,7 +1843,7 @@ function App() {
                     value={editingTopicDraft.categoryId}
                     onChange={(event) => setEditingTopicDraft((draft) => ({ ...draft, categoryId: event.target.value }))}
                   >
-                    {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                    {forumCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
                   </select>
                 </label>
                 <label>Conteúdo
@@ -2098,8 +2110,12 @@ function App() {
       {isHome && (
         <div className="mobile-themes">
           <div ref={mobileThemes}>
-            {categories.map((category) => (
-              <button key={category.id} onClick={() => chooseCategory(category.name)}>
+            {categoryTree.map((category) => (
+              <button
+                key={category.id}
+                className={'mobile-category-' + category.node_type}
+                onClick={() => chooseCategory(category.name)}
+              >
                 {category.name}
               </button>
             ))}
