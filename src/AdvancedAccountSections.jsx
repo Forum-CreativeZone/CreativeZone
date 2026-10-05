@@ -37,6 +37,7 @@ import {
   getPushPermissionState,
   isPushEnabledForCurrentDevice,
 } from './services/pushApi'
+import { sendPushTestNotification } from './services/extendedApi'
 
 function formatDateTime(value) {
   if (!value) return '—'
@@ -361,9 +362,30 @@ export function NotificationPreferencesSection({ userId, settings, setSettings, 
             ? 'Receba alertas do navegador mesmo fora da página. No iPhone/iPad, instale a CreativeZone na Tela de Início e permita notificações.'
             : 'Este navegador não oferece suporte ao Web Push.'}
         </p>
-        <button className={'action ' + (devicePush ? '' : 'primary-action')} onClick={toggleNativePush} disabled={busy || !canUseWebPush()}>
-          {devicePush ? 'Desativar neste dispositivo' : 'Ativar notificações neste dispositivo'}
-        </button>
+        <div className="push-device-actions">
+          <button className={'action ' + (devicePush ? '' : 'primary-action')} onClick={toggleNativePush} disabled={busy || !canUseWebPush()}>
+            {devicePush ? 'Desativar neste dispositivo' : 'Ativar notificações neste dispositivo'}
+          </button>
+          {devicePush && (
+            <button
+              className="action"
+              onClick={async () => {
+                setBusy(true)
+                try {
+                  await sendPushTestNotification()
+                  notify('Notificação de teste criada. Se o dispositivo estiver inscrito, ela deve aparecer em instantes.')
+                } catch (error) {
+                  notify(error?.message || 'Não foi possível enviar a notificação de teste.')
+                } finally {
+                  setBusy(false)
+                }
+              }}
+              disabled={busy}
+            >
+              Enviar notificação de teste
+            </button>
+          )}
+        </div>
         <small>Permissão atual do navegador: {permission}</small>
       </section>
 
