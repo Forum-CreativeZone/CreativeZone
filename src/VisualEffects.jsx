@@ -208,18 +208,35 @@ export function EffectName({
       onPointerLeave={handlePointerLeave}
       onPointerEnter={handlePointerEnter}
     >
-      {needsChars
-        ? chars.map((char, index) => (
-            <span
-              className="cz-effect-char"
-              key={index + '-' + char}
-              aria-hidden="true"
-              style={{ '--char-index': index }}
-            >
-              {char === ' ' ? '\u00A0' : char}
-            </span>
-          ))
-        : text}
+      {effect === 'css-3d-glow'
+        ? (
+            <>
+              <span className="cz-3d-glow-stack" aria-hidden="true">
+                {Array.from({ length: 10 }, (_, index) => (
+                  <span
+                    className="cz-3d-glow-layer"
+                    key={index}
+                    style={{ '--layer-index': index }}
+                  >
+                    {text}
+                  </span>
+                ))}
+              </span>
+              <span className="sr-only">{text}</span>
+            </>
+          )
+        : needsChars
+          ? chars.map((char, index) => (
+              <span
+                className="cz-effect-char"
+                key={index + '-' + char}
+                aria-hidden="true"
+                style={{ '--char-index': index }}
+              >
+                {char === ' ' ? '\u00A0' : char}
+              </span>
+            ))
+          : text}
       {needsChars && <span className="sr-only">{text}</span>}
     </Tag>
   )
