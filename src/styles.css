@@ -2703,3 +2703,24 @@
       0 0 160px #00d4ff;
   }
 }
+
+
+/* ELITE name effect: Wave */
+.name-effect-wave{
+  display:inline-flex!important;
+  align-items:baseline;
+  overflow:visible!important;
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  background:none!important;
+}
+.name-effect-wave .cz-effect-char{
+  display:inline-block;
+  animation:czWave 2s ease-in-out infinite;
+  animation-delay:calc(var(--char-index) * .2s);
+  will-change:transform;
+}
+@keyframes czWave{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-20px)}
+}
