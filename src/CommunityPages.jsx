@@ -171,7 +171,13 @@ export function UserQuickMenu({ profile, session, onClose, navigate, onSignOut }
       <button className="user-menu-dismiss" aria-label="Fechar menu" onClick={onClose} />
       <aside className="user-quick-menu">
         <div className="user-quick-profile">
-          <Avatar profile={profile} size={64} />
+          <EffectAvatarFrame
+            effect={summary?.cosmetics?.avatar_frame || 'avatar-clean'}
+            className="quick-avatar-effect"
+            compact
+          >
+            <Avatar profile={profile} size={64} />
+          </EffectAvatarFrame>
           <div>
             <EffectName
               as="strong"
