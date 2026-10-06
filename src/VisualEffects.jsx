@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react'
 import { gsap } from 'gsap'
 
 const FRACTURE_EFFECTS = new Set(['fracture','architect-core'])
-const CHAR_EFFECTS = new Set(['fracture','kinetic','architect-core'])
+const CHAR_EFFECTS = new Set(['fracture','kinetic','architect-core','wave'])
 const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>[]{}#@!?*/+-='
 
 function prefersReducedMotion() {
