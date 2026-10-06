@@ -2488,3 +2488,46 @@
   }
   .name-effect-chromatic:before,.name-effect-chromatic:after{display:none!important}
 }
+
+
+/* Effect silhouettes — intentionally varied so badges do not look like generic buttons */
+.cz-effect-badge.badge-effect-clean-badge{border-radius:6px}
+.cz-effect-badge.badge-effect-outline-badge{border-radius:3px;letter-spacing:.06em;text-transform:uppercase}
+.cz-effect-badge.badge-effect-soft-glow-badge{border-radius:8px 3px 8px 3px}
+.cz-effect-badge.badge-effect-neon-badge{border-radius:3px 10px 3px 10px}
+.cz-effect-badge.badge-effect-shimmer-badge{
+  border-radius:2px;clip-path:polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)
+}
+.cz-effect-badge.badge-effect-metallic-badge{
+  border-radius:2px;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 50%,calc(100% - 8px) 100%,0 100%,5px 50%)
+}
+.cz-effect-badge.badge-effect-pulse-badge{border-radius:7px 2px}
+.cz-effect-badge.badge-effect-gradient-border-badge{border-radius:4px 11px 4px 11px}
+.cz-effect-badge.badge-effect-holographic-badge{
+  border-radius:0;clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 50%,calc(100% - 8px) 100%,8px 100%,0 50%);
+  padding-inline:11px
+}
+.cz-effect-badge.badge-effect-plasma-badge{border-radius:12px 3px 12px 3px}
+.cz-effect-badge.badge-effect-electric-badge{
+  border-radius:2px;clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)
+}
+.cz-effect-badge.badge-effect-prism-badge{border-radius:3px 12px 3px 12px}
+.cz-effect-badge.badge-effect-orbit-badge{border-radius:999px}
+.cz-effect-badge.badge-effect-fracture-badge{border-radius:0}
+.cz-effect-badge.badge-effect-architect-forge{
+  border-radius:0;clip-path:polygon(9px 0,calc(100% - 5px) 0,100% 5px,100% calc(100% - 5px),calc(100% - 9px) 100%,5px 100%,0 calc(100% - 5px),0 6px);
+  padding-inline:12px;letter-spacing:.035em
+}
+.cz-effect-role.role-effect-stripe-role{border-radius:2px!important}
+.cz-effect-role.role-effect-metallic-role{border-radius:3px!important}
+.cz-effect-role.role-effect-neon-role{border-radius:3px 9px 3px 9px!important}
+.cz-effect-role.role-effect-royal-role{border-radius:2px 10px 2px 10px!important}
+.cz-effect-role.role-effect-electric-role{border-radius:2px!important}
+.cz-effect-role.role-effect-holo-role{border-radius:9px 2px 9px 2px!important}
+.cz-effect-role.role-effect-architect-role{
+  border-radius:0!important;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)
+}
+.member-row>span{gap:3px}
+.member-list-effect-name{font-size:14px}
+.member-list-role{font-size:11px}
+.member-list-vip{width:max-content;min-height:20px;padding:2px 6px;border:1px solid #ffffff1a;font-size:10px}
