@@ -102,13 +102,13 @@ function formatRelative(value) {
   return `há ${days} dia${days === 1 ? '' : 's'}`
 }
 
-function CommunityShell({ title, onBack, children, wide = true }) {
+function CommunityShell({ title, onBack, children, wide = true, profileOverlay = false }) {
   return (
     <section className={'community-page ' + (wide ? 'community-page-wide' : '')}>
-      <div className="community-page-card">
-        <header className="community-page-head">
+      <div className={'community-page-card ' + (profileOverlay ? 'public-profile-shell' : '')}>
+        <header className={'community-page-head ' + (profileOverlay ? 'public-profile-overlay-head' : '')}>
           <button onClick={onBack}><ChevronLeft /> Voltar</button>
-          <h1>{title}</h1>
+          {!profileOverlay && title && <h1>{title}</h1>}
         </header>
         {children}
       </div>
@@ -300,7 +300,11 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
   }
 
   return (
-    <CommunityShell title={profile.display_name || profile.username} onBack={() => navigate('/membros')}>
+    <CommunityShell
+      title=""
+      onBack={() => navigate('/membros')}
+      profileOverlay
+    >
       <div
         className={
           'public-profile-hero ' +
@@ -308,12 +312,17 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
           'membership-plan-' + (membership?.plan_id || 'free') + ' ' +
           'cover-effect-' + (cosmetics?.cover_effect || 'none')
         }
-        style={profile.cover_url ? { '--profile-cover': `url("${profile.cover_url}")` } : undefined}
       >
-        <div className={'public-avatar-frame frame-' + (cosmetics?.avatar_frame || 'none')}>
-          <Avatar profile={profile} size={128} />
-        </div>
-        <div className="public-profile-main">
+        {profile.cover_url && (
+          <div className="public-profile-cover" aria-hidden="true">
+            <img src={profile.cover_url} alt="" />
+          </div>
+        )}
+        <div className="public-profile-content">
+          <div className={'public-avatar-frame frame-' + (cosmetics?.avatar_frame || 'none')}>
+            <Avatar profile={profile} size={128} />
+          </div>
+          <div className="public-profile-main">
           <h2 style={cosmetics?.name_color ? { color: cosmetics.name_color } : undefined}>
             {profile.display_name || profile.username}
           </h2>
@@ -346,19 +355,20 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
             <span><Trophy /> {reputationLevel(stats.reputation)} · {stats.reputation} XP</span>
           </div>
         </div>
-        {!isSelf && currentId && (
-          <div className="profile-actions-public">
-            {profile.allow_follow && <button className="action" onClick={follow}>{following ? <UserMinus /> : <UserPlus />}{following ? 'Deixar de seguir' : 'Seguir'}</button>}
-            {profile.allow_dm !== 'none' && <button className="action" onClick={() => navigate(`/mensagens/${profile.username}`)}><MessageCircle /> Mensagem</button>}
-            <button className="action subtle" onClick={ignore}><UserX /> {ignored ? 'Parar de ignorar' : 'Ignorar'}</button>
-            <ReportButton
-              session={session}
-              targetType="profile"
-              targetId={profile.id}
-              notify={notify}
-            />
-          </div>
-        )}
+          {!isSelf && currentId && (
+            <div className="profile-actions-public">
+              {profile.allow_follow && <button className="action" onClick={follow}>{following ? <UserMinus /> : <UserPlus />}{following ? 'Deixar de seguir' : 'Seguir'}</button>}
+              {profile.allow_dm !== 'none' && <button className="action" onClick={() => navigate(`/mensagens/${profile.username}`)}><MessageCircle /> Mensagem</button>}
+              <button className="action subtle" onClick={ignore}><UserX /> {ignored ? 'Parar de ignorar' : 'Ignorar'}</button>
+              <ReportButton
+                session={session}
+                targetType="profile"
+                targetId={profile.id}
+                notify={notify}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="profile-statbar">
