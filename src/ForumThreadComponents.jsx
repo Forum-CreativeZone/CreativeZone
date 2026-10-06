@@ -6,7 +6,7 @@ import {
   MessageSquareText,
   ShieldCheck,
 } from 'lucide-react'
-import { EffectBadge, EffectName, EffectRole } from './VisualEffects'
+import { EffectAvatarFrame, EffectBadge, EffectName, EffectRole } from './VisualEffects'
 
 function formatJoined(value) {
   if (!value) return '—'
@@ -55,13 +55,17 @@ export function ThreadAuthorPanel({
         onClick={openProfile}
         disabled={!username}
       >
-        <span className={'thread-avatar-frame frame-' + (cosmetics.avatar_frame || 'none')}>
+        <EffectAvatarFrame
+          effect={cosmetics.avatar_frame || 'avatar-clean'}
+          className="thread-avatar-frame"
+          compact
+        >
           {avatar ? (
             <img src={avatar} alt="" />
           ) : (
             <span className="thread-profile-fallback">{name.slice(0, 1).toUpperCase()}</span>
           )}
-        </span>
+        </EffectAvatarFrame>
         <EffectName
           as="strong"
           text={name}
