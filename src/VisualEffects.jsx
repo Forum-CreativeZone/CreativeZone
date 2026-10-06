@@ -216,7 +216,11 @@ export function EffectName({
                   <span
                     className="cz-3d-glow-layer"
                     key={index}
-                    style={{ '--layer-index': index }}
+                    style={{
+                      '--layer-index': index,
+                      '--layer-z': (index * 1.2) + 'px',
+                      '--layer-offset': (index * 0.22) + 'px',
+                    }}
                   >
                     {text}
                   </span>
