@@ -118,7 +118,9 @@ async function replaceProfileStorageImage({
     .single()
 
   if (updateError) {
-    await client.storage.from(bucket).remove([path]).catch(() => {})
+    try {
+      await client.storage.from(bucket).remove([path])
+    } catch {}
     throw updateError
   }
 
@@ -126,12 +128,15 @@ async function replaceProfileStorageImage({
   if (oldPaths.size > 0) {
     const { error: cleanupError } = await client.storage.from(bucket).remove([...oldPaths])
     if (cleanupError) {
-      await client
-        .from('profiles')
-        .update({ [profileField]: previousUrl })
-        .eq('id', userId)
-        .catch(() => {})
-      await client.storage.from(bucket).remove([path]).catch(() => {})
+      try {
+        await client
+          .from('profiles')
+          .update({ [profileField]: previousUrl })
+          .eq('id', userId)
+      } catch {}
+      try {
+        await client.storage.from(bucket).remove([path])
+      } catch {}
       throw new Error('Não foi possível apagar a imagem anterior. A alteração foi revertida; tente novamente.')
     }
   }
