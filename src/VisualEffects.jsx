@@ -130,6 +130,40 @@ export function EffectName({
 
         tweenRef.current = timeline
       }
+
+      if (effect === 'polygon-assemble') {
+        const nodes = root.querySelectorAll('.cz-polygon-shard')
+        const rect = root.getBoundingClientRect()
+        const spreadX = Math.max(90, Math.min(240, rect.width * 2.4))
+        const spreadY = Math.max(70, Math.min(150, rect.height * 7))
+        const timeline = gsap.timeline({
+          repeat: -1,
+          repeatDelay: 0.65,
+          yoyo: true,
+        })
+
+        gsap.set(nodes, {
+          x: () => gsap.utils.random(-spreadX, spreadX),
+          y: () => gsap.utils.random(-spreadY, spreadY),
+          rotation: () => gsap.utils.random(-720, 720),
+          scale: 0,
+          opacity: 0,
+          transformOrigin: '50% 50%',
+        })
+
+        timeline.to(nodes, {
+          x: 0,
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          rotation: 0,
+          duration: 0.75,
+          stagger: 0.0125,
+          ease: 'power4.inOut',
+        })
+
+        tweenRef.current = timeline
+      }
     }, root)
 
     return () => {
@@ -187,7 +221,7 @@ export function EffectName({
   function handlePointerLeave(event) {
     clearPointerVars(event)
 
-    if (effect === 'gsap-assemble' && tweenRef.current && !prefersReducedMotion()) {
+    if ((effect === 'gsap-assemble' || effect === 'polygon-assemble') && tweenRef.current && !prefersReducedMotion()) {
       tweenRef.current.timeScale(1)
     }
 
@@ -207,7 +241,7 @@ export function EffectName({
   function handlePointerEnter() {
     runScramble()
 
-    if (effect === 'gsap-assemble' && tweenRef.current && !prefersReducedMotion()) {
+    if ((effect === 'gsap-assemble' || effect === 'polygon-assemble') && tweenRef.current && !prefersReducedMotion()) {
       tweenRef.current.timeScale(0.15)
     }
 
@@ -247,10 +281,36 @@ export function EffectName({
       onPointerLeave={handlePointerLeave}
       onPointerEnter={handlePointerEnter}
     >
-      {effect === 'css-3d-glow'
+      {effect === 'polygon-assemble'
         ? (
             <>
-              <span className="cz-3d-glow-stack" aria-hidden="true">
+              <span className="cz-polygon-word" aria-hidden="true">
+                {chars.map((char, index) => (
+                  <span
+                    className={'cz-polygon-char' + (char === ' ' ? ' is-space' : '')}
+                    key={index + '-' + char}
+                    style={{ '--char-index': index }}
+                  >
+                    <span className="cz-polygon-ghost">{char === ' ' ? '\u00A0' : char}</span>
+                    {char !== ' ' && Array.from({ length: 4 }, (_, shardIndex) => (
+                      <span
+                        className={'cz-polygon-shard shard-' + (shardIndex + 1)}
+                        key={shardIndex}
+                        style={{ '--shard-index': shardIndex }}
+                      >
+                        {char}
+                      </span>
+                    ))}
+                  </span>
+                ))}
+              </span>
+              <span className="sr-only">{text}</span>
+            </>
+          )
+        : effect === 'css-3d-glow'
+          ? (
+              <>
+                <span className="cz-3d-glow-stack" aria-hidden="true">
                 {Array.from({ length: 10 }, (_, index) => (
                   <span
                     className="cz-3d-glow-layer"
@@ -265,10 +325,10 @@ export function EffectName({
                   </span>
                 ))}
               </span>
-              <span className="sr-only">{text}</span>
-            </>
-          )
-        : needsChars
+                <span className="sr-only">{text}</span>
+              </>
+            )
+          : needsChars
           ? chars.map((char, index) => (
               <span
                 className="cz-effect-char"
