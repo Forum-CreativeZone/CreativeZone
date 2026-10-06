@@ -2853,3 +2853,21 @@
     text-shadow:3px 3px 0 var(--cz-shadow-secondary);
   }
 }
+
+
+/* ELITE name effect: GSAP Assemble */
+.name-effect-gsap-assemble{
+  display:inline-flex!important;
+  align-items:baseline;
+  overflow:visible!important;
+  isolation:isolate;
+  color:#fed75a!important;
+  -webkit-text-fill-color:#fed75a!important;
+  background:none!important;
+  text-shadow:0 0 6px rgba(254,215,90,.24);
+}
+.name-effect-gsap-assemble .cz-effect-char{
+  display:inline-block;
+  transform-origin:center center;
+  will-change:transform,opacity;
+}
