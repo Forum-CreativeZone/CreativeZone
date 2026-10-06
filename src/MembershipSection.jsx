@@ -39,10 +39,6 @@ function formatMoney(cents = 0, currency = 'BRL') {
 const WHATSAPP_NUMBER = '5511932212697'
 
 const benefits = [
-  ['name_color','Cor personalizada do nome'],
-  ['custom_title','Título personalizado'],
-  ['avatar_frame','Molduras premium de avatar'],
-  ['animated_cover','Efeitos premium de capa'],
   ['early_access','Acesso antecipado a recursos'],
   ['elite_area','Área Elite'],
   ['creator_tools','Ferramentas extras para criadores'],
@@ -77,6 +73,9 @@ function PlanCard({ plan, current, onRequest, busy, months, setMonths }) {
         <span><Check /> {e.featured_projects ?? 3} projetos destacados</span>
         <span><Check /> Anexos de até {e.forum_upload_mb ?? 10} MB</span>
         <span><Check /> Até {e.forum_upload_count ?? 4} anexos por publicação</span>
+        <span className={plan.rank >= 1 ? '' : 'muted'}>
+          {plan.rank >= 1 ? <Check /> : <X />} Efeitos de nome PRO
+        </span>
         {benefits.map(([key,label]) => (
           <span className={e[key] ? '' : 'muted'} key={key}>
             {e[key] ? <Check /> : <X />} {label}
@@ -116,39 +115,34 @@ function PlanCard({ plan, current, onRequest, busy, months, setMonths }) {
 }
 
 const effectTiers = [
-  [0,'FREE','Base'],
-  [1,'PRO','Avançado'],
-  [2,'ELITE','Ultra'],
+  [1,'PRO','Efeitos de nome'],
 ]
 
 function EffectGallery({
-  kind,
   effects,
   value,
   onChange,
   rank,
   owner,
   name,
-  color,
-  role,
 }) {
-  const available = effects.filter((item) => item.kind === kind)
+  const available = effects.filter((item) => item.kind === 'name' && item.min_rank === 1)
 
   return (
-    <section className={'effect-gallery effect-gallery-' + kind}>
+    <section className="effect-gallery effect-gallery-name">
       {effectTiers.map(([tier,label,subtitle]) => {
         const items = available.filter((item) => item.min_rank === tier)
         if (!items.length) return null
 
         return (
-          <div className={'effect-tier effect-tier-' + label.toLowerCase()} key={label}>
+          <div className="effect-tier effect-tier-pro" key={label}>
             <header>
               <div><strong>{label}</strong><small>{subtitle}</small></div>
               <span>{items.length} efeito{items.length === 1 ? '' : 's'}</span>
             </header>
             <div className="effect-option-grid">
               {items.map((item) => {
-                const locked = (!owner && item.owner_only) || (!owner && item.min_rank > rank)
+                const locked = (!owner && item.owner_only) || (!owner && rank < 1)
                 const selected = value === item.effect_id
 
                 return (
@@ -167,24 +161,22 @@ function EffectGallery({
                     title={locked
                       ? item.owner_only
                         ? 'Efeito exclusivo do Arquiteto CreativeZone.'
-                        : 'Disponível a partir do plano ' + label + '.'
+                        : 'Disponível no plano CreativeZone PRO.'
                       : item.description}
                   >
                     <div className="effect-option-preview">
                       <EffectPreview
-                        kind={kind}
+                        kind="name"
                         effect={item.effect_id}
                         name={name}
-                        color={color}
-                        role={role}
                       />
                     </div>
                     <span className="effect-option-copy">
                       <strong>{item.label}</strong>
                       <small>{item.description}</small>
                     </span>
-                    <span className={'effect-tier-chip tier-' + label.toLowerCase()}>
-                      {item.owner_only ? 'ARQUITETO' : label}
+                    <span className="effect-tier-chip tier-pro">
+                      {item.owner_only ? 'ARQUITETO' : 'PRO'}
                     </span>
                     {locked && <i className="effect-lock">Bloqueado</i>}
                   </button>
@@ -199,20 +191,37 @@ function EffectGallery({
 }
 
 function CosmeticsForm({ state, profile, effects, cosmetics, setCosmetics, onSave, busy }) {
-  const e = state?.entitlements || {}
   const owner = Boolean(state?.system_owner)
   const rank = owner ? 99 : Number(state?.rank || 0)
   const displayName = profile?.display_name || profile?.username || 'CreativeZone'
-  const roleLabel = owner
-    ? 'ARQUITETO'
-    : profile?.role === 'admin'
-      ? 'ADMIN'
-      : profile?.role === 'moderator'
-        ? 'MOD'
-        : (state?.badge || 'MEMBRO')
 
-  function choose(field, value) {
-    setCosmetics((current) => ({ ...current, [field]: value }))
+  function chooseNameEffect(value) {
+    setCosmetics((current) => ({
+      ...current,
+      name_effect: value,
+      name_color: null,
+      profile_title: null,
+      avatar_frame: 'avatar-clean',
+      cover_effect: 'cover-clean',
+      badge_style: 'default',
+      badge_effect: 'clean-badge',
+      role_effect: 'clean-role',
+      profile_effect: 'none',
+    }))
+  }
+
+  if (!owner && rank < 1) {
+    return (
+      <section className="membership-cosmetics premium-identity-studio">
+        <header className="identity-studio-head">
+          <Sparkles />
+          <div>
+            <strong>CreativeZone Effects Studio</strong>
+            <small>O plano FREE não possui personalização estética. Sua identidade visual usa somente a foto de perfil.</small>
+          </div>
+        </header>
+      </section>
+    )
   }
 
   return (
@@ -222,7 +231,7 @@ function CosmeticsForm({ state, profile, effects, cosmetics, setCosmetics, onSav
         <div>
           <strong>CreativeZone Effects Studio</strong>
           <small>
-            Combine efeitos de nome, insígnia, cargo e superfície. Passe o mouse pelos previews para testar os efeitos interativos.
+            A personalização estética foi simplificada: somente efeitos de nome estão disponíveis, todos na categoria PRO.
           </small>
         </div>
       </header>
@@ -234,183 +243,35 @@ function CosmeticsForm({ state, profile, effects, cosmetics, setCosmetics, onSav
             kind="name"
             effect={cosmetics.name_effect || 'clean'}
             name={displayName}
-            color={cosmetics.name_color || '#ff4b3e'}
-          />
-          <div className="identity-live-tags">
-            <EffectPreview
-              kind="badge"
-              effect={cosmetics.badge_effect || 'clean-badge'}
-              name={displayName}
-              color={cosmetics.name_color || '#ff4b3e'}
-            />
-            <EffectPreview
-              kind="role"
-              effect={cosmetics.role_effect || 'clean-role'}
-              role={roleLabel}
-            />
-          </div>
-        </div>
-        <div className="identity-live-visuals">
-          <EffectPreview
-            kind="avatar"
-            effect={cosmetics.avatar_frame || 'avatar-clean'}
-          />
-          <EffectPreview
-            kind="cover"
-            effect={cosmetics.cover_effect || 'cover-clean'}
           />
         </div>
-      </div>
-
-      <div className="identity-basic-grid">
-        <label>
-          Cor base do nome
-          <div className="membership-color-field">
-            <input
-              type="color"
-              value={cosmetics.name_color || '#ff4b3e'}
-              disabled={!e.name_color}
-              onChange={(event) => choose('name_color', event.target.value)}
-            />
-            <input
-              value={cosmetics.name_color || ''}
-              disabled={!e.name_color}
-              maxLength={7}
-              placeholder={e.name_color ? '#FF4B3E' : 'Disponível no PRO/ELITE'}
-              onChange={(event) => choose('name_color', event.target.value)}
-            />
-          </div>
-        </label>
-
-        <label>
-          Título do perfil
-          <input
-            value={cosmetics.profile_title || ''}
-            disabled={!e.custom_title}
-            maxLength={40}
-            placeholder={owner ? 'Arquiteto CreativeZone' : 'Ex.: Full Stack Developer'}
-            onChange={(event) => choose('profile_title', event.target.value)}
-          />
-        </label>
-
-        <label>
-          Estrutura da insígnia
-          <select
-            value={cosmetics.badge_style || 'default'}
-            disabled={!e.avatar_frame}
-            onChange={(event) => choose('badge_style', event.target.value)}
-          >
-            <option value="default">Padrão</option>
-            {state?.plan_id === 'pro' && <option value="pro">PRO</option>}
-            {(state?.plan_id === 'elite' || owner) && <option value="pro">PRO</option>}
-            {(state?.plan_id === 'elite' || owner) && <option value="elite">ELITE</option>}
-            {owner && <option value="architect">Arquiteto CreativeZone</option>}
-          </select>
-        </label>
       </div>
 
       <section className="identity-effect-section">
-        <header><strong>Efeito do nome</strong><small>De acabamento sutil a animações GSAP fragmentadas e cinéticas.</small></header>
+        <header>
+          <strong>Efeitos do nome</strong>
+          <small>Todos os efeitos anteriormente PRO e ELITE agora pertencem ao catálogo PRO. O plano ELITE não possui efeitos exclusivos nesta etapa.</small>
+        </header>
         <EffectGallery
-          kind="name"
           effects={effects}
           value={cosmetics.name_effect || 'clean'}
-          onChange={(value) => choose('name_effect',value)}
+          onChange={chooseNameEffect}
           rank={rank}
           owner={owner}
           name={displayName}
-          color={cosmetics.name_color || '#ff4b3e'}
-          role={roleLabel}
-        />
-      </section>
-
-      <section className="identity-effect-section">
-        <header><strong>Efeito das insígnias</strong><small>Shimmer, plasma, holografia, órbita e efeitos exclusivos.</small></header>
-        <EffectGallery
-          kind="badge"
-          effects={effects}
-          value={cosmetics.badge_effect || 'clean-badge'}
-          onChange={(value) => choose('badge_effect',value)}
-          rank={rank}
-          owner={owner}
-          name={displayName}
-          color={cosmetics.name_color || '#ff4b3e'}
-          role={roleLabel}
-        />
-      </section>
-
-      <section className="identity-effect-section">
-        <header><strong>Efeito do cargo</strong><small>Tratamento visual independente para ADMIN, MOD, VIP e cargos especiais.</small></header>
-        <EffectGallery
-          kind="role"
-          effects={effects}
-          value={cosmetics.role_effect || 'clean-role'}
-          onChange={(value) => choose('role_effect',value)}
-          rank={rank}
-          owner={owner}
-          name={displayName}
-          color={cosmetics.name_color || '#ff4b3e'}
-          role={roleLabel}
-        />
-      </section>
-
-      <section className="identity-effect-section">
-        <header><strong>Moldura do avatar</strong><small>De aros estáticos a plasma orbital, segmentos tecnológicos e descargas elétricas.</small></header>
-        <EffectGallery
-          kind="avatar"
-          effects={effects}
-          value={cosmetics.avatar_frame || 'avatar-clean'}
-          onChange={(value) => choose('avatar_frame',value)}
-          rank={rank}
-          owner={owner}
-          name={displayName}
-          color={cosmetics.name_color || '#ff4b3e'}
-          role={roleLabel}
-        />
-      </section>
-
-      <section className="identity-effect-section">
-        <header><strong>Efeito da capa</strong><small>Scanner, parallax, bordas energéticas, HUD holográfico e perímetro Architect.</small></header>
-        <EffectGallery
-          kind="cover"
-          effects={effects}
-          value={cosmetics.cover_effect || 'cover-clean'}
-          onChange={(value) => choose('cover_effect',value)}
-          rank={rank}
-          owner={owner}
-          name={displayName}
-          color={cosmetics.name_color || '#ff4b3e'}
-          role={roleLabel}
-        />
-      </section>
-
-      <section className="identity-effect-section">
-        <header><strong>Efeito do perfil</strong><small>Superfícies reativas, profundidade 3D, HUDs e shader WebGL leve para perfis Elite.</small></header>
-        <EffectGallery
-          kind="profile"
-          effects={effects}
-          value={cosmetics.profile_effect || 'none'}
-          onChange={(value) => choose('profile_effect',value)}
-          rank={rank}
-          owner={owner}
-          name={displayName}
-          color={cosmetics.name_color || '#ff4b3e'}
-          role={roleLabel}
         />
       </section>
 
       <footer className="identity-studio-save">
         <span>
           {owner
-            ? 'Acesso Arquiteto: todos os efeitos, inclusive os exclusivos.'
-            : rank >= 2
-              ? 'ELITE: todos os efeitos Free, Pro e Elite estão liberados.'
-              : rank >= 1
-                ? 'PRO: efeitos Free e Pro estão liberados.'
-                : 'FREE: efeitos básicos estão liberados; animações avançadas aparecem bloqueadas como preview.'}
+            ? 'Arquiteto CreativeZone: acesso aos efeitos de nome PRO e ao efeito exclusivo de proprietário.'
+            : state?.plan_id === 'elite'
+              ? 'ELITE: pode usar o catálogo de nomes PRO; não há efeitos exclusivos ELITE.'
+              : 'PRO: catálogo completo de efeitos de nome liberado.'}
         </span>
         <button className="action primary-action" disabled={busy}>
-          <Sparkles /> Salvar identidade visual
+          <Sparkles /> Salvar efeito do nome
         </button>
       </footer>
     </form>
