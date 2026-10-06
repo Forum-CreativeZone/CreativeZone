@@ -92,6 +92,7 @@ import { ProfessionalEditor, RichForumContent } from './ProfessionalEditor'
 import { EliteAreaPage } from './MembershipSection'
 import { AdminDashboard } from './AdminDashboard'
 import { getMemberDecorations, getMembershipState } from './services/membershipApi'
+import { EffectBadge, EffectName, EffectRole } from './VisualEffects'
 import {
   AchievementsPage,
   AdvancedSearchPage,
@@ -691,6 +692,7 @@ function App() {
   const [categories, setCategories] = useState([])
   const [activity, setActivity] = useState([])
   const [members, setMembers] = useState([])
+  const [memberDecorations, setMemberDecorations] = useState({})
   const [threadReplies, setThreadReplies] = useState([])
   const [forumLoading, setForumLoading] = useState(true)
   const [forumError, setForumError] = useState('')
@@ -699,6 +701,22 @@ function App() {
   const [ignoredIds, setIgnoredIds] = useState([])
   const mobileThemes = useRef()
   const { session, user, loading: authLoading } = useAuth()
+
+  useEffect(() => {
+    const ids = [...new Set(members.map((member) => member.id).filter(Boolean))]
+    let active = true
+
+    if (!ids.length) {
+      setMemberDecorations({})
+      return undefined
+    }
+
+    getMemberDecorations(ids)
+      .then((next) => { if (active) setMemberDecorations(next) })
+      .catch(() => { if (active) setMemberDecorations({}) })
+
+    return () => { active = false }
+  }, [members])
 
   const navigate = useCallback((nextPath) => {
     setUserMenuOpen(false)
@@ -1752,22 +1770,47 @@ function App() {
       return (
         <PageShell title="Membros" onBack={() => navigate('/')} wide>
           <div className="panel-content members standalone-members">
-            {members.map((member) => (
-              <button
-                className="member-row"
-                key={member.id}
-                onClick={() => navigate('/membro/' + encodeURIComponent(member.username))}
-              >
-                <Avatar src={member.avatar_url} />
-                <span>
-                  <strong>{member.display_name || member.username || 'Membro'}</strong>
-                  <small>
-                    {member.role === 'member' ? 'Membro' : member.role}
-                    {member.occupation ? ' · ' + member.occupation : ''}
-                  </small>
-                </span>
-              </button>
-            ))}
+            {members.map((member) => {
+              const decoration = memberDecorations[member.id]
+              const cosmetics = decoration?.cosmetics || {}
+              const membership = decoration?.membership || null
+
+              return (
+                <button
+                  className="member-row"
+                  key={member.id}
+                  onClick={() => navigate('/membro/' + encodeURIComponent(member.username))}
+                >
+                  <Avatar src={member.avatar_url} />
+                  <span>
+                    <EffectName
+                      as="strong"
+                      text={member.display_name || member.username || 'Membro'}
+                      effect={cosmetics.name_effect || 'clean'}
+                      color={cosmetics.name_color || null}
+                      className="member-list-effect-name"
+                    />
+                    <small>
+                      <EffectRole
+                        effect={cosmetics.role_effect || 'clean-role'}
+                        className="member-list-role"
+                      >
+                        {member.role === 'member' ? 'Membro' : member.role}
+                      </EffectRole>
+                      {member.occupation ? ' · ' + member.occupation : ''}
+                    </small>
+                    {membership?.plan_id && membership.plan_id !== 'free' && (
+                      <EffectBadge
+                        effect={cosmetics.badge_effect || 'clean-badge'}
+                        className={'member-list-vip membership-' + membership.plan_id}
+                      >
+                        {membership.badge}{membership.permanent ? ' ∞' : ''}
+                      </EffectBadge>
+                    )}
+                  </span>
+                </button>
+              )
+            })}
             {!members.length && <p>Ainda não há membros cadastrados.</p>}
           </div>
         </PageShell>
