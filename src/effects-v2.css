@@ -75,3 +75,5 @@
 
 @media (prefers-reduced-motion:reduce){.name-effect-laser-scan:after,.name-effect-ember-flow,.name-effect-liquid-chrome,.name-effect-heat-haze,.name-effect-heat-haze:before,.name-effect-heat-haze:after,.badge-effect-split-glow-badge:before,.badge-effect-split-glow-badge:after,.badge-effect-crystal-badge:before,.badge-effect-living-border-badge,.role-effect-signal-role,.cz-avatar-ring,.cz-avatar-orbit,.cover-effect-v2-cover-scanning-border .cz-cover-scan,.cover-effect-v2-cover-cyber-grid .cz-cover-scan,.cover-effect-v2-cover-architect-grid .cz-cover-scan,.cover-effect-v2-cover-light-sweep .cz-cover-overlay{animation:none!important}.name-effect-magnetic,.cover-effect-v2-cover-parallax>img{transform:none!important}.cz-effect-shader{display:none!important}}
 @media(max-width:760px){.identity-live-preview-v2{grid-template-columns:1fr!important}.identity-live-visuals{grid-template-columns:64px minmax(0,1fr)}.effect-gallery-avatar .effect-option,.effect-gallery-cover .effect-option{min-height:124px}}
+
+.quick-avatar-effect{width:72px;height:72px;flex:none}.quick-avatar-effect>.community-avatar{width:64px!important;height:64px!important}
