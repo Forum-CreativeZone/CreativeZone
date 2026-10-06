@@ -2570,3 +2570,102 @@
     text-shadow:-5px -5px 0 #00d4ff,-10px -10px 0 #ff005e;
   }
 }
+
+
+/* ELITE name effect: Melting */
+.name-effect-melting{
+  position:relative;
+  display:inline-block;
+  isolation:isolate;
+  background:linear-gradient(90deg,#ff6f61,#ffbd44,#ff6f61);
+  background-size:200% 100%;
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent!important;
+  -webkit-text-fill-color:transparent!important;
+  animation:czMeltingText 3s infinite ease-in-out,czMeltingGradient 4s linear infinite;
+  will-change:transform;
+}
+.name-effect-melting::before,
+.name-effect-melting::after{
+  content:attr(data-text);
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  transform-origin:50% 0%;
+  background:linear-gradient(90deg,#ff6f61,#ffbd44,#ff6f61);
+  background-size:200% 100%;
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  -webkit-text-fill-color:transparent;
+  z-index:-1;
+  opacity:.5;
+  animation:czMeltingDrip 3s infinite ease-in-out,czMeltingGradient 4s linear infinite;
+}
+.name-effect-melting::after{
+  filter:blur(10px);
+  opacity:.3;
+}
+@keyframes czMeltingText{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(.28em)}
+}
+@keyframes czMeltingDrip{
+  0%,100%{transform:scaleY(1);opacity:.5}
+  50%{transform:scaleY(1.5);opacity:.7}
+}
+@keyframes czMeltingGradient{
+  from{background-position:0% 50%}
+  to{background-position:200% 50%}
+}
+
+/* Clear visual separation between PRO and ELITE effect catalogs */
+.effect-gallery-name{
+  gap:42px!important;
+}
+.effect-gallery-name .effect-tier{
+  position:relative;
+  padding:18px;
+  border:1px solid #ffffff12;
+  border-radius:12px;
+}
+.effect-gallery-name .effect-tier>header{
+  padding-bottom:12px!important;
+  margin-bottom:12px!important;
+  border-bottom:1px solid #ffffff12!important;
+}
+.effect-gallery-name .effect-tier-pro{
+  background:
+    radial-gradient(circle at 0 0,#7a4cff16,transparent 34%),
+    linear-gradient(180deg,#15121d,#111);
+  border-color:#7354aa44;
+}
+.effect-gallery-name .effect-tier-elite{
+  margin-top:10px;
+  background:
+    radial-gradient(circle at 0 0,#ffc14d1c,transparent 36%),
+    linear-gradient(180deg,#1b160d,#111);
+  border-color:#a56a1655;
+  box-shadow:0 10px 30px #d28a1510;
+}
+.effect-gallery-name .effect-tier-elite::before{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  top:-27px;
+  height:1px;
+  background:linear-gradient(90deg,transparent,#8e682e66,transparent);
+}
+.effect-gallery-name .effect-tier-pro>header strong{
+  color:#c7a9ff;
+}
+.effect-gallery-name .effect-tier-elite>header strong{
+  color:#ffd27c;
+  letter-spacing:.04em;
+}
+@media(max-width:620px){
+  .effect-gallery-name{gap:34px!important}
+  .effect-gallery-name .effect-tier{padding:14px}
+}
