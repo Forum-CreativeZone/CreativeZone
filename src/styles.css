@@ -2200,11 +2200,22 @@
 .name-effect-fracture{
   color:#fff3ec;text-shadow:0 0 6px #ff533d7a,0 0 16px #ff2e1838
 }
+.name-effect-fracture .cz-effect-char{
+  color:#fff3ec!important;
+  -webkit-text-fill-color:#fff3ec;
+}
 .name-effect-kinetic{
+  color:#8ff6ff;
+}
+.name-effect-kinetic .cz-effect-char{
   color:transparent!important;
-  background:linear-gradient(90deg,#fff,#58eaff,#ba77ff,#fff);
-  background-size:220% 100%;-webkit-background-clip:text;background-clip:text;
-  animation:czTextFlow 4s linear infinite
+  -webkit-text-fill-color:transparent;
+  background:linear-gradient(90deg,#ffffff 0%,#58eaff 34%,#ba77ff 67%,#ffffff 100%);
+  background-size:320% 100%;
+  background-position:calc(var(--char-index,0) * -13%) 50%;
+  -webkit-background-clip:text;background-clip:text;
+  animation:czTextFlow 4s linear infinite;
+  text-shadow:none
 }
 .name-effect-scramble{
   color:#9fffe4;text-shadow:0 0 5px #2cf5bd88,0 0 12px #0fbf9a4f;
@@ -2223,12 +2234,21 @@
   filter:drop-shadow(0 0 6px #5f42d980) drop-shadow(0 0 14px #220f6750)
 }
 .name-effect-architect-core{
-  background-image:linear-gradient(100deg,#ff2419,#ff7a2b,#ffe0a0,#ffffff,#ff5d35,#ff2419);
-  animation:czArchitectText 3.25s linear infinite;
+  color:#ff7a2b!important;
   letter-spacing:.01em
 }
+.name-effect-architect-core .cz-effect-char{
+  color:transparent!important;
+  -webkit-text-fill-color:transparent;
+  background-image:linear-gradient(100deg,#ff2419 0%,#ff7a2b 22%,#ffe0a0 42%,#ffffff 52%,#ff5d35 72%,#ff2419 100%);
+  background-size:300% 100%;
+  background-position:calc(var(--char-index,0) * -11%) 50%;
+  -webkit-background-clip:text;background-clip:text;
+  animation:czArchitectText 3.25s linear infinite;
+  text-shadow:0 0 5px rgba(255,66,45,.42),0 0 12px rgba(255,174,39,.16)
+}
 .name-effect-architect-core:before{
-  content:attr(data-text);position:absolute;inset:0;z-index:-1;color:#ff2d1f;filter:blur(8px);opacity:.32
+  content:attr(data-text);position:absolute;inset:0;z-index:-1;color:#ff5b32;filter:blur(8px);opacity:.28
 }
 
 /* Badge core */
