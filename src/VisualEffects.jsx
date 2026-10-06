@@ -177,6 +177,7 @@ export function EffectName({
               className="cz-effect-char"
               key={index + '-' + char}
               aria-hidden="true"
+              style={{ '--char-index': index }}
             >
               {char === ' ' ? '\u00A0' : char}
             </span>
