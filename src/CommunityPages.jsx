@@ -68,6 +68,7 @@ import {
 import { ReportButton } from './ExtendedCommunityPages'
 import { MembershipSection } from './MembershipSection'
 import { getMembershipState } from './services/membershipApi'
+import { EffectBadge, EffectName, EffectRole, EffectSurface } from './VisualEffects'
 
 function Avatar({ profile, size = 56 }) {
   const name = profile?.display_name || profile?.username || 'Membro'
@@ -172,19 +173,38 @@ export function UserQuickMenu({ profile, session, onClose, navigate, onSignOut }
         <div className="user-quick-profile">
           <Avatar profile={profile} size={64} />
           <div>
-            <strong style={summary?.cosmetics?.name_color ? { color: summary.cosmetics.name_color } : undefined}>
-              {profile?.display_name || profile?.username || 'Membro'}
-            </strong>
+            <EffectName
+              as="strong"
+              text={profile?.display_name || profile?.username || 'Membro'}
+              effect={summary?.cosmetics?.name_effect || 'clean'}
+              color={summary?.cosmetics?.name_color || null}
+              className="quick-user-effect-name"
+            />
             <span>@{profile?.username || 'membro'}</span>
             {summary?.cosmetics?.profile_title && <em className="quick-profile-title">{summary.cosmetics.profile_title}</em>}
             <div className="quick-identity-tags">
-              {summary?.profile?.system_owner && <b className="identity-badge architect">🏗️ Arquiteto</b>}
-              {summary?.membership?.plan_id && summary.membership.plan_id !== 'free' && (
-                <b className={'identity-badge membership-' + summary.membership.plan_id}>
-                  {summary.membership.badge}{summary.membership.permanent ? ' ∞' : ''}
-                </b>
+              {summary?.profile?.system_owner && (
+                <EffectBadge
+                  effect={summary?.cosmetics?.badge_effect || 'architect-forge'}
+                  className="identity-badge architect"
+                >
+                  🏗️ Arquiteto
+                </EffectBadge>
               )}
-              <small>{profile?.role === 'member' ? 'Membro' : profile?.role}</small>
+              {summary?.membership?.plan_id && summary.membership.plan_id !== 'free' && (
+                <EffectBadge
+                  effect={summary?.cosmetics?.badge_effect || 'clean-badge'}
+                  className={'identity-badge membership-' + summary.membership.plan_id}
+                >
+                  {summary.membership.badge}{summary.membership.permanent ? ' ∞' : ''}
+                </EffectBadge>
+              )}
+              <EffectRole
+                effect={summary?.cosmetics?.role_effect || 'clean-role'}
+                className={'quick-role-effect role-' + (profile?.role || 'member')}
+              >
+                {profile?.role === 'member' ? 'Membro' : profile?.role}
+              </EffectRole>
             </div>
           </div>
         </div>
@@ -305,7 +325,8 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
       onBack={() => navigate('/membros')}
       profileOverlay
     >
-      <div
+      <EffectSurface
+        effect={cosmetics?.profile_effect || 'none'}
         className={
           'public-profile-hero ' +
           (profile.cover_url ? 'has-cover ' : '') +
@@ -323,26 +344,47 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
             <Avatar profile={profile} size={128} />
           </div>
           <div className="public-profile-main">
-          <h2 style={cosmetics?.name_color ? { color: cosmetics.name_color } : undefined}>
-            {profile.display_name || profile.username}
-          </h2>
+          <EffectName
+            as="h2"
+            text={profile.display_name || profile.username}
+            effect={cosmetics?.name_effect || 'clean'}
+            color={cosmetics?.name_color || null}
+            className="public-profile-effect-name"
+          />
           <span className="profile-handle">@{profile.username}</span>
           {cosmetics?.profile_title && <p className="profile-custom-title">{cosmetics.profile_title}</p>}
           <div className="profile-identity-badges">
-            {profile.system_owner && <b className="identity-badge architect">🏗️ Arquiteto CreativeZone</b>}
-            {profile.role === 'admin' && <b className="identity-badge admin">ADMIN</b>}
-            {profile.role === 'moderator' && <b className="identity-badge moderator">MOD</b>}
+            {profile.system_owner && (
+              <EffectBadge effect={cosmetics?.badge_effect || 'architect-forge'} className="identity-badge architect">
+                🏗️ Arquiteto CreativeZone
+              </EffectBadge>
+            )}
+            {profile.role === 'admin' && (
+              <EffectRole effect={cosmetics?.role_effect || 'clean-role'} className="identity-badge admin">ADMIN</EffectRole>
+            )}
+            {profile.role === 'moderator' && (
+              <EffectRole effect={cosmetics?.role_effect || 'clean-role'} className="identity-badge moderator">MOD</EffectRole>
+            )}
             {membership?.plan_id && membership.plan_id !== 'free' && (
-              <b className={'identity-badge membership-' + membership.plan_id + ' style-' + (cosmetics?.badge_style || 'default')}>
+              <EffectBadge
+                effect={cosmetics?.badge_effect || 'clean-badge'}
+                className={'identity-badge membership-' + membership.plan_id + ' style-' + (cosmetics?.badge_style || 'default')}
+              >
                 {membership.badge}{membership.permanent ? ' ∞' : ''}
-              </b>
+              </EffectBadge>
             )}
             {historicalBadges.map((badge) => (
-              <b className={'identity-badge historical historical-' + badge.slug} key={badge.id}>
+              <EffectBadge
+                effect={cosmetics?.badge_effect || 'clean-badge'}
+                className={'identity-badge historical historical-' + badge.slug}
+                key={badge.id}
+              >
                 {badge.icon} {badge.name}
-              </b>
+              </EffectBadge>
             ))}
-            <b className="identity-badge level">{reputationLevel(stats.reputation)}</b>
+            <EffectBadge effect="soft-glow-badge" className="identity-badge level">
+              {reputationLevel(stats.reputation)}
+            </EffectBadge>
           </div>
           {profile.status_message && <p className="profile-status">{profile.status_message}</p>}
           <div className="profile-meta">
@@ -369,7 +411,7 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
             </div>
           )}
         </div>
-      </div>
+      </EffectSurface>
 
       <div className="profile-statbar">
         <span><b>{stats.topics}</b>Tópicos</span>
