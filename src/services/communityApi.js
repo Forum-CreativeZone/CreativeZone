@@ -57,46 +57,116 @@ export async function saveAccountProfile(userId, { profile, settings }) {
   return { profile: refreshedProfile, settings: nextSettings }
 }
 
-export async function uploadAvatar(userId, file) {
-  const client = requireSupabase()
-  if (!file?.type?.startsWith('image/')) throw new Error('Selecione uma imagem válida.')
-  if (file.size > 5 * 1024 * 1024) throw new Error('O avatar deve ter no máximo 5 MB.')
+function storagePathFromPublicUrl(url, bucket) {
+  if (!url || !bucket) return null
+  try {
+    const pathname = new URL(url).pathname
+    const marker = '/storage/v1/object/public/' + bucket + '/'
+    const index = pathname.indexOf(marker)
+    if (index < 0) return null
+    return decodeURIComponent(pathname.slice(index + marker.length))
+  } catch {
+    return null
+  }
+}
+
+async function replaceProfileStorageImage({
+  client,
+  userId,
+  file,
+  bucket,
+  profileField,
+  prefix,
+  maxBytes,
+  invalidMessage,
+  sizeMessage,
+}) {
+  if (!file?.type?.startsWith('image/')) throw new Error(invalidMessage)
+  if (file.size > maxBytes) throw new Error(sizeMessage)
+
+  const [{ data: currentProfile, error: profileError }, { data: existingFiles, error: listError }] = await Promise.all([
+    client.from('profiles').select(profileField).eq('id', userId).single(),
+    client.storage.from(bucket).list(userId, {
+      limit: 1000,
+      sortBy: { column: 'created_at', order: 'desc' },
+    }),
+  ])
+
+  if (profileError) throw profileError
+  if (listError) throw listError
+
+  const previousUrl = currentProfile?.[profileField] || null
+  const previousPath = storagePathFromPublicUrl(previousUrl, bucket)
+  const oldPaths = new Set(
+    (existingFiles || [])
+      .filter((item) => item?.name)
+      .map((item) => userId + '/' + item.name)
+  )
+  if (previousPath?.startsWith(userId + '/')) oldPaths.add(previousPath)
 
   const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-  const path = `${userId}/avatar-${Date.now()}.${ext}`
-  const { error } = await client.storage.from('avatars').upload(path, file)
-  if (error) throw error
+  const path = userId + '/' + prefix + '-' + Date.now() + '.' + ext
+  const { error: uploadError } = await client.storage.from(bucket).upload(path, file)
+  if (uploadError) throw uploadError
 
-  const url = client.storage.from('avatars').getPublicUrl(path).data.publicUrl
-  const { data, error: updateError } = await client
+  const url = client.storage.from(bucket).getPublicUrl(path).data.publicUrl
+  const { data: nextProfile, error: updateError } = await client
     .from('profiles')
-    .update({ avatar_url: url })
+    .update({ [profileField]: url })
     .eq('id', userId)
     .select()
     .single()
-  if (updateError) throw updateError
-  return data
+
+  if (updateError) {
+    await client.storage.from(bucket).remove([path]).catch(() => {})
+    throw updateError
+  }
+
+  oldPaths.delete(path)
+  if (oldPaths.size > 0) {
+    const { error: cleanupError } = await client.storage.from(bucket).remove([...oldPaths])
+    if (cleanupError) {
+      await client
+        .from('profiles')
+        .update({ [profileField]: previousUrl })
+        .eq('id', userId)
+        .catch(() => {})
+      await client.storage.from(bucket).remove([path]).catch(() => {})
+      throw new Error('Não foi possível apagar a imagem anterior. A alteração foi revertida; tente novamente.')
+    }
+  }
+
+  return nextProfile
+}
+
+export async function uploadAvatar(userId, file) {
+  const client = requireSupabase()
+  return replaceProfileStorageImage({
+    client,
+    userId,
+    file,
+    bucket: 'avatars',
+    profileField: 'avatar_url',
+    prefix: 'avatar',
+    maxBytes: 5 * 1024 * 1024,
+    invalidMessage: 'Selecione uma imagem válida.',
+    sizeMessage: 'O avatar deve ter no máximo 5 MB.',
+  })
 }
 
 export async function uploadProfileCover(userId, file) {
   const client = requireSupabase()
-  if (!file?.type?.startsWith('image/')) throw new Error('Selecione uma imagem válida para a capa.')
-  if (file.size > 6 * 1024 * 1024) throw new Error('A capa deve ter no máximo 6 MB.')
-
-  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-  const path = `${userId}/cover-${Date.now()}.${ext}`
-  const { error } = await client.storage.from('profile-covers').upload(path, file)
-  if (error) throw error
-
-  const url = client.storage.from('profile-covers').getPublicUrl(path).data.publicUrl
-  const { data, error: updateError } = await client
-    .from('profiles')
-    .update({ cover_url: url })
-    .eq('id', userId)
-    .select()
-    .single()
-  if (updateError) throw updateError
-  return data
+  return replaceProfileStorageImage({
+    client,
+    userId,
+    file,
+    bucket: 'profile-covers',
+    profileField: 'cover_url',
+    prefix: 'cover',
+    maxBytes: 6 * 1024 * 1024,
+    invalidMessage: 'Selecione uma imagem válida para a capa.',
+    sizeMessage: 'A capa deve ter no máximo 6 MB.',
+  })
 }
 
 export async function getPublicProfile(username) {
