@@ -29,6 +29,8 @@ import {
   sendChatMessage,
 } from './services/chatApi'
 import { ReportButton } from './ExtendedCommunityPages'
+import { getMemberDecorations } from './services/membershipApi'
+import { EffectName, EffectRole } from './VisualEffects'
 
 const EMOJIS = ['😀','😄','😂','🙂','😉','😍','🤔','😎','🥳','😅','😭','😡','👍','👎','👏','🙌','🔥','❤️','💡','🚀','✅','🎮','💻','🤖']
 
@@ -86,7 +88,7 @@ function ChatText({ text = '', navigate }) {
   )
 }
 
-function OnlineMembersPanel({ members, navigate }) {
+function OnlineMembersPanel({ members, decorations, navigate }) {
   return (
     <aside className="community-chat-online-panel" aria-label="Membros online no fórum">
       <div className="community-chat-online-head">
@@ -102,6 +104,8 @@ function OnlineMembersPanel({ members, navigate }) {
           const username = member.username || ''
           const name = member.display_name || username || 'Membro'
           const tag = roleLabel(member.role)
+          const decoration = decorations?.[member.user_id]
+          const cosmetics = decoration?.cosmetics || {}
 
           return (
             <button
@@ -122,12 +126,23 @@ function OnlineMembersPanel({ members, navigate }) {
               </span>
 
               <span className="community-chat-online-identity">
-                <strong>{name}</strong>
+                <EffectName
+                  as="strong"
+                  text={name}
+                  effect={cosmetics.name_effect || 'clean'}
+                  color={cosmetics.name_color || null}
+                  className="chat-online-effect-name"
+                />
                 {username && name !== username && <small>@{username}</small>}
               </span>
 
               {tag && (
-                <b className={'community-chat-role role-' + (member.role || 'member')}>{tag}</b>
+                <EffectRole
+                  effect={cosmetics.role_effect || 'clean-role'}
+                  className={'community-chat-role role-' + (member.role || 'member')}
+                >
+                  {tag}
+                </EffectRole>
               )}
             </button>
           )
@@ -183,6 +198,7 @@ export function CommunityChat({
   const [menuId, setMenuId] = useState(null)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [typingMembers, setTypingMembers] = useState([])
+  const [decorations, setDecorations] = useState({})
   const [connection, setConnection] = useState('connecting')
   const [restriction, setRestriction] = useState({ mute: null, ban: null })
   const [collapsed, setCollapsed] = useState(() => {
@@ -205,6 +221,13 @@ export function CommunityChat({
   )
 
   const isStaff = ['moderator', 'admin'].includes(profile?.role)
+  const decorationIdsKey = useMemo(() => {
+    const ids = new Set()
+    messages.forEach((item) => item.user_id && ids.add(item.user_id))
+    onlineMembers.forEach((item) => item.user_id && ids.add(item.user_id))
+    return [...ids].sort().join(',')
+  }, [messages, onlineMembers])
+
   const visibleOnlineMembers = useMemo(
     () => onlineMembers
       .filter((item) => !ignoredIds.includes(item.user_id))
@@ -217,6 +240,21 @@ export function CommunityChat({
       ),
     [onlineMembers, ignoredIds]
   )
+
+  useEffect(() => {
+    let active = true
+    const ids = decorationIdsKey ? decorationIdsKey.split(',').filter(Boolean) : []
+    if (!ids.length) {
+      setDecorations({})
+      return undefined
+    }
+
+    getMemberDecorations(ids)
+      .then((next) => { if (active) setDecorations(next) })
+      .catch(() => { if (active) setDecorations({}) })
+
+    return () => { active = false }
+  }, [decorationIdsKey])
 
   async function loadMessages(silent = false) {
     try {
@@ -639,6 +677,8 @@ export function CommunityChat({
                 !message.deleted_at &&
                 Date.now() - new Date(message.created_at).getTime() <= 10 * 60 * 1000
               const roleTag = roleLabel(role)
+              const decoration = decorations[message.user_id]
+              const cosmetics = decoration?.cosmetics || {}
 
               return (
                 <article
@@ -670,10 +710,21 @@ export function CommunityChat({
                         onClick={() => authorUsername && navigate('/membro/' + encodeURIComponent(authorUsername))}
                         disabled={!authorUsername}
                       >
-                        {author}
+                        <EffectName
+                          as="span"
+                          text={author}
+                          effect={cosmetics.name_effect || 'clean'}
+                          color={cosmetics.name_color || null}
+                          className="chat-message-effect-name"
+                        />
                       </button>
                       {roleTag && (
-                        <b className={'community-chat-role role-' + role}>{roleTag}</b>
+                        <EffectRole
+                          effect={cosmetics.role_effect || 'clean-role'}
+                          className={'community-chat-role role-' + role}
+                        >
+                          {roleTag}
+                        </EffectRole>
                       )}
                       <time>{formatTime(message.created_at)}</time>
                       {message.edited_at && <small>editada</small>}
@@ -690,7 +741,12 @@ export function CommunityChat({
                       >
                         <Reply />
                         <span>
-                          <strong>{reply.author?.display_name || reply.author?.username || 'Membro'}</strong>
+                          <EffectName
+                            as="strong"
+                            text={reply.author?.display_name || reply.author?.username || 'Membro'}
+                            effect={decorations[reply.user_id]?.cosmetics?.name_effect || 'clean'}
+                            color={decorations[reply.user_id]?.cosmetics?.name_color || null}
+                          />
                           {reply.deleted_at ? 'Mensagem removida' : reply.content.slice(0, 120)}
                         </span>
                       </button>
@@ -820,7 +876,7 @@ export function CommunityChat({
             )}
             </div>
 
-            <OnlineMembersPanel members={visibleOnlineMembers} navigate={navigate} />
+            <OnlineMembersPanel members={visibleOnlineMembers} decorations={decorations} navigate={navigate} />
           </div>
 
           {typingMembers.filter((item) => !ignoredIds.includes(item.user_id)).length > 0 && (
