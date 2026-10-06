@@ -74,7 +74,7 @@ function PlanCard({ plan, current, onRequest, busy, months, setMonths }) {
         <span><Check /> Anexos de até {e.forum_upload_mb ?? 10} MB</span>
         <span><Check /> Até {e.forum_upload_count ?? 4} anexos por publicação</span>
         <span className={plan.rank >= 1 ? '' : 'muted'}>
-          {plan.rank >= 1 ? <Check /> : <X />} Efeitos de nome PRO
+          {plan.rank >= 1 ? <Check /> : <X />} {plan.rank >= 2 ? 'Efeitos de nome PRO + ELITE' : 'Efeitos de nome PRO'}
         </span>
         {benefits.map(([key,label]) => (
           <span className={e[key] ? '' : 'muted'} key={key}>
@@ -116,6 +116,7 @@ function PlanCard({ plan, current, onRequest, busy, months, setMonths }) {
 
 const effectTiers = [
   [1,'PRO','Efeitos de nome'],
+  [2,'ELITE','Animações exclusivas'],
 ]
 
 function EffectGallery({
@@ -126,7 +127,7 @@ function EffectGallery({
   owner,
   name,
 }) {
-  const available = effects.filter((item) => item.kind === 'name' && item.min_rank === 1)
+  const available = effects.filter((item) => item.kind === 'name')
 
   return (
     <section className="effect-gallery effect-gallery-name">
@@ -135,14 +136,14 @@ function EffectGallery({
         if (!items.length) return null
 
         return (
-          <div className="effect-tier effect-tier-pro" key={label}>
+          <div className={'effect-tier effect-tier-' + label.toLowerCase()} key={label}>
             <header>
               <div><strong>{label}</strong><small>{subtitle}</small></div>
               <span>{items.length} efeito{items.length === 1 ? '' : 's'}</span>
             </header>
             <div className="effect-option-grid">
               {items.map((item) => {
-                const locked = (!owner && item.owner_only) || (!owner && rank < 1)
+                const locked = (!owner && item.owner_only) || (!owner && item.min_rank > rank)
                 const selected = value === item.effect_id
 
                 return (
@@ -161,7 +162,7 @@ function EffectGallery({
                     title={locked
                       ? item.owner_only
                         ? 'Efeito exclusivo do Arquiteto CreativeZone.'
-                        : 'Disponível no plano CreativeZone PRO.'
+                        : 'Disponível no plano CreativeZone ' + (item.min_rank >= 2 ? 'ELITE' : 'PRO') + '.'
                       : item.description}
                   >
                     <div className="effect-option-preview">
@@ -175,8 +176,8 @@ function EffectGallery({
                       <strong>{item.label}</strong>
                       <small>{item.description}</small>
                     </span>
-                    <span className="effect-tier-chip tier-pro">
-                      {item.owner_only ? 'ARQUITETO' : 'PRO'}
+                    <span className={'effect-tier-chip tier-' + label.toLowerCase()}>
+                      {item.owner_only ? 'ARQUITETO' : label}
                     </span>
                     {locked && <i className="effect-lock">Bloqueado</i>}
                   </button>
@@ -231,7 +232,7 @@ function CosmeticsForm({ state, profile, effects, cosmetics, setCosmetics, onSav
         <div>
           <strong>CreativeZone Effects Studio</strong>
           <small>
-            A personalização estética foi simplificada: somente efeitos de nome estão disponíveis, todos na categoria PRO.
+            A personalização estética é focada nos nomes: efeitos avançados no PRO e animações exclusivas no ELITE.
           </small>
         </div>
       </header>
@@ -250,7 +251,7 @@ function CosmeticsForm({ state, profile, effects, cosmetics, setCosmetics, onSav
       <section className="identity-effect-section">
         <header>
           <strong>Efeitos do nome</strong>
-          <small>Todos os efeitos anteriormente PRO e ELITE agora pertencem ao catálogo PRO. O plano ELITE não possui efeitos exclusivos nesta etapa.</small>
+          <small>O catálogo PRO permanece disponível e as novas animações exclusivas serão adicionadas ao ELITE uma a uma.</small>
         </header>
         <EffectGallery
           effects={effects}
@@ -265,10 +266,10 @@ function CosmeticsForm({ state, profile, effects, cosmetics, setCosmetics, onSav
       <footer className="identity-studio-save">
         <span>
           {owner
-            ? 'Arquiteto CreativeZone: acesso aos efeitos de nome PRO e ao efeito exclusivo de proprietário.'
+            ? 'Arquiteto CreativeZone: acesso aos efeitos de nome PRO, ELITE e aos exclusivos de proprietário.'
             : state?.plan_id === 'elite'
-              ? 'ELITE: pode usar o catálogo de nomes PRO; não há efeitos exclusivos ELITE.'
-              : 'PRO: catálogo completo de efeitos de nome liberado.'}
+              ? 'ELITE: efeitos PRO e animações exclusivas ELITE liberados.'
+              : 'PRO: catálogo PRO liberado; animações ELITE aparecem bloqueadas.'}
         </span>
         <button className="action primary-action" disabled={busy}>
           <Sparkles /> Salvar efeito do nome
