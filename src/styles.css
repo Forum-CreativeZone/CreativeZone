@@ -2731,11 +2731,11 @@
   display:inline-flex!important;
   align-items:center;
   position:relative;
-  perspective:700px;
+  perspective:520px;
   overflow:visible!important;
-  color:inherit!important;
+  color:#fff!important;
   background:none!important;
-  -webkit-text-fill-color:initial!important;
+  -webkit-text-fill-color:#fff!important;
 }
 .cz-3d-glow-stack{
   position:relative;
@@ -2743,7 +2743,7 @@
   place-items:center;
   transform-origin:center center;
   transform-style:preserve-3d;
-  animation:cz3dWobble 5s ease-in-out infinite;
+  animation:cz3dWobble 6.5s ease-in-out infinite;
   white-space:nowrap;
   will-change:transform;
 }
@@ -2751,34 +2751,50 @@
   grid-area:1 / 1;
   display:block;
   width:100%;
-  line-height:1.1;
+  line-height:1;
   font-weight:900;
   text-transform:uppercase;
-  color:#0a0a0a;
-  text-shadow:0 0 30px red;
-  transform:translateZ(calc(var(--layer-index) * 5px));
-  animation:cz3dGlow 5s linear infinite;
+  color:#241010;
+  opacity:.62;
+  text-shadow:none;
+  transform:translate3d(var(--layer-offset),var(--layer-offset),var(--layer-z));
   backface-visibility:visible;
-  will-change:transform,text-shadow;
+  will-change:transform;
+}
+.cz-3d-glow-layer:last-child{
+  color:#fff;
+  opacity:1;
+  text-shadow:0 0 5px #ff4c4c,0 0 12px #ff4c4c66;
+  animation:cz3dGlow 6.5s linear infinite;
+}
+.chat-message-effect-name.name-effect-css-3d-glow,
+.chat-online-effect-name.name-effect-css-3d-glow,
+.member-list-effect-name.name-effect-css-3d-glow{
+  perspective:360px;
+}
+.chat-message-effect-name.name-effect-css-3d-glow .cz-3d-glow-stack,
+.chat-online-effect-name.name-effect-css-3d-glow .cz-3d-glow-stack,
+.member-list-effect-name.name-effect-css-3d-glow .cz-3d-glow-stack{
+  animation-duration:7.5s;
 }
 @keyframes cz3dWobble{
-  0%,100%{transform:rotate3d(1,1,0,40deg)}
-  25%{transform:rotate3d(-1,1,0,40deg)}
-  50%{transform:rotate3d(-1,-1,0,40deg)}
-  75%{transform:rotate3d(1,-1,0,40deg)}
+  0%,100%{transform:rotate3d(1,1,0,10deg)}
+  25%{transform:rotate3d(-1,1,0,10deg)}
+  50%{transform:rotate3d(-1,-1,0,10deg)}
+  75%{transform:rotate3d(1,-1,0,10deg)}
 }
 @keyframes cz3dGlow{
-  0%,100%{text-shadow:0 0 30px red}
-  25%{text-shadow:0 0 30px orange}
-  50%{text-shadow:0 0 30px forestgreen}
-  75%{text-shadow:0 0 30px cyan}
+  0%,100%{text-shadow:0 0 4px red,0 0 10px #ff000066}
+  25%{text-shadow:0 0 4px orange,0 0 10px #ff9a0066}
+  50%{text-shadow:0 0 4px forestgreen,0 0 10px #228b2266}
+  75%{text-shadow:0 0 4px cyan,0 0 10px #00ffff66}
 }
 @media(prefers-reduced-motion:reduce){
   .cz-3d-glow-stack,
   .cz-3d-glow-layer{animation:none!important}
   .cz-3d-glow-stack{transform:none!important}
-  .cz-3d-glow-layer{transform:none!important}
-  .cz-3d-glow-layer:not(:first-child){display:none!important}
+  .cz-3d-glow-layer{transform:none!important;opacity:1!important;color:#fff!important}
+  .cz-3d-glow-layer:not(:last-child){display:none!important}
 }
 
 
@@ -2803,7 +2819,7 @@
     6px 6px 0 var(--cz-shadow-tertiary),
     9px 9px 0 var(--cz-shadow-quaternary),
     12px 12px 0 var(--cz-shadow-quinary);
-  animation:czTextShadows 1.2s ease-in infinite;
+  animation:czTextShadows 3.6s ease-in-out infinite;
   will-change:transform,text-shadow;
 }
 @keyframes czTextShadows{
