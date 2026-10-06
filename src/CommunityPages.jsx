@@ -68,7 +68,7 @@ import {
 import { ReportButton } from './ExtendedCommunityPages'
 import { MembershipSection } from './MembershipSection'
 import { getMembershipState } from './services/membershipApi'
-import { EffectBadge, EffectName, EffectRole, EffectSurface } from './VisualEffects'
+import { EffectAvatarFrame, EffectBadge, EffectCoverFrame, EffectName, EffectRole, EffectSurface } from './VisualEffects'
 
 function Avatar({ profile, size = 56 }) {
   const name = profile?.display_name || profile?.username || 'Membro'
@@ -327,22 +327,28 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
     >
       <EffectSurface
         effect={cosmetics?.profile_effect || 'none'}
+        entrance={Boolean(profile.system_owner || membership?.plan_id === 'elite')}
         className={
           'public-profile-hero ' +
           (profile.cover_url ? 'has-cover ' : '') +
-          'membership-plan-' + (membership?.plan_id || 'free') + ' ' +
-          'cover-effect-' + (cosmetics?.cover_effect || 'none')
+          'membership-plan-' + (membership?.plan_id || 'free')
         }
       >
         {profile.cover_url && (
-          <div className="public-profile-cover" aria-hidden="true">
+          <EffectCoverFrame
+            effect={cosmetics?.cover_effect || 'cover-clean'}
+            className="public-profile-cover"
+          >
             <img src={profile.cover_url} alt="" />
-          </div>
+          </EffectCoverFrame>
         )}
         <div className="public-profile-content">
-          <div className={'public-avatar-frame frame-' + (cosmetics?.avatar_frame || 'none')}>
+          <EffectAvatarFrame
+            effect={cosmetics?.avatar_frame || 'avatar-clean'}
+            className="public-avatar-frame"
+          >
             <Avatar profile={profile} size={128} />
-          </div>
+          </EffectAvatarFrame>
           <div className="public-profile-main">
           <EffectName
             as="h2"
