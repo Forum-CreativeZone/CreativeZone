@@ -2871,3 +2871,67 @@
   transform-origin:center center;
   will-change:transform,opacity;
 }
+
+
+/* ELITE name effect: Polygon Assemble */
+.name-effect-polygon-assemble{
+  display:inline-flex!important;
+  align-items:baseline;
+  overflow:visible!important;
+  isolation:isolate;
+  color:#fed75a!important;
+  -webkit-text-fill-color:#fed75a!important;
+  background:none!important;
+  text-shadow:0 0 5px rgba(254,215,90,.18);
+}
+.cz-polygon-word{
+  display:inline-flex;
+  align-items:baseline;
+  gap:0;
+  overflow:visible;
+}
+.cz-polygon-char{
+  position:relative;
+  display:inline-block;
+  overflow:visible;
+  line-height:1;
+}
+.cz-polygon-char.is-space{
+  width:.34em;
+}
+.cz-polygon-ghost{
+  display:inline-block;
+  color:transparent!important;
+  -webkit-text-fill-color:transparent!important;
+  user-select:none;
+}
+.cz-polygon-shard{
+  position:absolute;
+  inset:0;
+  display:block;
+  color:#fed75a;
+  -webkit-text-fill-color:#fed75a;
+  text-shadow:0 0 4px rgba(254,215,90,.18);
+  transform-origin:center center;
+  will-change:transform,opacity;
+  backface-visibility:hidden;
+}
+.cz-polygon-shard.shard-1{
+  clip-path:polygon(0 0,64% 0,46% 53%,0 66%);
+}
+.cz-polygon-shard.shard-2{
+  clip-path:polygon(64% 0,100% 0,100% 46%,46% 53%);
+}
+.cz-polygon-shard.shard-3{
+  clip-path:polygon(0 66%,46% 53%,57% 100%,0 100%);
+}
+.cz-polygon-shard.shard-4{
+  clip-path:polygon(46% 53%,100% 46%,100% 100%,57% 100%);
+}
+@media(prefers-reduced-motion:reduce){
+  .name-effect-polygon-assemble .cz-polygon-shard{
+    transform:none!important;
+    opacity:1!important;
+    animation:none!important;
+  }
+}
