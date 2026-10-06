@@ -2724,3 +2724,59 @@
   0%,100%{transform:translateY(0)}
   50%{transform:translateY(-20px)}
 }
+
+
+/* ELITE name effect: 3D CSS Glow */
+.name-effect-css-3d-glow{
+  display:inline-flex!important;
+  align-items:center;
+  position:relative;
+  perspective:700px;
+  overflow:visible!important;
+  color:inherit!important;
+  background:none!important;
+  -webkit-text-fill-color:initial!important;
+}
+.cz-3d-glow-stack{
+  position:relative;
+  display:inline-grid;
+  place-items:center;
+  transform-origin:center center;
+  transform-style:preserve-3d;
+  animation:cz3dWobble 5s ease-in-out infinite;
+  white-space:nowrap;
+  will-change:transform;
+}
+.cz-3d-glow-layer{
+  grid-area:1 / 1;
+  display:block;
+  width:100%;
+  line-height:1.1;
+  font-weight:900;
+  text-transform:uppercase;
+  color:#0a0a0a;
+  text-shadow:0 0 30px red;
+  transform:translateZ(calc(var(--layer-index) * 5px));
+  animation:cz3dGlow 5s linear infinite;
+  backface-visibility:visible;
+  will-change:transform,text-shadow;
+}
+@keyframes cz3dWobble{
+  0%,100%{transform:rotate3d(1,1,0,40deg)}
+  25%{transform:rotate3d(-1,1,0,40deg)}
+  50%{transform:rotate3d(-1,-1,0,40deg)}
+  75%{transform:rotate3d(1,-1,0,40deg)}
+}
+@keyframes cz3dGlow{
+  0%,100%{text-shadow:0 0 30px red}
+  25%{text-shadow:0 0 30px orange}
+  50%{text-shadow:0 0 30px forestgreen}
+  75%{text-shadow:0 0 30px cyan}
+}
+@media(prefers-reduced-motion:reduce){
+  .cz-3d-glow-stack,
+  .cz-3d-glow-layer{animation:none!important}
+  .cz-3d-glow-stack{transform:none!important}
+  .cz-3d-glow-layer{transform:none!important}
+  .cz-3d-glow-layer:not(:first-child){display:none!important}
+}
