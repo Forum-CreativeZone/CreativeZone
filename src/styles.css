@@ -2733,9 +2733,9 @@
   position:relative;
   perspective:520px;
   overflow:visible!important;
-  color:#fff!important;
+  color:#0a0a0a!important;
   background:none!important;
-  -webkit-text-fill-color:#fff!important;
+  -webkit-text-fill-color:#0a0a0a!important;
 }
 .cz-3d-glow-stack{
   position:relative;
@@ -2754,7 +2754,7 @@
   line-height:1;
   font-weight:900;
   text-transform:uppercase;
-  color:#241010;
+  color:#0a0a0a;
   opacity:.62;
   text-shadow:none;
   transform:translate3d(var(--layer-offset),var(--layer-offset),var(--layer-z));
@@ -2762,7 +2762,7 @@
   will-change:transform;
 }
 .cz-3d-glow-layer:last-child{
-  color:#fff;
+  color:#0a0a0a;
   opacity:1;
   text-shadow:0 0 5px #ff4c4c,0 0 12px #ff4c4c66;
   animation:cz3dGlow 6.5s linear infinite;
@@ -2793,7 +2793,7 @@
   .cz-3d-glow-stack,
   .cz-3d-glow-layer{animation:none!important}
   .cz-3d-glow-stack{transform:none!important}
-  .cz-3d-glow-layer{transform:none!important;opacity:1!important;color:#fff!important}
+  .cz-3d-glow-layer{transform:none!important;opacity:1!important;color:#0a0a0a!important}
   .cz-3d-glow-layer:not(:last-child){display:none!important}
 }
 
@@ -2804,7 +2804,6 @@
   --cz-shadow-secondary:#f49b90;
   --cz-shadow-tertiary:#f28b7d;
   --cz-shadow-quaternary:#f07a6a;
-  --cz-shadow-quinary:#ee6352;
   display:inline-block!important;
   color:var(--cz-shadow-primary)!important;
   -webkit-text-fill-color:var(--cz-shadow-primary)!important;
@@ -2817,68 +2816,40 @@
   text-shadow:
     3px 3px 0 var(--cz-shadow-secondary),
     6px 6px 0 var(--cz-shadow-tertiary),
-    9px 9px 0 var(--cz-shadow-quaternary),
-    12px 12px 0 var(--cz-shadow-quinary);
-  animation:czTextShadows 3.6s ease-in-out infinite;
+    9px 9px 0 var(--cz-shadow-quaternary);
+  animation:czTextShadows 2.2s ease-in-out infinite;
   will-change:transform,text-shadow;
 }
 @keyframes czTextShadows{
-  0%{
+  0%,100%{
     transform:translate(0,0);
     text-shadow:none;
   }
-  10%{
+  15%{
     transform:translate(-3px,-3px);
     text-shadow:3px 3px 0 var(--cz-shadow-secondary);
   }
-  20%{
+  30%{
     transform:translate(-6px,-6px);
     text-shadow:
       3px 3px 0 var(--cz-shadow-secondary),
       6px 6px 0 var(--cz-shadow-tertiary);
   }
-  30%{
+  45%,55%{
     transform:translate(-9px,-9px);
     text-shadow:
       3px 3px 0 var(--cz-shadow-secondary),
       6px 6px 0 var(--cz-shadow-tertiary),
       9px 9px 0 var(--cz-shadow-quaternary);
-  }
-  40%,50%{
-    transform:translate(-12px,-12px);
-    text-shadow:
-      3px 3px 0 var(--cz-shadow-secondary),
-      6px 6px 0 var(--cz-shadow-tertiary),
-      9px 9px 0 var(--cz-shadow-quaternary),
-      12px 12px 0 var(--cz-shadow-quinary);
-  }
-  60%{
-    transform:translate(-9px,-9px);
-    text-shadow:
-      3px 3px 0 var(--cz-shadow-secondary),
-      6px 6px 0 var(--cz-shadow-tertiary),
-      9px 9px 0 var(--cz-shadow-quaternary),
-      12px 12px 0 var(--cz-shadow-quinary);
   }
   70%{
     transform:translate(-6px,-6px);
     text-shadow:
       3px 3px 0 var(--cz-shadow-secondary),
-      6px 6px 0 var(--cz-shadow-tertiary),
-      9px 9px 0 var(--cz-shadow-quaternary);
-  }
-  80%{
-    transform:translate(-3px,-3px);
-    text-shadow:
-      3px 3px 0 var(--cz-shadow-secondary),
       6px 6px 0 var(--cz-shadow-tertiary);
   }
-  90%{
-    transform:translate(-1px,-1px);
+  85%{
+    transform:translate(-3px,-3px);
     text-shadow:3px 3px 0 var(--cz-shadow-secondary);
-  }
-  100%{
-    transform:translate(0,0);
-    text-shadow:none;
   }
 }
