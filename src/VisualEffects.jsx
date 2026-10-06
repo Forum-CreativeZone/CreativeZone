@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react'
 import { gsap } from 'gsap'
 
 const FRACTURE_EFFECTS = new Set(['fracture','architect-core'])
-const CHAR_EFFECTS = new Set(['fracture','kinetic','architect-core','wave'])
+const CHAR_EFFECTS = new Set(['fracture','kinetic','architect-core','wave','gsap-assemble'])
 const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>[]{}#@!?*/+-='
 
 function prefersReducedMotion() {
@@ -100,6 +100,36 @@ export function EffectName({
           ease: 'sine.inOut',
         })
       }
+
+      if (effect === 'gsap-assemble') {
+        const nodes = root.querySelectorAll('.cz-effect-char')
+        const timeline = gsap.timeline({
+          repeat: -1,
+          repeatDelay: 0.65,
+          yoyo: true,
+        })
+
+        gsap.set(nodes, {
+          x: () => gsap.utils.random(-500, 500),
+          y: () => gsap.utils.random(-500, 500),
+          rotation: () => gsap.utils.random(-720, 720),
+          scale: 0,
+          opacity: 0,
+        })
+
+        timeline.to(nodes, {
+          x: 0,
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          rotation: 0,
+          duration: 0.75,
+          stagger: 0.0125,
+          ease: 'power4.inOut',
+        })
+
+        tweenRef.current = timeline
+      }
     }, root)
 
     return () => {
@@ -156,6 +186,11 @@ export function EffectName({
 
   function handlePointerLeave(event) {
     clearPointerVars(event)
+
+    if (effect === 'gsap-assemble' && tweenRef.current && !prefersReducedMotion()) {
+      tweenRef.current.timeScale(1)
+    }
+
     if (effect === 'magnetic' && rootRef.current) {
       gsap.to(rootRef.current, {
         x: 0,
@@ -171,6 +206,10 @@ export function EffectName({
 
   function handlePointerEnter() {
     runScramble()
+
+    if (effect === 'gsap-assemble' && tweenRef.current && !prefersReducedMotion()) {
+      tweenRef.current.timeScale(0.15)
+    }
 
     if (effect === 'fracture' && !prefersReducedMotion()) {
       const root = rootRef.current
