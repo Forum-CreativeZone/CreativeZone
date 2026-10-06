@@ -1995,3 +1995,98 @@
   .admin-pending-payments>article,.admin-vip-active>article,.admin-project-row,.admin-category-suggestion,.admin-email-job{align-items:flex-start;flex-direction:column}
   .admin-historical-list>article{grid-template-columns:1fr}.admin-historical-actions{justify-content:flex-start}
 }
+
+
+/* Public profile banner: preserve aspect ratio, remove duplicate header title, overlay Back button */
+.community-page-card.public-profile-shell{position:relative}
+.public-profile-overlay-head{
+  position:absolute;
+  inset:0 0 auto 0;
+  z-index:20;
+  padding:16px;
+  border:0;
+  pointer-events:none;
+  background:linear-gradient(180deg,#0009,transparent);
+}
+.public-profile-overlay-head button{
+  pointer-events:auto;
+  width:max-content;
+  margin:0;
+  padding:8px 11px;
+  border:1px solid #ffffff24;
+  border-radius:7px;
+  background:#090909b8;
+  color:#f2f2f2;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+.public-profile-overlay-head button:hover{background:#111e;border-color:#ffffff40}
+.public-profile-hero,
+.public-profile-hero.has-cover{
+  display:block;
+  position:relative;
+  padding:0;
+  background-image:none;
+  background-color:#0b0b0b;
+  overflow:hidden;
+}
+.public-profile-cover{
+  position:relative;
+  width:100%;
+  height:clamp(210px,23vw,280px);
+  overflow:hidden;
+  background:#111;
+}
+.public-profile-cover img{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+  object-position:center;
+}
+.public-profile-content{
+  position:relative;
+  z-index:3;
+  display:flex;
+  align-items:flex-start;
+  gap:22px;
+  padding:24px;
+}
+.public-profile-hero.has-cover .public-profile-content{
+  margin-top:-68px;
+  padding-top:0;
+}
+.public-profile-hero.has-cover .public-profile-main,
+.public-profile-hero.has-cover .profile-actions-public{
+  padding-top:82px;
+}
+.public-profile-hero.has-cover .public-avatar-frame{
+  background-color:var(--surface);
+  box-shadow:0 0 0 5px var(--surface),0 8px 28px #0008;
+}
+.public-profile-hero.cover-effect-subtle:after,
+.public-profile-hero.cover-effect-elite:after,
+.public-profile-hero.cover-effect-architect:after{
+  height:clamp(210px,23vw,280px);
+  z-index:2;
+}
+:root[data-theme="light"] .public-profile-overlay-head button{
+  background:#ffffffe0;
+  color:#222;
+  border-color:#0002;
+}
+:root[data-theme="light"] .public-profile-hero,
+:root[data-theme="light"] .public-profile-hero.has-cover{background:#fff}
+
+@media(max-width:760px){
+  .public-profile-overlay-head{padding:10px}
+  .public-profile-overlay-head button{padding:7px 9px}
+  .public-profile-cover{height:clamp(150px,42vw,210px)}
+  .public-profile-content{gap:12px;padding:16px;flex-wrap:wrap}
+  .public-profile-hero.has-cover .public-profile-content{margin-top:-50px}
+  .public-profile-hero.has-cover .public-profile-main{padding-top:62px;flex:1;min-width:180px}
+  .public-profile-hero.has-cover .profile-actions-public{width:100%;padding-top:0;justify-content:flex-start}
+  .public-profile-hero.cover-effect-subtle:after,
+  .public-profile-hero.cover-effect-elite:after,
+  .public-profile-hero.cover-effect-architect:after{height:clamp(150px,42vw,210px)}
+}
