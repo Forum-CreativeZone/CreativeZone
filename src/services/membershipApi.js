@@ -38,6 +38,19 @@ export async function getProfileCosmetics(userId) {
   return data
 }
 
+export async function getVisualEffectCatalog() {
+  const client = requireSupabase()
+  const { data, error } = await client
+    .from('visual_effect_catalog')
+    .select('effect_id,kind,label,description,min_rank,animated,interactive,owner_only,sort_order')
+    .eq('enabled', true)
+    .order('kind')
+    .order('min_rank')
+    .order('sort_order')
+  if (error) throw error
+  return data || []
+}
+
 export async function saveProfileCosmetics(userId, values) {
   const client = requireSupabase()
   const payload = {
@@ -47,6 +60,10 @@ export async function saveProfileCosmetics(userId, values) {
     avatar_frame: values.avatar_frame || 'none',
     cover_effect: values.cover_effect || 'none',
     badge_style: values.badge_style || 'default',
+    name_effect: values.name_effect || 'clean',
+    badge_effect: values.badge_effect || 'clean-badge',
+    role_effect: values.role_effect || 'clean-role',
+    profile_effect: values.profile_effect || 'none',
   }
 
   const { data, error } = await client
