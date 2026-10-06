@@ -23,6 +23,8 @@ import {
   reputationLevel,
   toggleTagFollow,
 } from './services/communityFeaturesApi'
+import { getMemberDecorations } from './services/membershipApi'
+import { EffectBadge, EffectName } from './VisualEffects'
 
 function FeatureShell({ title, onBack, children, wide = true }) {
   return (
@@ -48,13 +50,25 @@ function MiniAvatar({ item, size = 44 }) {
     : <span className="feature-avatar feature-avatar-fallback" style={{ width:size,height:size }}>{name.slice(0,1).toUpperCase()}</span>
 }
 
-function FeedCard({ item, navigate }) {
+function FeedCard({ item, navigate, decoration }) {
+  const cosmetics = decoration?.cosmetics || {}
+  const membership = decoration?.membership || null
   return (
     <button className="personal-feed-card" onClick={() => navigate('/topico/' + item.id)}>
       <MiniAvatar item={item} />
       <span className="personal-feed-main">
         <span className="personal-feed-meta">
-          <strong>{item.author_display_name || item.author_username || 'Membro'}</strong>
+          <EffectName
+            as="strong"
+            text={item.author_display_name || item.author_username || 'Membro'}
+            effect={cosmetics.name_effect || 'clean'}
+            color={cosmetics.name_color || null}
+          />
+          {membership?.plan_id && membership.plan_id !== 'free' && (
+            <EffectBadge effect={cosmetics.badge_effect || 'clean-badge'} className="feed-vip-badge">
+              {membership.badge}
+            </EffectBadge>
+          )}
           <small>{item.category_name || 'Fórum'}</small>
         </span>
         <b>{item.title}</b>
@@ -82,6 +96,7 @@ const feedModes = [
 export function PersonalizedFeed({ session, navigate }) {
   const [mode,setMode] = useState('recommended')
   const [items,setItems] = useState([])
+  const [decorations,setDecorations] = useState({})
   const [loading,setLoading] = useState(false)
 
   useEffect(() => {
@@ -92,7 +107,21 @@ export function PersonalizedFeed({ session, navigate }) {
     }
     setLoading(true)
     getPersonalizedFeed(mode,12,0)
-      .then((rows) => { if (alive) setItems(rows) })
+      .then(async (rows) => {
+        if (!alive) return
+        setItems(rows)
+        const ids = [...new Set(rows.map((item) => item.author_id).filter(Boolean))]
+        if (!ids.length) {
+          setDecorations({})
+          return
+        }
+        try {
+          const next = await getMemberDecorations(ids)
+          if (alive) setDecorations(next)
+        } catch {
+          if (alive) setDecorations({})
+        }
+      })
       .catch(() => { if (alive) setItems([]) })
       .finally(() => { if (alive) setLoading(false) })
     return () => { alive=false }
@@ -130,7 +159,14 @@ export function PersonalizedFeed({ session, navigate }) {
         ))}
       </nav>
       <div className="personal-feed-list">
-        {loading ? <p className="feature-empty">Carregando seu feed...</p> : items.map((item) => <FeedCard key={item.id} item={item} navigate={navigate} />)}
+        {loading ? <p className="feature-empty">Carregando seu feed...</p> : items.map((item) => (
+          <FeedCard
+            key={item.id}
+            item={item}
+            navigate={navigate}
+            decoration={decorations[item.author_id]}
+          />
+        ))}
         {!loading && !items.length && <p className="feature-empty">Ainda não há conteúdo suficiente para esta seleção. Siga membros, tags ou adicione interesses ao seu perfil.</p>}
       </div>
     </section>
@@ -141,16 +177,24 @@ export function RankingsPage({ navigate }) {
   const [period,setPeriod] = useState('weekly')
   const [rows,setRows] = useState([])
   const [month,setMonth] = useState([])
+  const [decorations,setDecorations] = useState({})
 
   useEffect(() => {
     let alive=true
     Promise.all([
       getCommunityRankings(period,50),
       getCommunityRankings('monthly',3),
-    ]).then(([next,monthRows]) => {
+    ]).then(async ([next,monthRows]) => {
       if (!alive) return
       setRows(next)
       setMonth(monthRows)
+      const ids = [...new Set([...next,...monthRows].map((item) => item.user_id).filter(Boolean))]
+      try {
+        const nextDecorations = ids.length ? await getMemberDecorations(ids) : {}
+        if (alive) setDecorations(nextDecorations)
+      } catch {
+        if (alive) setDecorations({})
+      }
     }).catch(() => {
       if (alive) { setRows([]);setMonth([]) }
     })
@@ -168,7 +212,12 @@ export function RankingsPage({ navigate }) {
             <MiniAvatar item={monthlyWinner} size={72} />
             <div>
               <span>Membro do mês</span>
-              <h2>{monthlyWinner.display_name || monthlyWinner.username}</h2>
+              <EffectName
+                as="h2"
+                text={monthlyWinner.display_name || monthlyWinner.username}
+                effect={decorations[monthlyWinner.user_id]?.cosmetics?.name_effect || 'clean'}
+                color={decorations[monthlyWinner.user_id]?.cosmetics?.name_color || null}
+              />
               <p>{monthlyWinner.period_xp} XP neste mês · {monthlyWinner.level}</p>
             </div>
           </section>
@@ -187,7 +236,15 @@ export function RankingsPage({ navigate }) {
                 {index===0?'🥇':index===1?'🥈':index===2?'🥉':'#'+row.rank}
               </span>
               <MiniAvatar item={row} />
-              <span className="ranking-person"><strong>{row.display_name || row.username}</strong><small>@{row.username} · {row.level}</small></span>
+              <span className="ranking-person">
+                <EffectName
+                  as="strong"
+                  text={row.display_name || row.username}
+                  effect={decorations[row.user_id]?.cosmetics?.name_effect || 'clean'}
+                  color={decorations[row.user_id]?.cosmetics?.name_color || null}
+                />
+                <small>@{row.username} · {row.level}</small>
+              </span>
               <span className="ranking-score"><b>{row.period_xp}</b><small>XP no período</small></span>
               <span className="ranking-total"><b>{row.reputation}</b><small>XP total</small></span>
             </button>
