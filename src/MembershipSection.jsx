@@ -688,7 +688,7 @@ export function EliteAreaPage({ session, navigate }) {
           <div className="elite-lounge">
             <section><Sparkles /><div><strong>Early Access Lab</strong><small>Recursos experimentais e novidades aparecem aqui primeiro.</small></div></section>
             <section><Zap /><div><strong>Creator Toolkit</strong><small>Ferramentas premium e recursos extras para seus projetos e publicações.</small></div></section>
-            <section><Gem /><div><strong>Identidade Elite</strong><small>Personalizações, molduras, títulos e benefícios exclusivos ativos.</small></div></section>
+            <section><Gem /><div><strong>Benefícios Elite</strong><small>Área exclusiva, ferramentas extras e recursos antecipados ativos. Os efeitos de nome pertencem ao catálogo PRO compartilhado.</small></div></section>
           </div>
         )}
       </div>
