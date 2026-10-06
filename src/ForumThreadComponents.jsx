@@ -6,6 +6,7 @@ import {
   MessageSquareText,
   ShieldCheck,
 } from 'lucide-react'
+import { EffectBadge, EffectName, EffectRole } from './VisualEffects'
 
 function formatJoined(value) {
   if (!value) return '—'
@@ -61,24 +62,40 @@ export function ThreadAuthorPanel({
             <span className="thread-profile-fallback">{name.slice(0, 1).toUpperCase()}</span>
           )}
         </span>
-        <strong style={cosmetics.name_color ? { color: cosmetics.name_color } : undefined}>{name}</strong>
+        <EffectName
+          as="strong"
+          text={name}
+          effect={cosmetics.name_effect || 'clean'}
+          color={cosmetics.name_color || null}
+          className="thread-effect-name"
+        />
         {username && <small>@{username}</small>}
         {cosmetics.profile_title && <em className="thread-profile-title">{cosmetics.profile_title}</em>}
       </button>
 
       <div className="thread-identity-badges">
-        {isOwner && <span className="identity-badge architect">🏗️ Arquiteto CreativeZone</span>}
+        {isOwner && (
+          <EffectBadge effect={cosmetics.badge_effect || 'architect-forge'} className="identity-badge architect">
+            🏗️ Arquiteto CreativeZone
+          </EffectBadge>
+        )}
         {membership?.plan_id && membership.plan_id !== 'free' && (
-          <span className={'identity-badge membership-' + membership.plan_id + ' style-' + (cosmetics.badge_style || 'default')}>
+          <EffectBadge
+            effect={cosmetics.badge_effect || 'clean-badge'}
+            className={'identity-badge membership-' + membership.plan_id + ' style-' + (cosmetics.badge_style || 'default')}
+          >
             {membership.badge}{membership.permanent ? ' ∞' : ''}
-          </span>
+          </EffectBadge>
         )}
       </div>
 
-      <span className={'thread-role-badge role-' + (profile?.role || 'member')}>
+      <EffectRole
+        effect={cosmetics.role_effect || 'clean-role'}
+        className={'thread-role-badge role-' + (profile?.role || 'member')}
+      >
         <ShieldCheck />
         {roleLabel(profile?.role)}
-      </span>
+      </EffectRole>
 
       {profile?.occupation && (
         <p className="thread-profile-occupation">{profile.occupation}</p>
