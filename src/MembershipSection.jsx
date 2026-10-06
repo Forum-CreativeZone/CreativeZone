@@ -41,8 +41,8 @@ const WHATSAPP_NUMBER = '5511932212697'
 const benefits = [
   ['name_color','Cor personalizada do nome'],
   ['custom_title','Título personalizado'],
-  ['avatar_frame','Moldura especial de avatar'],
-  ['animated_cover','Capa animada'],
+  ['avatar_frame','Molduras premium de avatar'],
+  ['animated_cover','Efeitos premium de capa'],
   ['early_access','Acesso antecipado a recursos'],
   ['elite_area','Área Elite'],
   ['creator_tools','Ferramentas extras para criadores'],
@@ -227,8 +227,8 @@ function CosmeticsForm({ state, profile, effects, cosmetics, setCosmetics, onSav
         </div>
       </header>
 
-      <div className="identity-live-preview">
-        <div>
+      <div className="identity-live-preview identity-live-preview-v2">
+        <div className="identity-live-primary">
           <span>Preview ao vivo</span>
           <EffectPreview
             kind="name"
@@ -236,18 +236,30 @@ function CosmeticsForm({ state, profile, effects, cosmetics, setCosmetics, onSav
             name={displayName}
             color={cosmetics.name_color || '#ff4b3e'}
           />
+          <div className="identity-live-tags">
+            <EffectPreview
+              kind="badge"
+              effect={cosmetics.badge_effect || 'clean-badge'}
+              name={displayName}
+              color={cosmetics.name_color || '#ff4b3e'}
+            />
+            <EffectPreview
+              kind="role"
+              effect={cosmetics.role_effect || 'clean-role'}
+              role={roleLabel}
+            />
+          </div>
         </div>
-        <EffectPreview
-          kind="badge"
-          effect={cosmetics.badge_effect || 'clean-badge'}
-          name={displayName}
-          color={cosmetics.name_color || '#ff4b3e'}
-        />
-        <EffectPreview
-          kind="role"
-          effect={cosmetics.role_effect || 'clean-role'}
-          role={roleLabel}
-        />
+        <div className="identity-live-visuals">
+          <EffectPreview
+            kind="avatar"
+            effect={cosmetics.avatar_frame || 'avatar-clean'}
+          />
+          <EffectPreview
+            kind="cover"
+            effect={cosmetics.cover_effect || 'cover-clean'}
+          />
+        </div>
       </div>
 
       <div className="identity-basic-grid">
@@ -279,35 +291,6 @@ function CosmeticsForm({ state, profile, effects, cosmetics, setCosmetics, onSav
             placeholder={owner ? 'Arquiteto CreativeZone' : 'Ex.: Full Stack Developer'}
             onChange={(event) => choose('profile_title', event.target.value)}
           />
-        </label>
-
-        <label>
-          Moldura do avatar
-          <select
-            value={cosmetics.avatar_frame || 'none'}
-            disabled={!e.avatar_frame}
-            onChange={(event) => choose('avatar_frame', event.target.value)}
-          >
-            <option value="none">Sem moldura</option>
-            {state?.plan_id === 'pro' && <option value="pro">PRO</option>}
-            {(state?.plan_id === 'elite' || owner) && <option value="pro">PRO</option>}
-            {(state?.plan_id === 'elite' || owner) && <option value="elite">ELITE</option>}
-            {owner && <option value="architect">Arquiteto CreativeZone</option>}
-          </select>
-        </label>
-
-        <label>
-          Efeito da capa
-          <select
-            value={cosmetics.cover_effect || 'none'}
-            disabled={!e.animated_cover}
-            onChange={(event) => choose('cover_effect', event.target.value)}
-          >
-            <option value="none">Normal</option>
-            <option value="subtle">Premium discreto</option>
-            {(state?.plan_id === 'elite' || owner) && <option value="elite">ELITE</option>}
-            {owner && <option value="architect">Arquiteto CreativeZone</option>}
-          </select>
         </label>
 
         <label>
@@ -372,7 +355,37 @@ function CosmeticsForm({ state, profile, effects, cosmetics, setCosmetics, onSav
       </section>
 
       <section className="identity-effect-section">
-        <header><strong>Efeito do perfil</strong><small>Superfícies reativas e contornos animados para o cartão público do membro.</small></header>
+        <header><strong>Moldura do avatar</strong><small>De aros estáticos a plasma orbital, segmentos tecnológicos e descargas elétricas.</small></header>
+        <EffectGallery
+          kind="avatar"
+          effects={effects}
+          value={cosmetics.avatar_frame || 'avatar-clean'}
+          onChange={(value) => choose('avatar_frame',value)}
+          rank={rank}
+          owner={owner}
+          name={displayName}
+          color={cosmetics.name_color || '#ff4b3e'}
+          role={roleLabel}
+        />
+      </section>
+
+      <section className="identity-effect-section">
+        <header><strong>Efeito da capa</strong><small>Scanner, parallax, bordas energéticas, HUD holográfico e perímetro Architect.</small></header>
+        <EffectGallery
+          kind="cover"
+          effects={effects}
+          value={cosmetics.cover_effect || 'cover-clean'}
+          onChange={(value) => choose('cover_effect',value)}
+          rank={rank}
+          owner={owner}
+          name={displayName}
+          color={cosmetics.name_color || '#ff4b3e'}
+          role={roleLabel}
+        />
+      </section>
+
+      <section className="identity-effect-section">
+        <header><strong>Efeito do perfil</strong><small>Superfícies reativas, profundidade 3D, HUDs e shader WebGL leve para perfis Elite.</small></header>
         <EffectGallery
           kind="profile"
           effects={effects}
@@ -560,8 +573,8 @@ export function MembershipSection({ session, profile, state, setState, notify })
   const [cosmetics,setCosmetics] = useState({
     name_color:null,
     profile_title:null,
-    avatar_frame:'none',
-    cover_effect:'none',
+    avatar_frame:'avatar-clean',
+    cover_effect:'cover-clean',
     badge_style:'default',
     name_effect:'clean',
     badge_effect:'clean-badge',
@@ -593,8 +606,8 @@ export function MembershipSection({ session, profile, state, setState, notify })
     setCosmetics(nextCosmetics || {
       name_color:null,
       profile_title:null,
-      avatar_frame:'none',
-      cover_effect:'none',
+      avatar_frame:'avatar-clean',
+      cover_effect:'cover-clean',
       badge_style:'default',
       name_effect:'clean',
       badge_effect:'clean-badge',
