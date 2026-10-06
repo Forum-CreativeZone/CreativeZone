@@ -55,15 +55,17 @@ export async function saveProfileCosmetics(userId, values) {
   const client = requireSupabase()
   const payload = {
     user_id: userId,
-    name_color: values.name_color || null,
-    profile_title: values.profile_title?.trim() || null,
-    avatar_frame: values.avatar_frame || 'avatar-clean',
-    cover_effect: values.cover_effect || 'cover-clean',
-    badge_style: values.badge_style || 'default',
+    // The cosmetic system is intentionally name-only. Every retired layer is
+    // normalized here as well as server-side so old clients cannot revive it.
+    name_color: null,
+    profile_title: null,
+    avatar_frame: 'avatar-clean',
+    cover_effect: 'cover-clean',
+    badge_style: 'default',
     name_effect: values.name_effect || 'clean',
-    badge_effect: values.badge_effect || 'clean-badge',
-    role_effect: values.role_effect || 'clean-role',
-    profile_effect: values.profile_effect || 'none',
+    badge_effect: 'clean-badge',
+    role_effect: 'clean-role',
+    profile_effect: 'none',
   }
 
   const { data, error } = await client
