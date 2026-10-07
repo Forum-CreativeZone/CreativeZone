@@ -281,10 +281,19 @@ export function EffectName({
       onPointerLeave={handlePointerLeave}
       onPointerEnter={handlePointerEnter}
     >
-      {effect === 'polygon-assemble'
+      {effect === 'ghost-sweep'
         ? (
             <>
-              <span className="cz-polygon-word" aria-hidden="true">
+              <span className="cz-ghost-label">{text}</span>
+              <span className="cz-ghost-sprite" aria-hidden="true">
+                <i></i><i></i><i></i><i></i><i></i>
+              </span>
+            </>
+          )
+        : effect === 'polygon-assemble'
+          ? (
+              <>
+                <span className="cz-polygon-word" aria-hidden="true">
                 {chars.map((char, index) => (
                   <span
                     className={'cz-polygon-char' + (char === ' ' ? ' is-space' : '')}
@@ -307,10 +316,10 @@ export function EffectName({
                   </span>
                 ))}
               </span>
-              <span className="sr-only">{text}</span>
-            </>
-          )
-        : effect === 'css-3d-glow'
+                <span className="sr-only">{text}</span>
+              </>
+            )
+          : effect === 'css-3d-glow'
           ? (
               <>
                 <span className="cz-3d-glow-stack" aria-hidden="true">
