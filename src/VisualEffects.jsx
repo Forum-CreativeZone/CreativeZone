@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react'
 import { gsap } from 'gsap'
 
 const FRACTURE_EFFECTS = new Set(['fracture','architect-core'])
-const CHAR_EFFECTS = new Set(['fracture','kinetic','architect-core','wave','gsap-assemble'])
+const CHAR_EFFECTS = new Set(['fracture','kinetic','architect-core','wave','gsap-assemble','nabla-depth'])
 const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>[]{}#@!?*/+-='
 
 function prefersReducedMotion() {
@@ -289,7 +289,10 @@ export function EffectName({
                   <span
                     className={'cz-polygon-char' + (char === ' ' ? ' is-space' : '')}
                     key={index + '-' + char}
-                    style={{ '--char-index': index }}
+                    style={{
+                '--char-index': index,
+                '--char-delay': ((index + 1) * 0.1) + 's',
+              }}
                   >
                     <span className="cz-polygon-ghost">{char === ' ' ? '\u00A0' : char}</span>
                     {char !== ' ' && Array.from({ length: 4 }, (_, shardIndex) => (
