@@ -4057,3 +4057,63 @@
   color:#222;
   border-color:#ccc;
 }
+
+
+.toolbar-download-marker{
+  color:#ffc15d!important;
+}
+.toolbar-download-marker:hover{
+  background:#6f4a151f!important;
+  color:#ffd98e!important;
+}
+.composer-download-help{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  padding:11px 12px;
+  border:1px solid #62491f;
+  border-radius:7px;
+  background:linear-gradient(135deg,#2a1c0c,#17120c);
+}
+.composer-download-help>svg{
+  width:18px;
+  height:18px;
+  flex:none;
+  margin-top:2px;
+  color:#ffc15d;
+}
+.composer-download-help>div{
+  display:grid;
+  gap:4px;
+}
+.composer-download-help strong{
+  color:#f4dfb6;
+  font-size:13px;
+}
+.composer-download-help p,
+.composer-download-help small{
+  margin:0!important;
+  color:#9f957f;
+  font-size:12px;
+  line-height:1.5;
+}
+.composer-download-help code{
+  padding:1px 5px;
+  border:1px solid #725728;
+  border-radius:4px;
+  background:#201708;
+  color:#ffd27f;
+  font:12px ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+:root[data-theme="light"] .composer-download-help{
+  border-color:#e2c890;
+  background:#fff9eb;
+}
+:root[data-theme="light"] .composer-download-help strong{color:#5e4310}
+:root[data-theme="light"] .composer-download-help p,
+:root[data-theme="light"] .composer-download-help small{color:#756747}
+:root[data-theme="light"] .composer-download-help code{
+  background:#fff3d2;
+  border-color:#e5c679;
+  color:#74520b;
+}
