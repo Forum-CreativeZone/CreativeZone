@@ -895,6 +895,14 @@ export function ProfessionalEditor({
           value={value}
           onChange={(e) => setEditorValue(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={(event) => {
+            const pastedImages = Array.from(event.clipboardData?.files || [])
+              .filter((file) => file.type.startsWith('image/'))
+            if (pastedImages.length) {
+              event.preventDefault()
+              addInlineFiles(pastedImages)
+            }
+          }}
           placeholder={placeholder}
           spellCheck
         />
