@@ -73,18 +73,46 @@ function isGithubRepo(url) {
   return { owner: parts[0], repo: parts[1].replace(/\.git$/i, '') }
 }
 
+function cleanFont(value) {
+  const match = FONTS.find((font) => font.toLowerCase() === String(value || '').toLowerCase())
+  return match || 'Arial'
+}
+
 function Inline({ text = '' }) {
-  const regex = /(\*\*[^*\n]+\*\*|__[^_\n]+__|_[^_\n]+_|\x60[^\x60\n]+\x60|\[[^\]\n]+\]\(https?:\/\/[^)\s]+\)|https?:\/\/[^\s<]+)/g
+  const regex = /(\*\*[^*\n]+\*\*|__[^_\n]+__|_[^_\n]+_|\x60[^\x60\n]+\x60|!\[[^\]\n]*\]\(https?:\/\/[^)\s]+\)|\[[^\]\n]+\]\(https?:\/\/[^)\s]+\)|\[color=#[0-9a-fA-F]{3,8}\][\s\S]*?\[\/color\]|\[size=\d{1,2}\][\s\S]*?\[\/size\]|\[font=[^\]\n]+\][\s\S]*?\[\/font\]|https?:\/\/[^\s<]+)/g
   const parts = String(text).split(regex).filter((part) => part !== '')
   return (
     <>
       {parts.map((part, index) => {
-        if (/^\*\*.*\*\*$/.test(part)) return <strong key={index}>{part.slice(2,-2)}</strong>
-        if (/^__.*__$/.test(part)) return <u key={index}>{part.slice(2,-2)}</u>
-        if (/^_.*_$/.test(part)) return <em key={index}>{part.slice(1,-1)}</em>
+        if (/^\*\*.*\*\*$/.test(part)) return <strong key={index}><Inline text={part.slice(2,-2)} /></strong>
+        if (/^__.*__$/.test(part)) return <u key={index}><Inline text={part.slice(2,-2)} /></u>
+        if (/^_.*_$/.test(part)) return <em key={index}><Inline text={part.slice(1,-1)} /></em>
         if (/^\x60.*\x60$/.test(part)) return <code key={index}>{part.slice(1,-1)}</code>
+
+        const image = part.match(/^!\[([^\]]*)\]\((https?:\/\/[^)]+)\)$/)
+        if (image) {
+          return (
+            <a className="rich-inline-image" key={index} href={image[2]} target="_blank" rel="noreferrer noopener">
+              <img src={image[2]} alt={image[1] || 'Imagem'} loading="lazy" />
+            </a>
+          )
+        }
+
         const md = part.match(/^\[([^\]]+)\]\((https?:\/\/[^)]+)\)$/)
         if (md) return <a key={index} href={md[2]} target="_blank" rel="noreferrer noopener">{md[1]}</a>
+
+        const color = part.match(/^\[color=(#[0-9a-fA-F]{3,8})\]([\s\S]*)\[\/color\]$/)
+        if (color) return <span key={index} style={{ color: color[1] }}><Inline text={color[2]} /></span>
+
+        const size = part.match(/^\[size=(\d{1,2})\]([\s\S]*)\[\/size\]$/)
+        if (size) {
+          const px = Math.max(10, Math.min(36, Number(size[1]) || 14))
+          return <span key={index} style={{ fontSize: px }}><Inline text={size[2]} /></span>
+        }
+
+        const font = part.match(/^\[font=([^\]]+)\]([\s\S]*)\[\/font\]$/)
+        if (font) return <span key={index} style={{ fontFamily: cleanFont(font[1]) }}><Inline text={font[2]} /></span>
+
         if (/^https?:\/\//i.test(part)) return <a key={index} href={part} target="_blank" rel="noreferrer noopener">{part}</a>
         return <React.Fragment key={index}>{part}</React.Fragment>
       })}
