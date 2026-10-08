@@ -667,16 +667,6 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, profil
         <label htmlFor="topic-title">Título</label>
         <input id="topic-title" required maxLength={160} placeholder="Título do tópico" value={title} onChange={(event) => setTitle(event.target.value)} />
 
-        <label htmlFor="topic-tags">Tags</label>
-        <input
-          id="topic-tags"
-          maxLength={240}
-          placeholder="#React, #IA, #Python, #Cloud"
-          value={tagText}
-          onChange={(event) => setTagText(event.target.value)}
-        />
-        <small className="field-help">Até 6 tags. Você pode usar #hashtags separadas por espaço ou nomes separados por vírgula. Elas alimentam recomendações e tópicos relacionados.</small>
-
         <label htmlFor="topic-description">Mensagem</label>
         <ProfessionalEditor
           id="topic-description"
@@ -768,6 +758,18 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, profil
             </p>
           </section>
         )}
+
+        <section className="composer-tags-panel">
+          <label htmlFor="topic-tags">Etiquetas / Tags</label>
+          <input
+            id="topic-tags"
+            maxLength={240}
+            placeholder="#AdobeAudition #Adobe #Audio #CreativeZone"
+            value={tagText}
+            onChange={(event) => setTagText(event.target.value)}
+          />
+          <small>Até 6 tags. Use #hashtags separadas por espaço ou nomes separados por vírgula.</small>
+        </section>
 
         <section className="composer-publish-options">
           <label>
