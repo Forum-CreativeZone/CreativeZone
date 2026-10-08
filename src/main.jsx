@@ -229,8 +229,8 @@ function Avatar({ name, mobileName, src, status, mobileStatus, small = false }) 
   )
 }
 
-function ForumText({ content = '', media = [] }) {
-  return <RichForumContent content={content} media={media} />
+function ForumText({ content = '', media = [], downloadSlot = null }) {
+  return <RichForumContent content={content} media={media} downloadSlot={downloadSlot} />
 }
 
 function ForumMediaList({ items = [], content = '' }) {
@@ -271,6 +271,7 @@ function ProtectedDownloads({
   navigate,
   notify,
   onRefresh,
+  preview = false,
 }) {
   const isOwner = Boolean(profile?.system_owner)
   const hasPaidPlan = isOwner || Number(membershipState?.rank || 0) >= 1
@@ -278,13 +279,23 @@ function ProtectedDownloads({
   if (!items.length) return null
 
   async function openDownload(item) {
+    if (preview) {
+      const draftUrl = item.url || item.target_url
+      if (!draftUrl) return
+      const opened = window.open(draftUrl, '_blank', 'noopener,noreferrer')
+      if (!opened) window.location.assign(draftUrl)
+      return
+    }
+
     if (!session?.user) {
       notify?.('Crie uma conta ou entre para acessar downloads.')
       navigate('/cadastro')
       return
     }
 
-    if (item.access_scope === 'paid' && !hasPaidPlan) {
+    const scope = item.access_scope || item.accessScope || 'member'
+
+    if (scope === 'paid' && !hasPaidPlan) {
       notify?.('Este download é exclusivo para assinantes PRO e ELITE.')
       navigate('/conta/assinatura')
       return
@@ -335,8 +346,9 @@ function ProtectedDownloads({
 
       <div className="protected-download-list">
         {items.map((item) => {
-          const paidOnly = item.access_scope === 'paid'
-          const allowed = Boolean(session?.user) && (!paidOnly || hasPaidPlan)
+          const accessScope = item.access_scope || item.accessScope || 'member'
+          const paidOnly = accessScope === 'paid'
+          const allowed = preview ? Boolean(item.url || item.target_url) : Boolean(session?.user) && (!paidOnly || hasPaidPlan)
           return (
             <article key={item.id} className={paidOnly ? 'paid-only' : 'members-only'}>
               <div className="protected-download-main">
@@ -354,9 +366,9 @@ function ProtectedDownloads({
               </div>
 
               <div className="protected-download-actions">
-                {isOwner && (
+                {isOwner && !preview && (
                   <select
-                    value={item.access_scope}
+                    value={accessScope}
                     onChange={(event) => changeAccess(item, event.target.value)}
                     aria-label={'Permissão de ' + item.label}
                   >
@@ -371,14 +383,16 @@ function ProtectedDownloads({
                   onClick={() => openDownload(item)}
                 >
                   {allowed ? <Download /> : <LockKeyhole />}
-                  {!session?.user
-                    ? 'Criar conta para baixar'
-                    : paidOnly && !hasPaidPlan
-                      ? 'Requer PRO / ELITE'
-                      : 'Baixar'}
+                  {preview
+                    ? 'Testar download'
+                    : !session?.user
+                      ? 'Criar conta para baixar'
+                      : paidOnly && !hasPaidPlan
+                        ? 'Requer PRO / ELITE'
+                        : 'Baixar'}
                 </button>
 
-                {isOwner && (
+                {isOwner && !preview && (
                   <button
                     type="button"
                     className="action danger-action protected-download-delete"
