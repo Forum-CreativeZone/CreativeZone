@@ -196,7 +196,7 @@ function AttachmentBlock({ name, media = [] }) {
   )
 }
 
-function MarkdownBlock({ text = '', media = [] }) {
+function MarkdownBlock({ text = '', media = [], downloadSlot = null }) {
   const lines = String(text).split('\n')
   const nodes = []
   let list = []
@@ -314,10 +314,27 @@ function MarkdownBlock({ text = '', media = [] }) {
       continue
     }
 
+    if (!trimmed && list.length) {
+      let lookahead = index + 1
+      while (lookahead < lines.length && !lines[lookahead].trim()) lookahead += 1
+      const nextTrimmed = lines[lookahead]?.trim() || ''
+      const continuesSameList = listType === 'ol'
+        ? /^\d+\.\s+/.test(nextTrimmed)
+        : /^[-*]\s+/.test(nextTrimmed)
+      if (continuesSameList) continue
+    }
+
     flushList()
 
     if (!trimmed) {
       nodes.push(<div className="rich-spacer" key={'space-' + index} />)
+      continue
+    }
+
+    if (/^\[downloads\]$/i.test(trimmed)) {
+      if (downloadSlot) {
+        nodes.push(<div className="rich-download-slot" key={'downloads-' + index}>{downloadSlot}</div>)
+      }
       continue
     }
 
@@ -364,7 +381,7 @@ function MarkdownBlock({ text = '', media = [] }) {
   return <>{nodes}</>
 }
 
-export function RichForumContent({ content = '', media = [] }) {
+export function RichForumContent({ content = '', media = [], downloadSlot = null }) {
   const parts = []
   const regex = /\[quote=@([^\]]+)\]([\s\S]*?)\[\/quote\]/g
   let last = 0
@@ -373,21 +390,29 @@ export function RichForumContent({ content = '', media = [] }) {
 
   while ((match = regex.exec(String(content))) !== null) {
     if (match.index > last) {
-      parts.push(<MarkdownBlock key={'text-' + index++} text={String(content).slice(last,match.index)} media={media} />)
+      parts.push(<MarkdownBlock key={'text-' + index++} text={String(content).slice(last,match.index)} media={media} downloadSlot={downloadSlot} />)
     }
     parts.push(
       <blockquote className="forum-quote rich-quote" key={'quote-' + index++}>
         <strong>@{match[1]} escreveu:</strong>
-        <MarkdownBlock text={match[2].trim()} media={media} />
+        <MarkdownBlock text={match[2].trim()} media={media} downloadSlot={downloadSlot} />
       </blockquote>
     )
     last = regex.lastIndex
   }
   if (last < String(content).length) {
-    parts.push(<MarkdownBlock key={'text-' + index} text={String(content).slice(last)} media={media} />)
+    parts.push(<MarkdownBlock key={'text-' + index} text={String(content).slice(last)} media={media} downloadSlot={downloadSlot} />)
   }
 
-  return <div className="forum-rendered-text rich-forum-content">{parts.length ? parts : <MarkdownBlock text={content} media={media} />}</div>
+  const hasDownloadMarker = /\[downloads\]/i.test(String(content))
+  return (
+    <div className="forum-rendered-text rich-forum-content">
+      {parts.length ? parts : <MarkdownBlock text={content} media={media} downloadSlot={downloadSlot} />}
+      {downloadSlot && !hasDownloadMarker && (
+        <div className="rich-download-slot rich-download-slot-fallback">{downloadSlot}</div>
+      )}
+    </div>
+  )
 }
 
 function AttachmentPreview({ file, onRemove }) {
@@ -431,6 +456,7 @@ export function ProfessionalEditor({
   files = [],
   onFilesChange,
   onSaveDraft,
+  previewDownloadSlot = null,
   placeholder = 'Escreva sua publicação...',
   required = false,
   maxLength = 12000,
@@ -904,7 +930,7 @@ export function ProfessionalEditor({
 
       {preview ? (
         <div className="professional-preview">
-          {String(value).trim() ? <RichForumContent content={value} media={previewMedia} /> : <p className="editor-empty-preview">O preview aparecerá aqui.</p>}
+          {String(value).trim() ? <RichForumContent content={value} media={previewMedia} downloadSlot={previewDownloadSlot} /> : <p className="editor-empty-preview">O preview aparecerá aqui.</p>}
         </div>
       ) : (
         <textarea
