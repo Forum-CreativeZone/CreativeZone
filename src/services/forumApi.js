@@ -265,12 +265,19 @@ export async function isWatchingTopic(userId, topicId) {
   return Boolean(data)
 }
 
-export async function watchTopic(userId, topicId) {
+export async function watchTopic(userId, topicId, { emailNotifications = true } = {}) {
   const client = requireSupabase()
   const { error } = await client
     .from('topic_watches')
-    .insert({ topic_id: topicId, user_id: userId })
-  if (error && error.code !== '23505') throw error
+    .upsert(
+      {
+        topic_id: topicId,
+        user_id: userId,
+        email_notifications: Boolean(emailNotifications),
+      },
+      { onConflict: 'topic_id,user_id' }
+    )
+  if (error) throw error
 }
 
 export async function unwatchTopic(userId, topicId) {
