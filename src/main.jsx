@@ -943,6 +943,7 @@ function App() {
   const [watchingTopic, setWatchingTopic] = useState(false)
   const [watchBusy, setWatchBusy] = useState(false)
   const [topicMedia, setTopicMedia] = useState([])
+  const [topicDownloads, setTopicDownloads] = useState([])
   const [postMedia, setPostMedia] = useState({})
   const [replyFiles, setReplyFiles] = useState([])
   const [searchResults, setSearchResults] = useState([])
@@ -1247,6 +1248,7 @@ function App() {
         setThreadDecorations({})
         setWatchingTopic(false)
         setTopicMedia([])
+        setTopicDownloads([])
         setPostMedia({})
         setRouteTags([])
         setRelatedTopics([])
@@ -1255,10 +1257,11 @@ function App() {
       }
 
       try {
-        const [rawTopic, posts, media, tags, related] = await Promise.all([
+        const [rawTopic, posts, media, downloads, tags, related] = await Promise.all([
           getTopicById(routeTopicId),
           getPosts(routeTopicId),
           getTopicMedia(routeTopicId),
+          getTopicDownloads(routeTopicId),
           getTopicTags(routeTopicId),
           getRelatedTopics(routeTopicId).catch(() => []),
         ])
@@ -1266,6 +1269,7 @@ function App() {
         setRouteTopic(mapTopic(rawTopic))
         setThreadReplies(posts)
         setTopicMedia(media)
+        setTopicDownloads(downloads)
         setRouteTags(tags)
         setRelatedTopics(related)
 
@@ -1299,6 +1303,7 @@ function App() {
           setThreadAuthorStats({})
           setThreadDecorations({})
           setTopicMedia([])
+          setTopicDownloads([])
           setPostMedia({})
           setRouteTags([])
           setRelatedTopics([])
@@ -1540,6 +1545,19 @@ function App() {
         author_id: session.user.id,
         slug: slugify(topic.title) + '-' + Date.now().toString(36),
       })
+
+      if (topic.downloads?.length) {
+        try {
+          await createTopicDownloads({
+            topicId: created.id,
+            downloads: topic.downloads,
+            userId: session.user.id,
+          })
+        } catch (downloadError) {
+          await deleteTopic(created.id).catch(() => {})
+          throw downloadError
+        }
+      }
 
       await setTopicTags(created.id, session.user.id, topic.tags || [])
 
