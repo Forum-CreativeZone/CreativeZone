@@ -233,11 +233,17 @@ function ForumText({ content = '', media = [] }) {
   return <RichForumContent content={content} media={media} />
 }
 
-function ForumMediaList({ items = [] }) {
+function ForumMediaList({ items = [], content = '' }) {
   if (!items.length) return null
+  const inlineNames = new Set(
+    [...String(content || '').matchAll(/\[attachment:([^\]]+)\]/g)].map((match) => match[1])
+  )
+  const visible = items.filter((item) => !inlineNames.has(item.original_name))
+  if (!visible.length) return null
+
   return (
     <div className="forum-media-list">
-      {items.map((item) => (
+      {visible.map((item) => (
         <a
           key={item.id}
           href={item.signed_url || '#'}
