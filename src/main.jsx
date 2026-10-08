@@ -554,8 +554,10 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, profil
   }, [categoryId, firstCategory])
 
   function parsedTags() {
+    const hashTags = tagText.match(/#[^\s,#]+/g)
+    const source = hashTags?.length ? hashTags : tagText.split(',')
     return [...new Set(
-      tagText.split(',').map((value) => value.replace(/^#+/, '').trim()).filter(Boolean)
+      source.map((value) => value.replace(/^#+/, '').trim()).filter(Boolean)
     )].slice(0,6)
   }
 
