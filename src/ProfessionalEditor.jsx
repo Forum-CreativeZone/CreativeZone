@@ -446,15 +446,148 @@ export function ProfessionalEditor({
     })
   }, [acceptedFiles])
 
+  function setEditorValue(next, record = true) {
+    const clean = String(next).slice(0,maxLength)
+    if (record) {
+      const history = historyRef.current.slice(0, historyIndexRef.current + 1)
+      if (history[history.length - 1] !== clean) {
+        history.push(clean)
+        if (history.length > 120) history.shift()
+        historyRef.current = history
+        historyIndexRef.current = history.length - 1
+      }
+    }
+    onChange(clean)
+  }
+
+  function undo() {
+    if (historyIndexRef.current <= 0) return
+    historyIndexRef.current -= 1
+    onChange(historyRef.current[historyIndexRef.current])
+  }
+
+  function redo() {
+    if (historyIndexRef.current >= historyRef.current.length - 1) return
+    historyIndexRef.current += 1
+    onChange(historyRef.current[historyIndexRef.current])
+  }
+
   function addFiles(incoming) {
     const next = [...acceptedFiles]
+    const added = []
     for (const file of Array.from(incoming || [])) {
       if (next.length >= fileLimit) break
       if (!ACCEPTED.has(file.type) || file.size > byteLimit) continue
       const duplicate = next.some((item) => item.name === file.name && item.size === file.size)
-      if (!duplicate) next.push(file)
+      if (!duplicate) {
+        next.push(file)
+        added.push(file)
+      }
     }
     onFilesChange?.(next)
+    return added
+  }
+
+  function addInlineFiles(incoming) {
+    const added = addFiles(incoming).filter((file) => file.type.startsWith('image/'))
+    if (!added.length) return
+    insert('\n' + added.map((file) => '[attachment:' + file.name + ']').join('\n') + '\n')
+  }
+
+  function selectedText() {
+    const el = textarea.current
+    if (!el) return ''
+    return String(value).slice(el.selectionStart,el.selectionEnd)
+  }
+
+  function prefixLines(prefixFactory) {
+    const el = textarea.current
+    if (!el) return
+    const start = el.selectionStart
+    const end = el.selectionEnd
+    const selected = String(value).slice(start,end) || 'item'
+    const transformed = selected.split('\n').map((line,index) => prefixFactory(index) + line).join('\n')
+    const next = String(value).slice(0,start) + transformed + String(value).slice(end)
+    setEditorValue(next)
+    queueMicrotask(() => {
+      el.focus()
+      el.setSelectionRange(start,start + transformed.length)
+    })
+  }
+
+  function stripFormatting() {
+    const el = textarea.current
+    if (!el) return
+    const start = el.selectionStart
+    const end = el.selectionEnd
+    const selected = String(value).slice(start,end)
+    if (!selected) return
+    const stripped = selected
+      .replace(/\*\*|__|\x60/g,'')
+      .replace(/(^|\n)[#>-]+\s?/g,'$1')
+      .replace(/\[(?:color|size|font|align)=[^\]]+\]|\[\/(?:color|size|font|align)\]/gi,'')
+      .replace(/\[code\]|\[\/code\]/gi,'')
+    setEditorValue(String(value).slice(0,start) + stripped + String(value).slice(end))
+    queueMicrotask(() => {
+      el.focus()
+      el.setSelectionRange(start,start + stripped.length)
+    })
+  }
+
+  function formatParagraph(level) {
+    const prefix = level === 'h1' ? '# ' : level === 'h2' ? '## ' : level === 'h3' ? '### ' : ''
+    if (prefix) {
+      prefixLines(() => prefix)
+      return
+    }
+
+    const el = textarea.current
+    if (!el) return
+    const start = el.selectionStart
+    const end = el.selectionEnd
+    const selected = String(value).slice(start,end) || 'Parágrafo'
+    const transformed = selected.replace(/^#{1,3}\s+/gm,'')
+    setEditorValue(String(value).slice(0,start) + transformed + String(value).slice(end))
+    queueMicrotask(() => {
+      el.focus()
+      el.setSelectionRange(start,start + transformed.length)
+    })
+  }
+
+  function openDialog(name) {
+    setDialogData({ url: '', text: selectedText() })
+    setDialog(name)
+    setEmojiOpen(false)
+    setImageMenuOpen(false)
+  }
+
+  function closeDialog() {
+    setDialog('')
+    setDialogData({ url: '', text: '' })
+  }
+
+  function submitLink(event) {
+    event.preventDefault()
+    const url = safeHttpUrl(dialogData.url)
+    if (!url) return
+    insert('[' + (dialogData.text || url.href) + '](' + url.href + ')')
+    closeDialog()
+  }
+
+  function submitImage(event) {
+    event.preventDefault()
+    const url = safeHttpUrl(dialogData.url)
+    if (!url) return
+    insert('\n![' + (dialogData.text || 'Imagem') + '](' + url.href + ')\n')
+    closeDialog()
+  }
+
+  function submitGif(event) {
+    event.preventDefault()
+    const url = safeHttpUrl(dialogData.url)
+    if (!url) return
+    insert('\n![' + (dialogData.text || 'GIF') + '](' + url.href + ')\n')
+    closeDialog()
   }
 
   function wrap(before, after = before, fallback = 'texto') {
@@ -464,7 +597,7 @@ export function ProfessionalEditor({
     const end = el.selectionEnd
     const selected = String(value).slice(start,end) || fallback
     const next = String(value).slice(0,start) + before + selected + after + String(value).slice(end)
-    onChange(next)
+    setEditorValue(next)
     queueMicrotask(() => {
       el.focus()
       el.setSelectionRange(start + before.length, start + before.length + selected.length)
@@ -477,7 +610,7 @@ export function ProfessionalEditor({
     const start = el.selectionStart
     const end = el.selectionEnd
     const next = String(value).slice(0,start) + text + String(value).slice(end)
-    onChange(next)
+    setEditorValue(next)
     queueMicrotask(() => {
       el.focus()
       el.setSelectionRange(start + text.length,start + text.length)
