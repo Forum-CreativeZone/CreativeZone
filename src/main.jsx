@@ -525,7 +525,7 @@ function PageShell({ title, children, onBack, wide = false, full = false }) {
   )
 }
 
-function ComposerPage({ onPublish, notify, categories, navigate, session, membershipState }) {
+function ComposerPage({ onPublish, notify, categories, navigate, session, profile, membershipState }) {
   const draft = useMemo(() => readLocal('creativezone-draft', {}), [])
   const firstCategory = categories[0]?.id || ''
   const [title, setTitle] = useState(draft.title || '')
@@ -533,7 +533,11 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, member
   const [description, setDescription] = useState(draft.description || '')
   const [tagText, setTagText] = useState((draft.tags || []).join(', '))
   const [attachments, setAttachments] = useState([])
+  const [downloads, setDownloads] = useState(
+    profile?.system_owner && Array.isArray(draft.downloads) ? draft.downloads : []
+  )
   const [publishing, setPublishing] = useState(false)
+  const canManageDownloads = Boolean(profile?.system_owner)
 
   useEffect(() => {
     if (!categoryId && firstCategory) setCategoryId(firstCategory)
@@ -545,10 +549,38 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, member
     )].slice(0,6)
   }
 
+  function addDownload() {
+    setDownloads((items) => [
+      ...items,
+      {
+        id: globalThis.crypto?.randomUUID?.() || 'download-' + Date.now().toString(36),
+        label: '',
+        url: '',
+        accessScope: 'member',
+      },
+    ])
+  }
+
+  function updateDownload(id, changes) {
+    setDownloads((items) => items.map((item) => (
+      item.id === id ? { ...item, ...changes } : item
+    )))
+  }
+
+  function removeDownload(id) {
+    setDownloads((items) => items.filter((item) => item.id !== id))
+  }
+
   function save() {
     localStorage.setItem(
       'creativezone-draft',
-      JSON.stringify({ title, categoryId, description, tags: parsedTags() })
+      JSON.stringify({
+        title,
+        categoryId,
+        description,
+        tags: parsedTags(),
+        downloads: canManageDownloads ? downloads : [],
+      })
     )
     notify('Rascunho salvo neste navegador.')
   }
@@ -563,6 +595,15 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, member
         description: description.trim(),
         tags: parsedTags(),
         attachments,
+        downloads: canManageDownloads
+          ? downloads
+              .map((item) => ({
+                label: String(item.label || '').trim(),
+                url: String(item.url || '').trim(),
+                accessScope: item.accessScope === 'paid' ? 'paid' : 'member',
+              }))
+              .filter((item) => item.label && item.url)
+          : [],
       })
       localStorage.removeItem('creativezone-draft')
     } finally {
@@ -610,6 +651,83 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, member
           maxLength={12000}
           placeholder="Escreva sua publicação em Markdown. Links do YouTube, GitHub, CodePen e imagens são incorporados automaticamente."
         />
+
+        {canManageDownloads && (
+          <section className="composer-protected-downloads">
+            <header>
+              <div>
+                <LockKeyhole />
+                <span>
+                  <strong>Downloads protegidos</strong>
+                  <small>
+                    O texto do tópico continuará público. O link real só será liberado para quem atender à permissão escolhida.
+                  </small>
+                </span>
+              </div>
+              <button type="button" className="action" onClick={addDownload}>
+                <Plus /> Adicionar download
+              </button>
+            </header>
+
+            {downloads.length ? (
+              <div className="composer-download-list">
+                {downloads.map((item, index) => (
+                  <article key={item.id}>
+                    <div className="composer-download-number">{index + 1}</div>
+
+                    <label>
+                      Nome do arquivo
+                      <input
+                        value={item.label}
+                        onChange={(event) => updateDownload(item.id, { label: event.target.value })}
+                        maxLength={120}
+                        placeholder="Ex.: Adobe Audition 2024 24.0.3.3 (x64)"
+                      />
+                    </label>
+
+                    <label className="composer-download-url">
+                      Link do download
+                      <input
+                        type="url"
+                        value={item.url}
+                        onChange={(event) => updateDownload(item.id, { url: event.target.value })}
+                        placeholder="https://..."
+                      />
+                    </label>
+
+                    <label>
+                      Quem pode baixar?
+                      <select
+                        value={item.accessScope}
+                        onChange={(event) => updateDownload(item.id, { accessScope: event.target.value })}
+                      >
+                        <option value="member">Qualquer membro registrado</option>
+                        <option value="paid">Somente PRO + ELITE</option>
+                      </select>
+                    </label>
+
+                    <button
+                      type="button"
+                      className="action danger-action composer-download-remove"
+                      onClick={() => removeDownload(item.id)}
+                      aria-label={'Remover download ' + (index + 1)}
+                    >
+                      <Trash2 />
+                    </button>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="composer-download-empty">
+                Nenhum link protegido adicionado. Use “Adicionar download” se este tópico distribuir arquivos.
+              </p>
+            )}
+
+            <p className="composer-download-security-note">
+              O endereço externo não é incluído no conteúdo público do tópico. O Supabase libera o destino apenas após validar a conta e, quando necessário, a assinatura PRO/ELITE.
+            </p>
+          </section>
+        )}
 
         <div className="composer-submit-row">
           <button className="action" type="button" onClick={save}><Save /> Salvar rascunho</button>
@@ -1902,6 +2020,7 @@ function App() {
           categories={forumCategories}
           navigate={navigate}
           session={session}
+          profile={profile}
           membershipState={membershipState}
         />
       )
