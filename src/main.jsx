@@ -1654,6 +1654,12 @@ function App() {
         })
       }
 
+      if (topic.watchAfterPublish) {
+        await watchTopic(session.user.id, created.id, {
+          emailNotifications: Boolean(topic.emailAfterPublish),
+        })
+      }
+
       setFilter('')
       setQuery('')
       setPage(1)
