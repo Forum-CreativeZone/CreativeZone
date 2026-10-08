@@ -8,6 +8,7 @@ import {
   Plus,
 } from 'lucide-react'
 import { getForumNodeSummaries, getTopicsPage } from './services/forumApi'
+import { createCategory } from './services/categoryApi'
 
 function NodeIcon({ type }) {
   if (type === 'category') return <FolderTree />
@@ -38,13 +39,100 @@ function ActorAvatar({ summary }) {
   )
 }
 
+function ChildCreateForm({
+  target,
+  draft,
+  setDraft,
+  busy,
+  onSubmit,
+  onCancel,
+  compact = false,
+}) {
+  if (!target) return null
+  const isSection = target.nodeType === 'section'
+  const title = isSection ? 'Nova subcategoria' : 'Novo fórum'
+
+  return (
+    <form
+      className={'forum-node-create-panel' + (compact ? ' compact' : '')}
+      onSubmit={onSubmit}
+    >
+      <div className="forum-node-create-heading">
+        <div>
+          <small>{isSection ? 'SUBCATEGORIA' : 'FÓRUM'}</small>
+          <strong>{title}</strong>
+          <span>
+            Dentro de <b>{target.parent.name}</b>
+          </span>
+        </div>
+        <button type="button" className="forum-node-create-close" onClick={onCancel}>
+          Fechar
+        </button>
+      </div>
+
+      <div className="forum-node-create-fields">
+        <label>
+          Nome
+          <input
+            required
+            minLength={3}
+            maxLength={80}
+            value={draft.name}
+            onChange={(event) => setDraft((current) => ({
+              ...current,
+              name: event.target.value,
+            }))}
+            placeholder={isSection ? 'Ex.: Recursos gráficos' : 'Ex.: Packs e templates'}
+          />
+        </label>
+
+        <label className="forum-node-create-order">
+          Ordem
+          <input
+            type="number"
+            value={draft.sortOrder}
+            onChange={(event) => setDraft((current) => ({
+              ...current,
+              sortOrder: event.target.value,
+            }))}
+          />
+        </label>
+      </div>
+
+      <label>
+        Descrição
+        <textarea
+          maxLength={1200}
+          value={draft.description}
+          onChange={(event) => setDraft((current) => ({
+            ...current,
+            description: event.target.value,
+          }))}
+          placeholder="Explique o que pertence a esta área."
+        />
+      </label>
+
+      <div className="forum-node-create-actions">
+        <button type="button" className="action" onClick={onCancel}>
+          Cancelar
+        </button>
+        <button className="action primary-action" disabled={busy}>
+          <Plus /> {busy ? 'Criando...' : title}
+        </button>
+      </div>
+    </form>
+  )
+}
+
 export function ForumNodePage({
   node,
   categories,
   session,
+  profile,
   navigate,
   notify,
   onOpenTopic,
+  onChanged,
   ignoredIds = [],
 }) {
   const [topics, setTopics] = useState([])
@@ -52,6 +140,14 @@ export function ForumNodePage({
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [summaries, setSummaries] = useState({})
+  const [createTarget, setCreateTarget] = useState(null)
+  const [createDraft, setCreateDraft] = useState({
+    name: '',
+    description: '',
+    sortOrder: 0,
+  })
+  const [createBusy, setCreateBusy] = useState(false)
+  const isAdmin = profile?.role === 'admin'
 
   const children = useMemo(
     () => (categories || [])
@@ -140,7 +236,54 @@ export function ForumNodePage({
 
   useEffect(() => {
     setPage(1)
+    setCreateTarget(null)
   }, [node?.id])
+
+  function nextSortOrder(parentId) {
+    const siblings = (categories || []).filter((item) => item.parent_id === parentId)
+    const highest = siblings.reduce(
+      (max, item) => Math.max(max, Number(item.sort_order || 0)),
+      0
+    )
+    return highest + 10
+  }
+
+  function startCreate(parent, nodeType) {
+    setCreateTarget({ parent, nodeType })
+    setCreateDraft({
+      name: '',
+      description: '',
+      sortOrder: nextSortOrder(parent.id),
+    })
+  }
+
+  async function submitChild(event) {
+    event.preventDefault()
+    if (!createTarget) return
+
+    setCreateBusy(true)
+    try {
+      await createCategory({
+        name: createDraft.name,
+        description: createDraft.description,
+        parentId: createTarget.parent.id,
+        nodeType: createTarget.nodeType,
+        sortOrder: createDraft.sortOrder,
+      })
+      await onChanged?.()
+      notify?.(
+        createTarget.nodeType === 'section'
+          ? 'Subcategoria criada nesta categoria.'
+          : 'Fórum criado nesta subcategoria.'
+      )
+      setCreateTarget(null)
+      setCreateDraft({ name: '', description: '', sortOrder: 0 })
+    } catch (error) {
+      notify?.(error?.message || 'Não foi possível criar esta área.')
+    } finally {
+      setCreateBusy(false)
+    }
+  }
 
   if (!node) {
     return (
@@ -182,8 +325,34 @@ export function ForumNodePage({
           <section className="forum-child-nodes">
             <div className="forum-node-section-title">
               <strong>{childTitle}</strong>
-              <span>{children.length}</span>
+              <div className="forum-node-section-actions">
+                <span>{children.length}</span>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    className="action forum-node-add-child"
+                    onClick={() => startCreate(
+                      node,
+                      node.node_type === 'category' ? 'section' : 'forum'
+                    )}
+                  >
+                    <Plus />
+                    {node.node_type === 'category' ? 'Nova subcategoria' : 'Novo fórum'}
+                  </button>
+                )}
+              </div>
             </div>
+
+            {createTarget?.parent?.id === node.id && (
+              <ChildCreateForm
+                target={createTarget}
+                draft={createDraft}
+                setDraft={setCreateDraft}
+                busy={createBusy}
+                onSubmit={submitChild}
+                onCancel={() => setCreateTarget(null)}
+              />
+            )}
 
             {children.length ? (
               <div className="forum-child-list forum-child-list-detailed">
@@ -222,6 +391,16 @@ export function ForumNodePage({
                             ))}
                           </div>
                         )}
+
+                        {isAdmin && child.node_type === 'section' && (
+                          <button
+                            type="button"
+                            className="forum-child-add-forum"
+                            onClick={() => startCreate(child, 'forum')}
+                          >
+                            <Plus /> Criar fórum aqui
+                          </button>
+                        )}
                       </div>
 
                       <div className="forum-child-counts">
@@ -250,6 +429,18 @@ export function ForumNodePage({
                           <span className="forum-no-activity">Nenhuma publicação ainda</span>
                         )}
                       </button>
+
+                      {createTarget?.parent?.id === child.id && (
+                        <ChildCreateForm
+                          target={createTarget}
+                          draft={createDraft}
+                          setDraft={setCreateDraft}
+                          busy={createBusy}
+                          onSubmit={submitChild}
+                          onCancel={() => setCreateTarget(null)}
+                          compact
+                        />
+                      )}
                     </article>
                   )
                 })}
