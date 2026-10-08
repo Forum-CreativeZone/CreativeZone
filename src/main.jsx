@@ -694,6 +694,7 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, profil
           files={attachments}
           onFilesChange={setAttachments}
           onSaveDraft={save}
+          showDownloadMarkerTool={canManageDownloads}
           previewDownloadSlot={
             downloads.some((item) => String(item.label || '').trim() || String(item.url || '').trim())
               ? (
@@ -787,10 +788,20 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, profil
               </p>
             )}
 
-            <p className="composer-download-security-note">
-              O endereço externo não é incluído no conteúdo público do tópico. O Supabase libera o destino apenas após validar a conta e, quando necessário, a assinatura PRO/ELITE.
-              O marcador <code>[downloads]</code> define onde o bloco de downloads aparece na postagem; se ele não existir, o bloco será exibido no final.
-            </p>
+            <div className="composer-download-help">
+              <LockKeyhole />
+              <div>
+                <strong>Onde o download aparecerá no tópico?</strong>
+                <p>
+                  O bloco visual de download será exibido exatamente onde estiver <code>[downloads]</code> no texto.
+                  Você também pode usar o botão com cadeado na barra do editor para inserir esse bloco no ponto atual do cursor.
+                </p>
+                <small>
+                  O visitante nunca verá o código <code>[downloads]</code>. Ele verá apenas o card protegido com o botão de download.
+                  Se o marcador não existir, o card será mostrado automaticamente no final da postagem.
+                </small>
+              </div>
+            </div>
           </section>
         )}
 
