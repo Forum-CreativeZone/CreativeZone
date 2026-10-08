@@ -661,20 +661,128 @@ export function ProfessionalEditor({
         addFiles(e.dataTransfer.files)
       }}
     >
-      <div className="professional-editor-head">
-        <div className="professional-toolbar">
-          <button type="button" title="Negrito" onClick={() => wrap('**')}><Bold /></button>
-          <button type="button" title="Itálico" onClick={() => wrap('_')}><Italic /></button>
-          <button type="button" title="Sublinhar" onClick={() => wrap('__')}><Underline /></button>
-          <button type="button" title="Código" onClick={() => wrap(String.fromCharCode(96))}><Code2 /></button>
-          <button type="button" title="Citação" onClick={() => insert('> ')}><Quote /></button>
-          <button type="button" title="Lista" onClick={() => insert('- ')}><List /></button>
-          <button type="button" title="Link" onClick={() => insert('[texto](https://)')}><LinkIcon /></button>
-          <button type="button" title="Imagem por URL" onClick={() => insert('\nhttps://exemplo.com/imagem.png\n')}><ImageIcon /></button>
+      <div className="professional-editor-head professional-editor-head-advanced">
+        <div className="professional-toolbar professional-toolbar-advanced">
+          <div className="toolbar-group">
+            <button type="button" title="Remover formatação" onClick={stripFormatting}><RemoveFormatting /></button>
+            <button type="button" title="Negrito (Ctrl+B)" onClick={() => wrap('**')}><Bold /></button>
+            <button type="button" title="Itálico (Ctrl+I)" onClick={() => wrap('_')}><Italic /></button>
+            <button type="button" title="Sublinhar (Ctrl+U)" onClick={() => wrap('__')}><Underline /></button>
+          </div>
+
+          <div className="toolbar-group toolbar-select-group">
+            <Type />
+            <select title="Tamanho da fonte" defaultValue="" onChange={(event) => {
+              if (event.target.value) wrap('[size=' + event.target.value + ']','[/size]')
+              event.target.value = ''
+            }}>
+              <option value="">Tamanho</option>
+              <option value="12">12</option>
+              <option value="14">14</option>
+              <option value="16">16</option>
+              <option value="18">18</option>
+              <option value="22">22</option>
+              <option value="28">28</option>
+              <option value="34">34</option>
+            </select>
+          </div>
+
+          <div className="toolbar-group toolbar-color-group" title="Cor do texto">
+            <Palette />
+            <input
+              type="color"
+              defaultValue="#ff6b61"
+              onChange={(event) => wrap('[color=' + event.target.value + ']','[/color]')}
+            />
+          </div>
+
+          <div className="toolbar-group toolbar-select-group">
+            <select title="Família de fontes" defaultValue="" onChange={(event) => {
+              if (event.target.value) wrap('[font=' + event.target.value + ']','[/font]')
+              event.target.value = ''
+            }}>
+              <option value="">Fonte</option>
+              {FONTS.map((font) => <option key={font} value={font}>{font}</option>)}
+            </select>
+          </div>
+
+          <div className="toolbar-group">
+            <button type="button" title="Lista" onClick={() => prefixLines(() => '- ')}><List /></button>
+            <button type="button" title="Lista numerada" onClick={() => prefixLines((index) => (index + 1) + '. ')}><ListOrdered /></button>
+          </div>
+
+          <div className="toolbar-group toolbar-select-group">
+            <AlignLeft />
+            <select title="Alinhamento" defaultValue="" onChange={(event) => {
+              if (event.target.value) wrap('[align=' + event.target.value + ']','[/align]')
+              event.target.value = ''
+            }}>
+              <option value="">Alinhar</option>
+              <option value="left">Esquerda</option>
+              <option value="center">Centro</option>
+              <option value="right">Direita</option>
+              <option value="justify">Justificado</option>
+            </select>
+          </div>
+
+          <div className="toolbar-group toolbar-select-group">
+            <select title="Forma de parágrafo" defaultValue="" onChange={(event) => {
+              if (event.target.value) formatParagraph(event.target.value)
+              event.target.value = ''
+            }}>
+              <option value="">Parágrafo</option>
+              <option value="normal">Normal</option>
+              <option value="h1">Título 1</option>
+              <option value="h2">Título 2</option>
+              <option value="h3">Título 3</option>
+            </select>
+          </div>
+
+          <div className="toolbar-group toolbar-popover-wrap">
+            <button type="button" title="Emoticons" onClick={() => { setEmojiOpen((open) => !open); setImageMenuOpen(false) }}><Smile /></button>
+            {emojiOpen && (
+              <div className="editor-emoji-popover">
+                {EMOJIS.map((emoji) => (
+                  <button type="button" key={emoji} onClick={() => { insert(emoji); setEmojiOpen(false) }}>{emoji}</button>
+                ))}
+              </div>
+            )}
+            <button type="button" title="Inserir link (Ctrl+K)" onClick={() => openDialog('link')}><LinkIcon /></button>
+          </div>
+
+          <div className="toolbar-group toolbar-popover-wrap">
+            <button type="button" title="Inserir imagem" onClick={() => { setImageMenuOpen((open) => !open); setEmojiOpen(false) }}><ImageIcon /></button>
+            {imageMenuOpen && (
+              <div className="editor-image-popover">
+                <button type="button" onClick={() => openDialog('image')}><LinkIcon /> Imagem por URL</button>
+                {onFilesChange && <button type="button" onClick={() => inlineFileInput.current?.click()}><Upload /> Carregar imagem</button>}
+              </div>
+            )}
+            <button type="button" title="Inserir GIF" onClick={() => openDialog('gif')}><span className="toolbar-gif-label">GIF</span></button>
+          </div>
+
+          <div className="toolbar-group">
+            <button type="button" title="Citar" onClick={() => prefixLines(() => '> ')}><Quote /></button>
+            <button type="button" title="Inserir tabela" onClick={() => insert('\n| Coluna 1 | Coluna 2 |\n| --- | --- |\n| Conteúdo | Conteúdo |\n')}><Table2 /></button>
+            <button type="button" title="Inserir linha horizontal" onClick={() => insert('\n---\n')}><Minus /></button>
+            <button type="button" title="Código" onClick={() => {
+              const selected = selectedText()
+              if (selected.includes('\n')) wrap(String.fromCharCode(96).repeat(3) + '\n','\n' + String.fromCharCode(96).repeat(3),'código')
+              else wrap(String.fromCharCode(96))
+            }}><Code2 /></button>
+            <button type="button" title="Código alternativo BB" onClick={() => wrap('[code]','[/code]','código')}><span className="toolbar-bb-label">[]</span></button>
+          </div>
+
+          <div className="toolbar-group">
+            <button type="button" title="Desfazer (Ctrl+Z)" onClick={undo}><Undo2 /></button>
+            <button type="button" title="Refazer (Ctrl+Shift+Z)" onClick={redo}><Redo2 /></button>
+            {onSaveDraft && <button type="button" title="Salvar rascunho" onClick={onSaveDraft}><Save /></button>}
+          </div>
         </div>
+
         <div className="editor-mode">
           <button type="button" className={!preview ? 'active' : ''} onClick={() => setPreview(false)}><Pencil /> Escrever</button>
-          <button type="button" className={preview ? 'active' : ''} onClick={() => setPreview(true)}><Eye /> Preview</button>
+          <button type="button" className={preview ? 'active' : ''} onClick={() => setPreview(true)}><Eye /> Pré-visualização</button>
         </div>
       </div>
 
