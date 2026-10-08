@@ -675,7 +675,7 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, profil
           value={tagText}
           onChange={(event) => setTagText(event.target.value)}
         />
-        <small className="field-help">Até 6 tags separadas por vírgula. Elas alimentam recomendações e tópicos relacionados.</small>
+        <small className="field-help">Até 6 tags. Você pode usar #hashtags separadas por espaço ou nomes separados por vírgula. Elas alimentam recomendações e tópicos relacionados.</small>
 
         <label htmlFor="topic-description">Mensagem</label>
         <ProfessionalEditor
