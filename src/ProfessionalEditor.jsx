@@ -675,7 +675,12 @@ export function ProfessionalEditor({
       onDrop={(e) => {
         e.preventDefault()
         setDragging(false)
-        addFiles(e.dataTransfer.files)
+        const incoming = Array.from(e.dataTransfer.files || [])
+        if (incoming.length && incoming.every((file) => file.type.startsWith('image/'))) {
+          addInlineFiles(incoming)
+        } else {
+          addFiles(incoming)
+        }
       }}
     >
       <div className="professional-editor-head professional-editor-head-advanced">
