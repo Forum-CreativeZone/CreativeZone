@@ -544,6 +544,9 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, profil
     profile?.system_owner && Array.isArray(draft.downloads) ? draft.downloads : []
   )
   const [publishing, setPublishing] = useState(false)
+  const [watchAfterPublish, setWatchAfterPublish] = useState(draft.watchAfterPublish ?? true)
+  const [emailAfterPublish, setEmailAfterPublish] = useState(draft.emailAfterPublish ?? true)
+  const [draftSavedAt, setDraftSavedAt] = useState(null)
   const canManageDownloads = Boolean(profile?.system_owner)
 
   useEffect(() => {
@@ -578,7 +581,7 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, profil
     setDownloads((items) => items.filter((item) => item.id !== id))
   }
 
-  function save() {
+  function persistDraft({ silent = false } = {}) {
     localStorage.setItem(
       'creativezone-draft',
       JSON.stringify({
@@ -587,10 +590,35 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, profil
         description,
         tags: parsedTags(),
         downloads: canManageDownloads ? downloads : [],
+        watchAfterPublish,
+        emailAfterPublish,
       })
     )
-    notify('Rascunho salvo neste navegador.')
+    setDraftSavedAt(new Date())
+    if (!silent) notify('Rascunho salvo neste navegador.')
   }
+
+  function save() {
+    persistDraft()
+  }
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (title || description || tagText || downloads.length) {
+        persistDraft({ silent: true })
+      }
+    }, 1200)
+    return () => clearTimeout(timer)
+  }, [
+    title,
+    categoryId,
+    description,
+    tagText,
+    downloads,
+    watchAfterPublish,
+    emailAfterPublish,
+    canManageDownloads,
+  ])
 
   async function submit(event) {
     event.preventDefault()
@@ -602,6 +630,8 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, profil
         description: description.trim(),
         tags: parsedTags(),
         attachments,
+        watchAfterPublish,
+        emailAfterPublish: watchAfterPublish && emailAfterPublish,
         downloads: canManageDownloads
           ? downloads
               .map((item) => ({
@@ -652,6 +682,7 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, profil
           onChange={setDescription}
           files={attachments}
           onFilesChange={setAttachments}
+          onSaveDraft={save}
           maxFiles={membershipState?.entitlements?.forum_upload_count || 4}
           maxBytes={(membershipState?.entitlements?.forum_upload_mb || 10) * 1024 * 1024}
           required
@@ -736,7 +767,40 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, profil
           </section>
         )}
 
+        <section className="composer-publish-options">
+          <label>
+            <input
+              type="checkbox"
+              checked={watchAfterPublish}
+              onChange={(event) => {
+                const checked = event.target.checked
+                setWatchAfterPublish(checked)
+                if (!checked) setEmailAfterPublish(false)
+              }}
+            />
+            <span>
+              <strong>Acompanhar este tópico</strong>
+              <small>Receba notificações quando houver novas respostas ou alterações.</small>
+            </span>
+          </label>
+          <label className={!watchAfterPublish ? 'disabled' : ''}>
+            <input
+              type="checkbox"
+              checked={watchAfterPublish && emailAfterPublish}
+              disabled={!watchAfterPublish}
+              onChange={(event) => setEmailAfterPublish(event.target.checked)}
+            />
+            <span>
+              <strong>Receber notificações por e-mail</strong>
+              <small>Usa também sua preferência geral de e-mail da conta.</small>
+            </span>
+          </label>
+        </section>
+
         <div className="composer-submit-row">
+          <span className="composer-draft-status">
+            {draftSavedAt ? 'Rascunho salvo automaticamente às ' + draftSavedAt.toLocaleTimeString('pt-BR', { hour:'2-digit',minute:'2-digit' }) : 'Rascunho automático ativo'}
+          </span>
           <button className="action" type="button" onClick={save}><Save /> Salvar rascunho</button>
           <button className="publish" type="submit" disabled={publishing}>
             <Send /> {publishing ? 'Publicando...' : 'Publicar tópico'}
