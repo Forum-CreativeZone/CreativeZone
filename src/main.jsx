@@ -229,8 +229,8 @@ function Avatar({ name, mobileName, src, status, mobileStatus, small = false }) 
   )
 }
 
-function ForumText({ content = '' }) {
-  return <RichForumContent content={content} />
+function ForumText({ content = '', media = [] }) {
+  return <RichForumContent content={content} media={media} />
 }
 
 function ForumMediaList({ items = [] }) {
@@ -2411,9 +2411,9 @@ function App() {
                   </div>
                 </form>
               ) : (
-                <ForumText content={routeTopic.description} />
+                <ForumText content={routeTopic.description} media={topicMedia} />
               )}
-              <ForumMediaList items={topicMedia} />
+              <ForumMediaList items={topicMedia} content={routeTopic.description} />
               <ProtectedDownloads
                 items={topicDownloads}
                 session={session}
@@ -2508,9 +2508,9 @@ function App() {
                       </div>
                     </div>
                   ) : (
-                    <ForumText content={post.content} />
+                    <ForumText content={post.content} media={postMedia[post.id] || []} />
                   )}
-                  <ForumMediaList items={postMedia[post.id] || []} />
+                  <ForumMediaList items={postMedia[post.id] || []} content={post.content} />
                 </ThreadPostCard>
               )
             })}
