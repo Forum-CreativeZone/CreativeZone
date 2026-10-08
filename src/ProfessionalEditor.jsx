@@ -478,7 +478,7 @@ export function ProfessionalEditor({
     for (const file of Array.from(incoming || [])) {
       if (next.length >= fileLimit) break
       if (!ACCEPTED.has(file.type) || file.size > byteLimit) continue
-      const duplicate = next.some((item) => item.name === file.name && item.size === file.size)
+      const duplicate = next.some((item) => item.name === file.name)
       if (!duplicate) {
         next.push(file)
         added.push(file)
