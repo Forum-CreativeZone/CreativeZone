@@ -585,6 +585,11 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, profil
         accessScope: 'member',
       },
     ])
+    setDescription((current) => (
+      /\[downloads\]/i.test(String(current))
+        ? current
+        : String(current).trimEnd() + '\n\n[downloads]\n'
+    ))
   }
 
   function updateDownload(id, changes) {
@@ -689,6 +694,21 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, profil
           files={attachments}
           onFilesChange={setAttachments}
           onSaveDraft={save}
+          previewDownloadSlot={
+            downloads.some((item) => String(item.label || '').trim() || String(item.url || '').trim())
+              ? (
+                  <ProtectedDownloads
+                    items={downloads.filter((item) => String(item.label || '').trim() || String(item.url || '').trim())}
+                    session={session}
+                    profile={profile}
+                    membershipState={membershipState}
+                    navigate={navigate}
+                    notify={notify}
+                    preview
+                  />
+                )
+              : null
+          }
           maxFiles={membershipState?.entitlements?.forum_upload_count || 4}
           maxBytes={(membershipState?.entitlements?.forum_upload_mb || 10) * 1024 * 1024}
           required
@@ -769,6 +789,7 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, profil
 
             <p className="composer-download-security-note">
               O endereço externo não é incluído no conteúdo público do tópico. O Supabase libera o destino apenas após validar a conta e, quando necessário, a assinatura PRO/ELITE.
+              O marcador <code>[downloads]</code> define onde o bloco de downloads aparece na postagem; se ele não existir, o bloco será exibido no final.
             </p>
           </section>
         )}
@@ -2505,18 +2526,23 @@ function App() {
                   </div>
                 </form>
               ) : (
-                <ForumText content={routeTopic.description} media={topicMedia} />
+                <ForumText
+                  content={routeTopic.description}
+                  media={topicMedia}
+                  downloadSlot={
+                    <ProtectedDownloads
+                      items={topicDownloads}
+                      session={session}
+                      profile={profile}
+                      membershipState={membershipState}
+                      navigate={navigate}
+                      notify={setToast}
+                      onRefresh={refreshTopicDownloads}
+                    />
+                  }
+                />
               )}
               <ForumMediaList items={topicMedia} content={routeTopic.description} />
-              <ProtectedDownloads
-                items={topicDownloads}
-                session={session}
-                profile={profile}
-                membershipState={membershipState}
-                navigate={navigate}
-                notify={setToast}
-                onRefresh={refreshTopicDownloads}
-              />
             </ThreadPostCard>
 
             {threadReplies.map((post, index) => {
