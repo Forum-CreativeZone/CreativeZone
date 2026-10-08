@@ -554,6 +554,23 @@ export function ProfessionalEditor({
     })
   }
 
+  function alignLines(mode) {
+    const el = textarea.current
+    if (!el) return
+    const start = el.selectionStart
+    const end = el.selectionEnd
+    const selected = String(value).slice(start,end) || 'texto'
+    const transformed = selected
+      .split('\n')
+      .map((line) => '[align=' + mode + ']' + line + '[/align]')
+      .join('\n')
+    setEditorValue(String(value).slice(0,start) + transformed + String(value).slice(end))
+    queueMicrotask(() => {
+      el.focus()
+      el.setSelectionRange(start,start + transformed.length)
+    })
+  }
+
   function openDialog(name) {
     setDialogData({ url: '', text: selectedText() })
     setDialog(name)
@@ -714,7 +731,7 @@ export function ProfessionalEditor({
           <div className="toolbar-group toolbar-select-group">
             <AlignLeft />
             <select title="Alinhamento" defaultValue="" onChange={(event) => {
-              if (event.target.value) wrap('[align=' + event.target.value + ']','[/align]')
+              if (event.target.value) alignLines(event.target.value)
               event.target.value = ''
             }}>
               <option value="">Alinhar</option>
