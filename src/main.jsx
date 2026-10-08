@@ -21,6 +21,7 @@ import {
   BellOff,
   CheckCircle2,
   Users,
+  Plus,
   Download,
   LockKeyhole,
 } from 'lucide-react'
