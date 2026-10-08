@@ -546,11 +546,23 @@ function PageShell({ title, children, onBack, wide = false, full = false }) {
   )
 }
 
-function ComposerPage({ onPublish, notify, categories, navigate, session, profile, membershipState }) {
+function ComposerPage({
+  onPublish,
+  notify,
+  categories,
+  navigate,
+  session,
+  profile,
+  membershipState,
+  initialCategoryId = '',
+}) {
   const draft = useMemo(() => readLocal('creativezone-draft', {}), [])
   const firstCategory = categories[0]?.id || ''
+  const requestedCategoryId = categories.some((category) => category.id === initialCategoryId)
+    ? initialCategoryId
+    : ''
   const [title, setTitle] = useState(draft.title || '')
-  const [categoryId, setCategoryId] = useState(draft.categoryId || firstCategory)
+  const [categoryId, setCategoryId] = useState(requestedCategoryId || draft.categoryId || firstCategory)
   const [description, setDescription] = useState(draft.description || '')
   const [tagText, setTagText] = useState((draft.tags || []).join(', '))
   const [attachments, setAttachments] = useState([])
@@ -564,8 +576,12 @@ function ComposerPage({ onPublish, notify, categories, navigate, session, profil
   const canManageDownloads = Boolean(profile?.system_owner)
 
   useEffect(() => {
+    if (requestedCategoryId && categoryId !== requestedCategoryId) {
+      setCategoryId(requestedCategoryId)
+      return
+    }
     if (!categoryId && firstCategory) setCategoryId(firstCategory)
-  }, [categoryId, firstCategory])
+  }, [categoryId, firstCategory, requestedCategoryId])
 
   function parsedTags() {
     const hashTags = tagText.match(/#[^\s,#]+/g)
@@ -1103,10 +1119,13 @@ function App() {
 
   const navigate = useCallback((nextPath) => {
     setUserMenuOpen(false)
-    if (window.location.pathname !== nextPath) {
-      window.history.pushState({}, '', nextPath)
+    const nextUrl = new URL(nextPath, window.location.origin)
+    const nextHref = nextUrl.pathname + nextUrl.search + nextUrl.hash
+    const currentHref = window.location.pathname + window.location.search + window.location.hash
+    if (currentHref !== nextHref) {
+      window.history.pushState({}, '', nextHref)
     }
-    setPath(nextPath)
+    setPath(nextUrl.pathname || '/')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
 
@@ -1705,9 +1724,13 @@ function App() {
       }
 
       if (topic.watchAfterPublish) {
-        await watchTopic(session.user.id, created.id, {
-          emailNotifications: Boolean(topic.emailAfterPublish),
-        })
+        try {
+          await watchTopic(session.user.id, created.id, {
+            emailNotifications: Boolean(topic.emailAfterPublish),
+          })
+        } catch (watchError) {
+          console.warn('Não foi possível acompanhar o tópico recém-publicado.', watchError)
+        }
       }
 
       setFilter('')
@@ -1877,6 +1900,9 @@ function App() {
   const isForgotPassword = path === '/esqueci-senha'
   const isResetPassword = path === '/redefinir-senha'
   const isComposer = path === '/novo-topico'
+  const composerCategoryId = isComposer
+    ? new URLSearchParams(window.location.search).get('category') || ''
+    : ''
   const isSearch = path === '/buscar'
   const isMembers = path === '/membros'
   const isNotifications = path === '/notificacoes'
@@ -2181,6 +2207,7 @@ function App() {
           session={session}
           profile={profile}
           membershipState={membershipState}
+          initialCategoryId={composerCategoryId}
         />
       )
     }
