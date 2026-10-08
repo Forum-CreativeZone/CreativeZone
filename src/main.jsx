@@ -1649,9 +1649,11 @@ function App() {
           node={routeForumNode}
           categories={categories}
           session={session}
+          profile={profile}
           navigate={navigate}
           notify={setToast}
           onOpenTopic={openTopic}
+          onChanged={refreshForum}
           ignoredIds={ignoredIds}
         />
       )
