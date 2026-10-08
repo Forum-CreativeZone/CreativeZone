@@ -21,6 +21,8 @@ import {
   BellOff,
   CheckCircle2,
   Users,
+  Download,
+  LockKeyhole,
 } from 'lucide-react'
 import '@fontsource-variable/dm-sans'
 import * as A from './design-assets'
@@ -78,6 +80,13 @@ import {
   isImageMedia,
   uploadForumMedia,
 } from './services/mediaApi'
+import {
+  createTopicDownloads,
+  deleteTopicDownload,
+  getTopicDownloads,
+  resolveTopicDownload,
+  updateTopicDownloadAccess,
+} from './services/downloadApi'
 import {
   getAccountSettings,
   getBookmarkIds,
