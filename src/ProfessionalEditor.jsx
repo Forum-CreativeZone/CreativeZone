@@ -202,6 +202,7 @@ function MarkdownBlock({ text = '', media = [] }) {
   let list = []
   let listType = 'ul'
   let codeLines = null
+  let bbCodeLines = null
 
   const flushList = () => {
     if (!list.length) return
@@ -217,6 +218,22 @@ function MarkdownBlock({ text = '', media = [] }) {
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]
     const trimmed = line.trim()
+
+    if (trimmed.toLowerCase() === '[code]') {
+      flushList()
+      bbCodeLines = []
+      continue
+    }
+
+    if (bbCodeLines !== null) {
+      if (trimmed.toLowerCase() === '[/code]') {
+        nodes.push(<pre className="rich-code-block" key={'bbcode-block-' + index}><code>{bbCodeLines.join('\n')}</code></pre>)
+        bbCodeLines = null
+      } else {
+        bbCodeLines.push(line)
+      }
+      continue
+    }
 
     if (trimmed.startsWith(String.fromCharCode(96).repeat(3))) {
       flushList()
@@ -340,6 +357,9 @@ function MarkdownBlock({ text = '', media = [] }) {
   flushList()
   if (codeLines !== null) {
     nodes.push(<pre className="rich-code-block" key="code-open"><code>{codeLines.join('\n')}</code></pre>)
+  }
+  if (bbCodeLines !== null) {
+    nodes.push(<pre className="rich-code-block" key="bbcode-open"><code>{bbCodeLines.join('\n')}</code></pre>)
   }
   return <>{nodes}</>
 }
