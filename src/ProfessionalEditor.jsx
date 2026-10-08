@@ -617,6 +617,38 @@ export function ProfessionalEditor({
     })
   }
 
+  function handleKeyDown(event) {
+    const mod = event.ctrlKey || event.metaKey
+    if (!mod) return
+
+    const key = event.key.toLowerCase()
+    if (key === 'z') {
+      event.preventDefault()
+      if (event.shiftKey) redo()
+      else undo()
+      return
+    }
+    if (key === 'b') {
+      event.preventDefault()
+      wrap('**')
+      return
+    }
+    if (key === 'i') {
+      event.preventDefault()
+      wrap('_')
+      return
+    }
+    if (key === 'u') {
+      event.preventDefault()
+      wrap('__')
+      return
+    }
+    if (key === 'k') {
+      event.preventDefault()
+      openDialog('link')
+    }
+  }
+
   return (
     <div
       className={'professional-editor ' + (dragging ? 'is-dragging' : '')}
