@@ -174,60 +174,177 @@ function UrlEmbed({ value }) {
   return <p><a href={url.href} target="_blank" rel="noreferrer noopener">{url.href}</a></p>
 }
 
-function MarkdownBlock({ text = '' }) {
+function AttachmentBlock({ name, media = [] }) {
+  const item = media.find((candidate) => candidate.original_name === name)
+  if (!item?.signed_url) {
+    return <div className="rich-attachment-missing"><ImageIcon /> <span>{name}</span></div>
+  }
+
+  if (String(item.mime_type || '').startsWith('image/')) {
+    return (
+      <a className="rich-image-link rich-inline-attachment" href={item.signed_url} target="_blank" rel="noreferrer noopener">
+        <img src={item.signed_url} alt={name} loading="lazy" />
+      </a>
+    )
+  }
+
+  return (
+    <a className="rich-file-card" href={item.signed_url} target="_blank" rel="noreferrer noopener">
+      <Paperclip />
+      <span>{name}</span>
+    </a>
+  )
+}
+
+function MarkdownBlock({ text = '', media = [] }) {
   const lines = String(text).split('\n')
   const nodes = []
   let list = []
+  let listType = 'ul'
+  let codeLines = null
 
   const flushList = () => {
     if (!list.length) return
+    const Tag = listType
     nodes.push(
-      <ul key={'list-' + nodes.length}>
+      <Tag key={'list-' + nodes.length}>
         {list.map((item, i) => <li key={i}><Inline text={item} /></li>)}
-      </ul>
+      </Tag>
     )
     list = []
   }
 
-  lines.forEach((line, index) => {
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]
     const trimmed = line.trim()
-    if (/^[-*]\s+/.test(trimmed)) {
-      list.push(trimmed.replace(/^[-*]\s+/, ''))
-      return
+
+    if (trimmed.startsWith(String.fromCharCode(96).repeat(3))) {
+      flushList()
+      if (codeLines === null) codeLines = []
+      else {
+        nodes.push(<pre className="rich-code-block" key={'code-' + index}><code>{codeLines.join('\n')}</code></pre>)
+        codeLines = null
+      }
+      continue
     }
+
+    if (codeLines !== null) {
+      codeLines.push(line)
+      continue
+    }
+
+    const bbCode = trimmed.match(/^\[code\]([\s\S]*)\[\/code\]$/i)
+    if (bbCode) {
+      flushList()
+      nodes.push(<pre className="rich-code-block" key={'bbcode-' + index}><code>{bbCode[1]}</code></pre>)
+      continue
+    }
+
+    const attachment = trimmed.match(/^\[attachment:(.+)\]$/)
+    if (attachment) {
+      flushList()
+      nodes.push(<AttachmentBlock key={'attachment-' + index} name={attachment[1]} media={media} />)
+      continue
+    }
+
+    const align = trimmed.match(/^\[align=(left|center|right|justify)\]([\s\S]*)\[\/align\]$/i)
+    if (align) {
+      flushList()
+      nodes.push(<p key={'align-' + index} style={{ textAlign: align[1].toLowerCase() }}><Inline text={align[2]} /></p>)
+      continue
+    }
+
+    if (trimmed === '---' || /^\[hr\]$/i.test(trimmed)) {
+      flushList()
+      nodes.push(<hr className="rich-horizontal-rule" key={'hr-' + index} />)
+      continue
+    }
+
+    if (/^\|.*\|$/.test(trimmed) && index + 1 < lines.length && /^\|?(?:\s*:?-+:?\s*\|)+\s*$/.test(lines[index + 1].trim())) {
+      flushList()
+      const tableRows = [trimmed]
+      let cursor = index + 2
+      while (cursor < lines.length && /^\|.*\|$/.test(lines[cursor].trim())) {
+        tableRows.push(lines[cursor].trim())
+        cursor += 1
+      }
+      const splitRow = (row) => row.replace(/^\||\|$/g,'').split('|').map((cell) => cell.trim())
+      const headers = splitRow(tableRows[0])
+      const body = tableRows.slice(1).map(splitRow)
+      nodes.push(
+        <div className="rich-table-wrap" key={'table-' + index}>
+          <table>
+            <thead><tr>{headers.map((cell,i) => <th key={i}><Inline text={cell} /></th>)}</tr></thead>
+            <tbody>{body.map((row,r) => <tr key={r}>{row.map((cell,i) => <td key={i}><Inline text={cell} /></td>)}</tr>)}</tbody>
+          </table>
+        </div>
+      )
+      index = cursor - 1
+      continue
+    }
+
+    if (/^[-*]\s+/.test(trimmed)) {
+      if (list.length && listType !== 'ul') flushList()
+      listType = 'ul'
+      list.push(trimmed.replace(/^[-*]\s+/, ''))
+      continue
+    }
+
+    if (/^\d+\.\s+/.test(trimmed)) {
+      if (list.length && listType !== 'ol') flushList()
+      listType = 'ol'
+      list.push(trimmed.replace(/^\d+\.\s+/, ''))
+      continue
+    }
+
     flushList()
 
     if (!trimmed) {
       nodes.push(<div className="rich-spacer" key={'space-' + index} />)
-      return
+      continue
     }
+
+    const markdownImage = trimmed.match(/^!\[([^\]]*)\]\((https?:\/\/[^)]+)\)$/)
+    if (markdownImage) {
+      nodes.push(
+        <a className="rich-image-link" href={markdownImage[2]} target="_blank" rel="noreferrer noopener" key={'img-' + index}>
+          <img src={markdownImage[2]} alt={markdownImage[1] || 'Imagem'} loading="lazy" />
+        </a>
+      )
+      continue
+    }
+
     if (/^https?:\/\/\S+$/.test(trimmed)) {
       nodes.push(<UrlEmbed key={'url-' + index} value={trimmed} />)
-      return
+      continue
     }
     if (trimmed.startsWith('### ')) {
       nodes.push(<h4 key={index}><Inline text={trimmed.slice(4)} /></h4>)
-      return
+      continue
     }
     if (trimmed.startsWith('## ')) {
       nodes.push(<h3 key={index}><Inline text={trimmed.slice(3)} /></h3>)
-      return
+      continue
     }
     if (trimmed.startsWith('# ')) {
       nodes.push(<h2 key={index}><Inline text={trimmed.slice(2)} /></h2>)
-      return
+      continue
     }
     if (trimmed.startsWith('> ')) {
       nodes.push(<blockquote key={index}><Inline text={trimmed.slice(2)} /></blockquote>)
-      return
+      continue
     }
     nodes.push(<p key={index}><Inline text={line} /></p>)
-  })
+  }
+
   flushList()
+  if (codeLines !== null) {
+    nodes.push(<pre className="rich-code-block" key="code-open"><code>{codeLines.join('\n')}</code></pre>)
+  }
   return <>{nodes}</>
 }
 
-export function RichForumContent({ content = '' }) {
+export function RichForumContent({ content = '', media = [] }) {
   const parts = []
   const regex = /\[quote=@([^\]]+)\]([\s\S]*?)\[\/quote\]/g
   let last = 0
@@ -236,21 +353,21 @@ export function RichForumContent({ content = '' }) {
 
   while ((match = regex.exec(String(content))) !== null) {
     if (match.index > last) {
-      parts.push(<MarkdownBlock key={'text-' + index++} text={String(content).slice(last,match.index)} />)
+      parts.push(<MarkdownBlock key={'text-' + index++} text={String(content).slice(last,match.index)} media={media} />)
     }
     parts.push(
       <blockquote className="forum-quote rich-quote" key={'quote-' + index++}>
         <strong>@{match[1]} escreveu:</strong>
-        <MarkdownBlock text={match[2].trim()} />
+        <MarkdownBlock text={match[2].trim()} media={media} />
       </blockquote>
     )
     last = regex.lastIndex
   }
   if (last < String(content).length) {
-    parts.push(<MarkdownBlock key={'text-' + index} text={String(content).slice(last)} />)
+    parts.push(<MarkdownBlock key={'text-' + index} text={String(content).slice(last)} media={media} />)
   }
 
-  return <div className="forum-rendered-text rich-forum-content">{parts.length ? parts : <MarkdownBlock text={content} />}</div>
+  return <div className="forum-rendered-text rich-forum-content">{parts.length ? parts : <MarkdownBlock text={content} media={media} />}</div>
 }
 
 function AttachmentPreview({ file, onRemove }) {
