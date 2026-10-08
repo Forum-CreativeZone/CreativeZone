@@ -786,9 +786,83 @@ export function ProfessionalEditor({
         </div>
       </div>
 
+      {dialog === 'link' && (
+        <EditorDialog title="Inserir link" onClose={closeDialog} onSubmit={submitLink}>
+          <label>
+            URL
+            <input
+              autoFocus
+              type="url"
+              value={dialogData.url}
+              onChange={(event) => setDialogData((current) => ({ ...current, url: event.target.value }))}
+              placeholder="https://..."
+            />
+          </label>
+          <label>
+            Texto
+            <input
+              value={dialogData.text}
+              onChange={(event) => setDialogData((current) => ({ ...current, text: event.target.value }))}
+              placeholder="Texto do link"
+            />
+          </label>
+        </EditorDialog>
+      )}
+
+      {dialog === 'image' && (
+        <EditorDialog title="Inserir imagem por URL" onClose={closeDialog} onSubmit={submitImage}>
+          <label>
+            URL da imagem
+            <input
+              autoFocus
+              type="url"
+              value={dialogData.url}
+              onChange={(event) => setDialogData((current) => ({ ...current, url: event.target.value }))}
+              placeholder="https://.../imagem.png"
+            />
+          </label>
+          <label>
+            Texto alternativo
+            <input
+              value={dialogData.text}
+              onChange={(event) => setDialogData((current) => ({ ...current, text: event.target.value }))}
+              placeholder="Descrição da imagem"
+            />
+          </label>
+        </EditorDialog>
+      )}
+
+      {dialog === 'gif' && (
+        <EditorDialog title="Inserir GIF" onClose={closeDialog} onSubmit={submitGif}>
+          <label>
+            URL do GIF
+            <input
+              autoFocus
+              type="url"
+              value={dialogData.url}
+              onChange={(event) => setDialogData((current) => ({ ...current, url: event.target.value }))}
+              placeholder="https://.../animacao.gif"
+            />
+          </label>
+          <label>
+            Descrição
+            <input
+              value={dialogData.text}
+              onChange={(event) => setDialogData((current) => ({ ...current, text: event.target.value }))}
+              placeholder="GIF"
+            />
+          </label>
+          {onFilesChange && (
+            <button type="button" className="editor-upload-inline" onClick={() => gifFileInput.current?.click()}>
+              <Upload /> Ou carregar um GIF do computador
+            </button>
+          )}
+        </EditorDialog>
+      )}
+
       {preview ? (
         <div className="professional-preview">
-          {String(value).trim() ? <RichForumContent content={value} /> : <p className="editor-empty-preview">O preview aparecerá aqui.</p>}
+          {String(value).trim() ? <RichForumContent content={value} media={previewMedia} /> : <p className="editor-empty-preview">O preview aparecerá aqui.</p>}
         </div>
       ) : (
         <textarea
@@ -797,10 +871,35 @@ export function ProfessionalEditor({
           required={required}
           maxLength={maxLength}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => setEditorValue(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder}
+          spellCheck
         />
       )}
+
+      <input
+        ref={inlineFileInput}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        hidden
+        onChange={(event) => {
+          addInlineFiles(event.target.files)
+          event.target.value = ''
+          setImageMenuOpen(false)
+        }}
+      />
+      <input
+        ref={gifFileInput}
+        type="file"
+        accept="image/gif"
+        hidden
+        onChange={(event) => {
+          addInlineFiles(event.target.files)
+          event.target.value = ''
+          closeDialog()
+        }}
+      />
 
       <div className="professional-editor-foot">
         {onFilesChange && (
@@ -817,7 +916,7 @@ export function ProfessionalEditor({
         )}
         <span>{onFilesChange
           ? 'Arraste arquivos aqui · até ' + fileLimit + ' anexos · ' + Math.round(byteLimit / (1024 * 1024)) + ' MB cada'
-          : 'Markdown e embeds suportados'}</span>
+          : 'Markdown, BBCode e embeds suportados'}</span>
         <small className={length > maxLength * .9 ? 'near-limit' : ''}>{length}/{maxLength}</small>
       </div>
 
