@@ -8,6 +8,7 @@ import {
   Italic,
   Link as LinkIcon,
   List,
+  LockKeyhole,
   ListOrdered,
   Minus,
   Paperclip,
@@ -457,6 +458,7 @@ export function ProfessionalEditor({
   onFilesChange,
   onSaveDraft,
   previewDownloadSlot = null,
+  showDownloadMarkerTool = false,
   placeholder = 'Escreva sua publicação...',
   required = false,
   maxLength = 12000,
@@ -839,6 +841,16 @@ export function ProfessionalEditor({
               else wrap(String.fromCharCode(96))
             }}><Code2 /></button>
             <button type="button" title="Código alternativo BB" onClick={() => wrap('[code]','[/code]','código')}><span className="toolbar-bb-label">[]</span></button>
+            {showDownloadMarkerTool && (
+              <button
+                type="button"
+                title="Inserir bloco de downloads protegidos aqui"
+                onClick={() => insert('\n[downloads]\n')}
+                className="toolbar-download-marker"
+              >
+                <LockKeyhole />
+              </button>
+            )}
           </div>
 
           <div className="toolbar-group">
