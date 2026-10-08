@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  AlignLeft,
   Bold,
   Code2,
   Eye,
@@ -7,10 +8,21 @@ import {
   Italic,
   Link as LinkIcon,
   List,
+  ListOrdered,
+  Minus,
   Paperclip,
+  Palette,
   Pencil,
   Quote,
+  Redo2,
+  RemoveFormatting,
+  Save,
+  Smile,
+  Table2,
+  Type,
   Underline,
+  Undo2,
+  Upload,
   X,
 } from 'lucide-react'
 
@@ -19,6 +31,8 @@ const ACCEPTED = new Set([
 ])
 const MAX_FILES = 4
 const MAX_BYTES = 10 * 1024 * 1024
+const FONTS = ['Arial','Verdana','Tahoma','Georgia','Times New Roman','Trebuchet MS','Courier New']
+const EMOJIS = ['😀','😂','😍','😎','🤔','😢','😡','👍','👎','❤️','🔥','🎉','✅','⚡','🚀','💡','📦','🎧','💻']
 
 function safeHttpUrl(value) {
   try {
