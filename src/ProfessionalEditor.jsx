@@ -388,12 +388,29 @@ function AttachmentPreview({ file, onRemove }) {
   )
 }
 
+function EditorDialog({ title, children, onClose, onSubmit, submitLabel = 'Inserir' }) {
+  return (
+    <form className="editor-floating-dialog" onSubmit={onSubmit}>
+      <header>
+        <strong>{title}</strong>
+        <button type="button" aria-label="Fechar" onClick={onClose}><X /></button>
+      </header>
+      <div className="editor-floating-dialog-body">{children}</div>
+      <footer>
+        <button type="button" className="action" onClick={onClose}>Cancelar</button>
+        <button className="action primary-action">{submitLabel}</button>
+      </footer>
+    </form>
+  )
+}
+
 export function ProfessionalEditor({
   id,
   value = '',
   onChange,
   files = [],
   onFilesChange,
+  onSaveDraft,
   placeholder = 'Escreva sua publicação...',
   required = false,
   maxLength = 12000,
@@ -401,12 +418,33 @@ export function ProfessionalEditor({
   maxBytes = MAX_BYTES,
 }) {
   const textarea = useRef(null)
+  const inlineFileInput = useRef(null)
+  const gifFileInput = useRef(null)
+  const historyRef = useRef([String(value)])
+  const historyIndexRef = useRef(0)
   const [preview, setPreview] = useState(false)
   const [dragging, setDragging] = useState(false)
+  const [dialog, setDialog] = useState('')
+  const [dialogData, setDialogData] = useState({ url: '', text: '' })
+  const [emojiOpen, setEmojiOpen] = useState(false)
+  const [imageMenuOpen, setImageMenuOpen] = useState(false)
+  const [previewMedia, setPreviewMedia] = useState([])
   const length = String(value).length
   const fileLimit = Math.max(1, Number(maxFiles) || MAX_FILES)
   const byteLimit = Math.max(1024 * 1024, Number(maxBytes) || MAX_BYTES)
   const acceptedFiles = useMemo(() => files.slice(0, fileLimit), [files,fileLimit])
+
+  useEffect(() => {
+    const next = acceptedFiles.map((file) => ({
+      original_name: file.name,
+      mime_type: file.type,
+      signed_url: file.type.startsWith('image/') ? URL.createObjectURL(file) : '',
+    }))
+    setPreviewMedia(next)
+    return () => next.forEach((item) => {
+      if (item.signed_url?.startsWith('blob:')) URL.revokeObjectURL(item.signed_url)
+    })
+  }, [acceptedFiles])
 
   function addFiles(incoming) {
     const next = [...acceptedFiles]
