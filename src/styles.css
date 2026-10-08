@@ -4015,3 +4015,45 @@
   .composer-submit-row{flex-wrap:wrap}
   .composer-draft-status{width:100%;order:3;margin:0;text-align:right}
 }
+
+
+.composer-tags-panel{
+  display:grid;
+  gap:6px;
+  margin-top:14px;
+  padding:12px;
+  border:1px solid #ffffff12;
+  border-radius:7px;
+  background:#141414;
+}
+.composer-tags-panel label{
+  margin:0!important;
+  color:#ddd!important;
+  font-size:13px!important;
+  font-weight:700;
+}
+.composer-tags-panel input{
+  width:100%;
+  min-height:42px;
+  margin:0!important;
+  padding:9px 11px;
+  border:1px solid #3e3e3e;
+  border-radius:6px;
+  background:#242424;
+  color:#fff;
+  outline-color:var(--red);
+}
+.composer-tags-panel small{
+  color:#727272;
+  font-size:12px;
+}
+:root[data-theme="light"] .composer-tags-panel{
+  background:#fff;
+  border-color:#ddd;
+}
+:root[data-theme="light"] .composer-tags-panel label{color:#222!important}
+:root[data-theme="light"] .composer-tags-panel input{
+  background:#fff;
+  color:#222;
+  border-color:#ccc;
+}
