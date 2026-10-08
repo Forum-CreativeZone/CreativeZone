@@ -256,6 +256,139 @@ function ForumMediaList({ items = [] }) {
   )
 }
 
+function ProtectedDownloads({
+  items = [],
+  session,
+  profile,
+  membershipState,
+  navigate,
+  notify,
+  onRefresh,
+}) {
+  const isOwner = Boolean(profile?.system_owner)
+  const hasPaidPlan = isOwner || Number(membershipState?.rank || 0) >= 1
+
+  if (!items.length) return null
+
+  async function openDownload(item) {
+    if (!session?.user) {
+      notify?.('Crie uma conta ou entre para acessar downloads.')
+      navigate('/cadastro')
+      return
+    }
+
+    if (item.access_scope === 'paid' && !hasPaidPlan) {
+      notify?.('Este download é exclusivo para assinantes PRO e ELITE.')
+      navigate('/conta/assinatura')
+      return
+    }
+
+    try {
+      const targetUrl = await resolveTopicDownload(item.id)
+      const opened = window.open(targetUrl, '_blank', 'noopener,noreferrer')
+      if (!opened) window.location.assign(targetUrl)
+    } catch (error) {
+      notify?.(error?.message || 'Não foi possível liberar este download.')
+    }
+  }
+
+  async function changeAccess(item, accessScope) {
+    try {
+      await updateTopicDownloadAccess(item.id, accessScope)
+      await onRefresh?.()
+      notify?.('Permissão do download atualizada.')
+    } catch (error) {
+      notify?.(error?.message || 'Não foi possível alterar a permissão do download.')
+    }
+  }
+
+  async function removeDownload(item) {
+    if (!window.confirm(`Remover o download “${item.label}” deste tópico?`)) return
+    try {
+      await deleteTopicDownload(item.id)
+      await onRefresh?.()
+      notify?.('Download removido do tópico.')
+    } catch (error) {
+      notify?.(error?.message || 'Não foi possível remover o download.')
+    }
+  }
+
+  return (
+    <section className="protected-downloads">
+      <header>
+        <div>
+          <Download />
+          <span>
+            <strong>Downloads</strong>
+            <small>O tópico é público; o arquivo segue a permissão definida pelo proprietário.</small>
+          </span>
+        </div>
+        <b>{items.length}</b>
+      </header>
+
+      <div className="protected-download-list">
+        {items.map((item) => {
+          const paidOnly = item.access_scope === 'paid'
+          const allowed = Boolean(session?.user) && (!paidOnly || hasPaidPlan)
+          return (
+            <article key={item.id} className={paidOnly ? 'paid-only' : 'members-only'}>
+              <div className="protected-download-main">
+                <span className="protected-download-icon">
+                  {paidOnly ? <LockKeyhole /> : <Download />}
+                </span>
+                <span>
+                  <strong>{item.label}</strong>
+                  <small>
+                    {paidOnly
+                      ? 'Exclusivo para assinantes PRO e ELITE'
+                      : 'Disponível para qualquer membro registrado'}
+                  </small>
+                </span>
+              </div>
+
+              <div className="protected-download-actions">
+                {isOwner && (
+                  <select
+                    value={item.access_scope}
+                    onChange={(event) => changeAccess(item, event.target.value)}
+                    aria-label={'Permissão de ' + item.label}
+                  >
+                    <option value="member">Membros registrados</option>
+                    <option value="paid">PRO + ELITE</option>
+                  </select>
+                )}
+
+                <button
+                  type="button"
+                  className={'action protected-download-button ' + (allowed ? 'unlocked' : 'locked')}
+                  onClick={() => openDownload(item)}
+                >
+                  {allowed ? <Download /> : <LockKeyhole />}
+                  {!session?.user
+                    ? 'Criar conta para baixar'
+                    : paidOnly && !hasPaidPlan
+                      ? 'Requer PRO / ELITE'
+                      : 'Baixar'}
+                </button>
+
+                {isOwner && (
+                  <button
+                    type="button"
+                    className="action danger-action protected-download-delete"
+                    onClick={() => removeDownload(item)}
+                  >
+                    <Trash2 />
+                  </button>
+                )}
+              </div>
+            </article>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 function Topic({ topic, onOpen, onFavorite, favorites, onMenu }) {
   const saved = favorites.includes(topic.id)
   return (
