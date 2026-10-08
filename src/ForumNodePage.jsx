@@ -314,7 +314,9 @@ export function ForumNodePage({
           {node.node_type === 'forum' && (
             <button
               className="action primary-action forum-node-new-topic"
-              onClick={() => session ? navigate('/novo-topico') : navigate('/entrar')}
+              onClick={() => session
+                ? navigate('/novo-topico?category=' + encodeURIComponent(node.id))
+                : navigate('/entrar')}
             >
               <Plus /> Novo tópico
             </button>
