@@ -199,8 +199,6 @@ export function CategoriesPage({
   const [form, setForm] = useState({
     name: '',
     description: '',
-    nodeType: 'forum',
-    parentId: '',
     sortOrder: 0,
   })
   const [editingId, setEditingId] = useState(null)
@@ -217,19 +215,10 @@ export function CategoriesPage({
   const [busy, setBusy] = useState(false)
 
   const flattened = useMemo(() => flattenCategories(categories), [categories])
-  const creationParents = validParents(categories, form.nodeType)
   const editParents = validParents(categories, editDraft.nodeType, editingId)
   const forumParents = (categories || []).filter((item) =>
     ['category', 'section'].includes(item.node_type)
   )
-
-  useEffect(() => {
-    if (form.nodeType === 'category') {
-      setForm((current) => ({ ...current, parentId: '' }))
-    } else if (!form.parentId && creationParents[0]) {
-      setForm((current) => ({ ...current, parentId: creationParents[0].id }))
-    }
-  }, [form.nodeType, categories])
 
   async function loadSuggestions() {
     if (!isAdmin) return
@@ -263,8 +252,8 @@ export function CategoriesPage({
       await createCategory({
         name: form.name,
         description: form.description,
-        parentId: form.nodeType === 'category' ? null : form.parentId,
-        nodeType: form.nodeType,
+        parentId: null,
+        nodeType: 'category',
         sortOrder: form.sortOrder,
       })
       setForm((current) => ({
@@ -274,7 +263,7 @@ export function CategoriesPage({
         sortOrder: 0,
       }))
       await onChanged?.()
-      notify?.('Categoria criada.')
+      notify?.('Categoria principal criada. Abra a categoria para criar subcategorias e fóruns pela própria árvore.')
     } catch (error) {
       notify?.(error?.message || 'Não foi possível criar a categoria.')
     } finally {
@@ -546,45 +535,23 @@ export function CategoriesPage({
             <div className="category-section-title">
               <div>
                 <span>ADMINISTRAÇÃO</span>
-                <h2>Adicionar área</h2>
+                <h2>Adicionar categoria principal</h2>
               </div>
               <Plus />
             </div>
             <form className="category-create-form" onSubmit={addCategory}>
-              <div className="category-form-grid">
-                <label>
-                  Tipo
-                  <select
-                    value={form.nodeType}
-                    onChange={(event) => setForm((current) => ({
-                      ...current,
-                      nodeType: event.target.value,
-                      parentId: event.target.value === 'category' ? '' : current.parentId,
-                    }))}
-                  >
-                    <option value="category">Categoria principal</option>
-                    <option value="section">Subcategoria</option>
-                    <option value="forum">Fórum</option>
-                  </select>
-                </label>
-                {form.nodeType !== 'category' && (
-                  <label>
-                    Pertence a
-                    <select
-                      required
-                      value={form.parentId}
-                      onChange={(event) => setForm((current) => ({
-                        ...current,
-                        parentId: event.target.value,
-                      }))}
-                    >
-                      <option value="">Selecione...</option>
-                      {creationParents.map((parent) => (
-                        <option key={parent.id} value={parent.id}>{parent.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                )}
+              <div className="category-admin-context-note">
+                <FolderTree />
+                <div>
+                  <strong>A criação agora segue a árvore do fórum.</strong>
+                  <span>
+                    Crie aqui somente categorias principais. Para adicionar uma subcategoria,
+                    abra a categoria desejada e use o botão “Nova subcategoria”. Dentro de uma
+                    subcategoria, use “Novo fórum”.
+                  </span>
+                </div>
+              </div>
+              <div className="category-form-grid category-form-grid-root">
                 <label>
                   Ordem
                   <input
@@ -608,7 +575,7 @@ export function CategoriesPage({
                     ...current,
                     name: event.target.value,
                   }))}
-                  placeholder="Ex.: Inteligência Artificial"
+                  placeholder="Ex.: Creative Design"
                 />
               </label>
               <label>
@@ -624,7 +591,7 @@ export function CategoriesPage({
                 />
               </label>
               <button className="action primary-action" disabled={busy}>
-                <Plus /> Criar
+                <Plus /> Criar categoria principal
               </button>
             </form>
           </section>
