@@ -1224,6 +1224,20 @@ function App() {
 
   const topicMatch = path.match(/^\/topico\/([^/]+)$/)
   const routeTopicId = topicMatch ? decodeURIComponent(topicMatch[1]) : null
+
+  const refreshTopicDownloads = useCallback(async () => {
+    if (!routeTopicId) {
+      setTopicDownloads([])
+      return
+    }
+    try {
+      setTopicDownloads(await getTopicDownloads(routeTopicId))
+    } catch (error) {
+      setTopicDownloads([])
+      setToast(error?.message || 'Não foi possível atualizar os downloads deste tópico.')
+    }
+  }, [routeTopicId])
+
   const forumMatch = path.match(/^\/forum\/([^/]+)$/)
   const routeForumSlug = forumMatch ? decodeURIComponent(forumMatch[1]) : null
   const memberMatch = path.match(/^\/membro\/([^/]+)$/)
@@ -2399,6 +2413,15 @@ function App() {
                 <ForumText content={routeTopic.description} />
               )}
               <ForumMediaList items={topicMedia} />
+              <ProtectedDownloads
+                items={topicDownloads}
+                session={session}
+                profile={profile}
+                membershipState={membershipState}
+                navigate={navigate}
+                notify={setToast}
+                onRefresh={refreshTopicDownloads}
+              />
             </ThreadPostCard>
 
             {threadReplies.map((post, index) => {
