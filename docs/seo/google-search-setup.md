@@ -19,11 +19,11 @@ O gerador usa as mesmas variáveis públicas já usadas pelo frontend:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY` ou `VITE_SUPABASE_ANON_KEY`
 
-## Quando o domínio próprio for comprado
+## Domínio oficial em produção
 
 Definir no ambiente de produção:
 
-`VITE_PUBLIC_SITE_URL=https://forum.seudominio.com`
+`VITE_PUBLIC_SITE_URL=https://forum.creativezone.pro`
 
 Depois fazer um novo deploy. O sitemap, robots e canonicals passarão a usar o domínio novo automaticamente.
 
@@ -35,7 +35,7 @@ Depois que o domínio estiver apontado para o Worker:
 
 1. Adicionar a propriedade de domínio no Google Search Console.
 2. Fazer a verificação por DNS.
-3. Enviar `https://forum.seudominio.com/sitemap.xml`.
+3. Enviar `https://forum.creativezone.pro/sitemap.xml`.
 4. Inspecionar algumas URLs de tópicos e solicitar indexação.
 5. Validar um tópico no Rich Results Test para conferir o `DiscussionForumPosting`.
 
@@ -51,4 +51,4 @@ Além do `/sitemap.xml` gerado em cada build, existe um sitemap público dinâmi
 
 O `robots.txt` anuncia os dois. O sitemap ao vivo consulta tópicos e categorias públicas diretamente e, por isso, novos tópicos podem aparecer nele sem depender de um novo deploy do frontend.
 
-Quando o domínio próprio entrar em produção, definir também o secret `PUBLIC_SITE_URL` da Edge Function com a mesma origem usada em `VITE_PUBLIC_SITE_URL`, para que o sitemap dinâmico passe a emitir os URLs do novo domínio.
+A origem oficial do fórum é `https://forum.creativezone.pro`. O sitemap dinâmico usa essa mesma origem como padrão.
