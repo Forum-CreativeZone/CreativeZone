@@ -54,7 +54,11 @@ function FeedCard({ item, navigate, decoration }) {
   const cosmetics = decoration?.cosmetics || {}
   const membership = decoration?.membership || null
   return (
-    <button className="personal-feed-card" onClick={() => navigate('/topico/' + item.id)}>
+    <button
+      className="personal-feed-card"
+      data-profile-username={item.author_username || undefined}
+      onClick={() => navigate('/topico/' + item.id)}
+    >
       <MiniAvatar item={item} />
       <span className="personal-feed-main">
         <span className="personal-feed-meta">
@@ -207,7 +211,10 @@ export function RankingsPage({ navigate }) {
     <FeatureShell title="Ranking da comunidade" onBack={() => navigate('/')}>
       <div className="feature-content">
         {monthlyWinner && (
-          <section className="member-of-month">
+          <section
+            className="member-of-month"
+            data-profile-username={monthlyWinner.username || undefined}
+          >
             <Flame />
             <MiniAvatar item={monthlyWinner} size={72} />
             <div>
@@ -231,7 +238,11 @@ export function RankingsPage({ navigate }) {
 
         <div className="ranking-list">
           {rows.map((row,index) => (
-            <button key={row.user_id} onClick={() => row.username && navigate('/membro/' + encodeURIComponent(row.username))}>
+            <button
+              key={row.user_id}
+              data-profile-username={row.username || undefined}
+              onClick={() => row.username && navigate('/membro/' + encodeURIComponent(row.username))}
+            >
               <span className={'rank-number rank-' + Math.min(index+1,4)}>
                 {index===0?'🥇':index===1?'🥈':index===2?'🥉':'#'+row.rank}
               </span>
