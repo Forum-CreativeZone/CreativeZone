@@ -283,8 +283,7 @@ function ProtectedDownloads({
     if (preview) {
       const draftUrl = item.url || item.target_url
       if (!draftUrl) return
-      const opened = window.open(draftUrl, '_blank', 'noopener,noreferrer')
-      if (!opened) window.location.assign(draftUrl)
+      window.open(draftUrl, '_blank', 'noopener,noreferrer')
       return
     }
 
@@ -295,11 +294,27 @@ function ProtectedDownloads({
       return
     }
 
+    let popup = null
     try {
+      popup = window.open('about:blank', '_blank')
+      if (popup) popup.opener = null
+
       const targetUrl = await resolveTopicDownload(item.id)
-      const opened = window.open(targetUrl, '_blank', 'noopener,noreferrer')
-      if (!opened) window.location.assign(targetUrl)
+
+      if (popup) {
+        popup.location.replace(targetUrl)
+      } else {
+        const link = document.createElement('a')
+        link.href = targetUrl
+        link.target = '_blank'
+        link.rel = 'noopener noreferrer'
+        link.style.display = 'none'
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+      }
     } catch (error) {
+      try { popup?.close() } catch {}
       if (scope === 'paid') {
         setAccessGate({ type: 'vip', item })
         return
@@ -2820,7 +2835,7 @@ function App() {
 
   return (
     <div className="app">
-      <ProfileHoverLayer navigate={navigate} />
+      <ProfileHoverLayer />
       <header className="header">
         <nav className="leftnav" aria-label="Principal">
           <button
