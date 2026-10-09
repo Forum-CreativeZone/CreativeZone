@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { Icon } from '@iconify/react'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -38,11 +39,15 @@ function formatDate(value) {
   }).format(date)
 }
 
-function SecurityIcon({ severity = 'none' }) {
-  if (severity === 'critical' || severity === 'high') return <ShieldAlert />
-  if (severity === 'medium' || severity === 'low') return <AlertTriangle />
-  if (severity === 'unknown') return <ShieldQuestion />
-  return <ShieldCheck />
+function securityIconName(severity = 'none') {
+  if (severity === 'critical' || severity === 'high') return 'solar:shield-warning-bold-duotone'
+  if (severity === 'medium' || severity === 'low') return 'solar:danger-triangle-bold-duotone'
+  if (severity === 'unknown') return 'solar:shield-keyhole-bold-duotone'
+  return 'solar:shield-check-bold-duotone'
+}
+
+function SecurityIcon({ severity = 'none', width = 18 }) {
+  return <Icon icon={securityIconName(severity)} width={width} height={width} />
 }
 
 export function SecurityScoreBadge({ state, compact = false }) {
@@ -72,49 +77,88 @@ export function SecurityScoreBadge({ state, compact = false }) {
 function FindingList({ findings = [] }) {
   const [open, setOpen] = useState(false)
   if (!findings.length) return null
-  const visible = open ? findings : findings.slice(0, 6)
+
+  const vulnerabilities = findings.flatMap((finding) =>
+    (finding.vulnerabilities || []).map((vulnerability) => ({
+      ...vulnerability,
+      package_name: finding.package_name,
+      version: finding.version,
+      ecosystem: finding.ecosystem,
+    }))
+  )
+  const visible = open ? vulnerabilities : vulnerabilities.slice(0, 4)
 
   return (
     <div className="security-findings">
-      {visible.map((finding, index) => (
-        <article className="security-finding" key={(finding.package_name || 'pkg') + '-' + index}>
-          <header>
-            <span>
-              <strong>{finding.package_name}</strong>
-              <code>{finding.version}</code>
-              <small>{finding.ecosystem}</small>
+      <div className="security-findings-head">
+        <span>
+          <Icon icon="solar:bug-minimalistic-bold-duotone" width="18" />
+          <strong>Vulnerabilidades encontradas</strong>
+        </span>
+        <small>{vulnerabilities.length} registro{vulnerabilities.length === 1 ? '' : 's'}</small>
+      </div>
+
+      <div className="security-advisory-list">
+        {visible.map((vulnerability) => (
+          <article className="security-advisory" key={vulnerability.id}>
+            <span className={'security-advisory-icon severity-' + (vulnerability.severity || 'unknown')}>
+              <Icon icon={securityIconName(vulnerability.severity || 'unknown')} width="18" />
             </span>
-            <b className={'security-severity severity-' + (finding.highest_severity || 'unknown')}>
-              {severityLabels[finding.highest_severity] || finding.highest_severity}
-            </b>
-          </header>
-          <div>
-            {(finding.vulnerabilities || []).slice(0, 5).map((vulnerability) => (
-              <section key={vulnerability.id}>
+
+            <div className="security-advisory-main">
+              <div className="security-advisory-heading">
                 <span>
-                  <b>{vulnerability.id}</b>
-                  <small>{vulnerability.summary}</small>
+                  <strong>{vulnerability.id}</strong>
+                  {vulnerability.aliases?.find((item) => /^CVE-/i.test(item)) && (
+                    <code>{vulnerability.aliases.find((item) => /^CVE-/i.test(item))}</code>
+                  )}
                 </span>
-                <span className={'security-severity severity-' + (vulnerability.severity || 'unknown')}>
+                <b className={'security-severity severity-' + (vulnerability.severity || 'unknown')}>
                   {severityLabels[vulnerability.severity] || vulnerability.severity}
+                </b>
+              </div>
+
+              <p>{vulnerability.summary || 'Vulnerabilidade conhecida nesta dependência.'}</p>
+
+              <div className="security-advisory-meta">
+                {vulnerability.fixed_versions?.length > 0 ? (
+                  <span className="security-fixed-version">
+                    <Icon icon="solar:check-circle-bold-duotone" width="15" />
+                    Corrigida em {vulnerability.fixed_versions.join(', ')}
+                  </span>
+                ) : (
+                  <span>
+                    <Icon icon="solar:clock-circle-bold-duotone" width="15" />
+                    Correção não informada
+                  </span>
+                )}
+                <span>
+                  <Icon icon="solar:box-bold-duotone" width="15" />
+                  {vulnerability.package_name} {vulnerability.version}
                 </span>
-                {vulnerability.fixed_versions?.length > 0 && (
-                  <em>Correção conhecida: {vulnerability.fixed_versions.join(', ')}</em>
-                )}
-                {vulnerability.references?.[0] && (
-                  <a href={vulnerability.references[0]} target="_blank" rel="noreferrer noopener">
-                    Referência <ExternalLink />
-                  </a>
-                )}
-              </section>
-            ))}
-          </div>
-        </article>
-      ))}
-      {findings.length > 6 && (
-        <button type="button" className="action security-show-more" onClick={() => setOpen((value) => !value)}>
-          <ChevronDown className={open ? 'is-open' : ''} />
-          {open ? 'Mostrar menos' : 'Ver todos os pacotes vulneráveis (' + findings.length + ')'}
+              </div>
+            </div>
+
+            {vulnerability.references?.[0] && (
+              <a
+                className="security-advisory-link"
+                href={vulnerability.references[0]}
+                target="_blank"
+                rel="noreferrer noopener"
+                aria-label={'Abrir referência de ' + vulnerability.id}
+                title="Abrir referência técnica"
+              >
+                <Icon icon="solar:arrow-right-up-linear" width="18" />
+              </a>
+            )}
+          </article>
+        ))}
+      </div>
+
+      {vulnerabilities.length > 4 && (
+        <button type="button" className="security-show-more" onClick={() => setOpen((value) => !value)}>
+          <Icon icon={open ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'} width="16" />
+          {open ? 'Mostrar menos' : 'Ver todas as ' + vulnerabilities.length + ' vulnerabilidades'}
         </button>
       )}
     </div>
@@ -145,61 +189,118 @@ export function PackageSecurityCard({ ecosystem, packageName, version }) {
 
   if (loading) {
     return (
-      <div className="package-security-card is-loading">
-        <RefreshCw />
-        <span><strong>Analisando dependência...</strong><small>{packageName} {version}</small></span>
+      <div className="package-security-card security-report-state is-loading">
+        <Icon icon="solar:refresh-circle-bold-duotone" width="24" />
+        <span>
+          <strong>Analisando dependência</strong>
+          <small>{packageName} {version} · {ecosystem}</small>
+        </span>
       </div>
     )
   }
 
   if (error || !result) {
     return (
-      <div className="package-security-card is-error">
-        <ShieldQuestion />
-        <span><strong>Análise indisponível</strong><small>{error || 'Tente novamente mais tarde.'}</small></span>
+      <div className="package-security-card security-report-state is-error">
+        <Icon icon="solar:shield-warning-bold-duotone" width="24" />
+        <span>
+          <strong>Análise indisponível</strong>
+          <small>{error || 'Tente novamente mais tarde.'}</small>
+        </span>
       </div>
     )
   }
 
   const clean = Number(result.vulnerability_count || 0) === 0
+  const severity = result.highest_severity || 'none'
+  const score = Number(result.security_score ?? 0)
+
   return (
-    <section className={'package-security-card ' + (clean ? 'is-clean' : 'has-alerts')}>
-      <header>
-        <span className={'package-security-icon severity-' + (result.highest_severity || 'none')}>
-          <SecurityIcon severity={result.highest_severity || 'none'} />
-        </span>
-        <span>
-          <small>CREATIVEZONE SECURITY</small>
-          <strong>{result.package_name} <code>{result.version}</code></strong>
-          <em>{result.ecosystem}</em>
-        </span>
-        <SecurityScoreBadge
-          state={{
-            security_score: result.security_score,
-            highest_severity: result.highest_severity,
-            last_audited_at: result.checked_at,
-          }}
-          compact
-        />
+    <section className={'package-security-card security-report ' + (clean ? 'is-clean' : 'has-alerts')}>
+      <header className="security-report-header">
+        <div className="security-report-identity">
+          <span className={'security-report-mark severity-' + severity}>
+            <SecurityIcon severity={severity} width={24} />
+          </span>
+          <div>
+            <small className="security-report-kicker">CREATIVEZONE SECURITY</small>
+            <div className="security-report-title">
+              <strong>{result.package_name}</strong>
+              <code>{result.version}</code>
+            </div>
+            <span className="security-report-subtitle">
+              <Icon icon="solar:box-bold-duotone" width="14" />
+              {result.ecosystem}
+            </span>
+          </div>
+        </div>
+
+        <div className={'security-report-score severity-' + severity}>
+          <span>Security score</span>
+          <strong>{score}</strong>
+          <small>/100</small>
+        </div>
       </header>
 
-      <div className="package-security-summary">
-        {clean ? (
-          <p><CheckCircle2 /> Nenhuma vulnerabilidade conhecida foi encontrada para esta versão.</p>
-        ) : (
-          <p><AlertTriangle /> {result.vulnerability_count} vulnerabilidade{result.vulnerability_count === 1 ? '' : 's'} conhecida{result.vulnerability_count === 1 ? '' : 's'} encontrada{result.vulnerability_count === 1 ? '' : 's'}.</p>
-        )}
+      <div className={'security-report-verdict ' + (clean ? 'is-clean' : 'has-alerts')}>
         <span>
-          <b>{result.critical_count || 0}<small>Críticas</small></b>
-          <b>{result.high_count || 0}<small>Altas</small></b>
-          <b>{result.medium_count || 0}<small>Moderadas</small></b>
-          <b>{result.low_count || 0}<small>Baixas</small></b>
+          <Icon
+            icon={clean ? 'solar:check-circle-bold-duotone' : 'solar:danger-triangle-bold-duotone'}
+            width="20"
+          />
+        </span>
+        <div>
+          <strong>
+            {clean
+              ? 'Nenhuma vulnerabilidade conhecida encontrada'
+              : result.vulnerability_count + ' vulnerabilidade' + (result.vulnerability_count === 1 ? '' : 's') + ' conhecida' + (result.vulnerability_count === 1 ? '' : 's')}
+          </strong>
+          <small>
+            Resultado para {result.package_name} {result.version} em {result.ecosystem}.
+          </small>
+        </div>
+        <time dateTime={result.checked_at || undefined}>
+          <Icon icon="solar:clock-circle-linear" width="14" />
+          {formatDate(result.checked_at)}
+        </time>
+      </div>
+
+      <div className="security-report-metrics" aria-label="Resumo de severidade">
+        <span className="metric-total">
+          <Icon icon="solar:bug-bold-duotone" width="18" />
+          <b>{result.vulnerability_count || 0}</b>
+          <small>Total</small>
+        </span>
+        <span className="metric-critical">
+          <i />
+          <b>{result.critical_count || 0}</b>
+          <small>Críticas</small>
+        </span>
+        <span className="metric-high">
+          <i />
+          <b>{result.high_count || 0}</b>
+          <small>Altas</small>
+        </span>
+        <span className="metric-medium">
+          <i />
+          <b>{result.medium_count || 0}</b>
+          <small>Moderadas</small>
+        </span>
+        <span className="metric-low">
+          <i />
+          <b>{result.low_count || 0}</b>
+          <small>Baixas</small>
         </span>
       </div>
 
       <FindingList findings={result.findings || []} />
-      <footer>
-        <small>Verificado em {formatDate(result.checked_at)} · ausência de alertas conhecidos não garante segurança absoluta.</small>
+
+      <footer className="security-report-footer">
+        <span>
+          <Icon icon="solar:info-circle-linear" width="15" />
+          A análise cobre vulnerabilidades conhecidas publicamente para esta dependência e versão.
+        </span>
+        <small>Ausência de alertas não é garantia absoluta de segurança.</small>
       </footer>
     </section>
   )
