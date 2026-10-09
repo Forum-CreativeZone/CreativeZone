@@ -360,7 +360,9 @@ export function TagPage({ slug, session, navigate }) {
           {data.topics.map((topic) => (
             <button key={topic.id} onClick={() => navigate('/topico/'+topic.id)}>
               <strong>{topic.title}</strong>
-              <span>{topic.profiles?.display_name || topic.profiles?.username || 'Membro'} · {topic.categories?.name || 'Fórum'}</span>
+              <span data-profile-username={topic.profiles?.username || undefined}>
+                {topic.profiles?.display_name || topic.profiles?.username || 'Membro'} · {topic.categories?.name || 'Fórum'}
+              </span>
               <p>{String(topic.content||'').replace(/\s+/g,' ').slice(0,220)}</p>
               <ChevronRight />
             </button>
@@ -426,7 +428,12 @@ export function AdvancedSearchPage({ categories, navigate, initialQuery = '' }) 
         <div className="advanced-search-results">
           {rows.map((row) => (
             <button key={row.id} onClick={() => navigate('/topico/'+row.id)}>
-              <span><strong>{row.title}</strong><small>{row.author_display_name || row.author_username || 'Membro'} · {row.category_name} · {row.reply_count} respostas</small></span>
+              <span>
+                <strong>{row.title}</strong>
+                <small data-profile-username={row.author_username || undefined}>
+                  {row.author_display_name || row.author_username || 'Membro'} · {row.category_name} · {row.reply_count} respostas
+                </small>
+              </span>
               <p>{row.excerpt}</p>
               <div>{(row.tags||[]).map((tag)=><i key={tag}>#{tag}</i>)}</div>
             </button>
