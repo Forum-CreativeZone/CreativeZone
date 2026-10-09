@@ -9,6 +9,24 @@ function requireSupabase() {
   return supabase
 }
 
+export async function getForumHomeStats() {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('get_forum_home_stats')
+  if (error) throw error
+  return data?.[0] || {
+    topic_count: 0,
+    post_count: 0,
+    member_count: 0,
+    root_category_count: 0,
+    total_views: 0,
+    reaction_count: 0,
+    latest_member_username: '',
+    latest_member_display_name: '',
+    latest_member_avatar_url: '',
+    latest_member_created_at: null,
+  }
+}
+
 export async function getCategories() {
   const client = requireSupabase()
   const { data, error } = await client
