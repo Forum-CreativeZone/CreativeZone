@@ -487,18 +487,46 @@ function AttachmentPreview({ file, onRemove }) {
 }
 
 function EditorDialog({ title, children, onClose, onSubmit, submitLabel = 'Inserir' }) {
+  function confirm(event) {
+    event?.preventDefault?.()
+    event?.stopPropagation?.()
+    onSubmit?.(event)
+  }
+
   return (
-    <form className="editor-floating-dialog" onSubmit={onSubmit}>
-      <header>
-        <strong>{title}</strong>
-        <button type="button" aria-label="Fechar" onClick={onClose}><X /></button>
-      </header>
-      <div className="editor-floating-dialog-body">{children}</div>
-      <footer>
-        <button type="button" className="action" onClick={onClose}>Cancelar</button>
-        <button className="action primary-action">{submitLabel}</button>
-      </footer>
-    </form>
+    <>
+      <button
+        type="button"
+        className="editor-dialog-backdrop"
+        aria-label="Fechar janela"
+        onClick={onClose}
+      />
+      <div
+        className="editor-floating-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter' || event.shiftKey) return
+          if (event.target?.tagName === 'TEXTAREA' || event.target?.tagName === 'SELECT') return
+          confirm(event)
+        }}
+      >
+        <header>
+          <strong>{title}</strong>
+          <button type="button" aria-label="Fechar" onClick={onClose}><X /></button>
+        </header>
+        <div className="editor-floating-dialog-body">{children}</div>
+        <footer>
+          <button type="button" className="editor-dialog-cancel" onClick={onClose}>
+            Cancelar
+          </button>
+          <button type="button" className="editor-dialog-confirm" onClick={confirm}>
+            {submitLabel}
+          </button>
+        </footer>
+      </div>
+    </>
   )
 }
 
@@ -688,7 +716,7 @@ export function ProfessionalEditor({
   }
 
   function submitLink(event) {
-    event.preventDefault()
+    event?.preventDefault?.()
     const url = safeHttpUrl(dialogData.url)
     if (!url) return
     insert('[' + (dialogData.text || url.href) + '](' + url.href + ')')
@@ -696,7 +724,7 @@ export function ProfessionalEditor({
   }
 
   function submitImage(event) {
-    event.preventDefault()
+    event?.preventDefault?.()
     const url = safeHttpUrl(dialogData.url)
     if (!url) return
     insert('\n![' + (dialogData.text || 'Imagem') + '](' + url.href + ')\n')
@@ -704,7 +732,7 @@ export function ProfessionalEditor({
   }
 
   function submitGif(event) {
-    event.preventDefault()
+    event?.preventDefault?.()
     const url = safeHttpUrl(dialogData.url)
     if (!url) return
     insert('\n![' + (dialogData.text || 'GIF') + '](' + url.href + ')\n')
@@ -712,13 +740,14 @@ export function ProfessionalEditor({
   }
 
   function submitSecurity(event) {
-    event.preventDefault()
+    event?.preventDefault?.()
     const ecosystem = String(dialogData.ecosystem || '').trim()
     const packageName = String(dialogData.packageName || '').trim()
     const version = String(dialogData.version || '').trim()
     if (!ecosystem || !packageName || !version) return
     insert('\n' + encodeSecurityEmbed({ ecosystem, packageName, version }) + '\n')
     closeDialog()
+    setPreview(true)
   }
 
   function wrap(before, after = before, fallback = 'texto') {
@@ -968,7 +997,7 @@ export function ProfessionalEditor({
           title="CreativeZone Security — analisar dependência"
           onClose={closeDialog}
           onSubmit={submitSecurity}
-          submitLabel="Inserir análise"
+          submitLabel="Inserir e visualizar análise"
         >
           <div className="editor-security-explainer">
             <strong>O que esta ferramenta verifica?</strong>
