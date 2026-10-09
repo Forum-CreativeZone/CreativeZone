@@ -5098,3 +5098,241 @@ main{
   .forum-side-stat-grid>span:nth-child(3n){border-right:0}
   .forum-side-explore-grid{grid-template-columns:1fr 1fr}
 }
+
+
+/* CreativeZone Link Preview */
+.cz-link-preview{
+  width:min(100%,760px);
+  margin:12px 0;
+  border:1px solid #ffffff14;
+  border-radius:9px;
+  overflow:hidden;
+  background:linear-gradient(180deg,#141414,#0f0f0f);
+  box-shadow:0 10px 24px #0002;
+}
+.cz-link-preview-anchor{
+  position:relative;
+  min-width:0;
+  display:grid;
+  align-items:stretch;
+  color:inherit!important;
+  text-decoration:none!important;
+}
+.cz-link-preview.has-media .cz-link-preview-anchor{
+  grid-template-columns:180px minmax(0,1fr) 34px;
+}
+.cz-link-preview.no-media .cz-link-preview-anchor{
+  grid-template-columns:minmax(0,1fr) 34px;
+}
+.cz-link-preview-anchor:hover{background:#ffffff04}
+.cz-link-preview-media{
+  min-width:0;
+  height:132px;
+  overflow:hidden;
+  background:#080808;
+  border-right:1px solid #ffffff0f;
+}
+.cz-link-preview-media img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.cz-link-preview-content{
+  min-width:0;
+  display:grid;
+  align-content:center;
+  gap:6px;
+  padding:13px 14px;
+}
+.cz-link-preview-source{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:#777;
+  font-size:11px;
+}
+.cz-link-preview-source>img{
+  width:18px;
+  height:18px;
+  object-fit:contain;
+  border-radius:4px;
+  background:#fff;
+  flex:none;
+}
+.cz-link-preview-source>svg{
+  width:15px;
+  height:15px;
+  color:#ff5d54;
+  flex:none;
+}
+.cz-link-preview-source>span{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.cz-link-preview-source>small{
+  margin-left:auto;
+  white-space:nowrap;
+  color:#5f5f5f;
+  font-size:10px;
+}
+.cz-link-preview-title{
+  overflow:hidden;
+  color:#ededed;
+  font-size:15px;
+  line-height:1.3;
+  font-weight:750;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.cz-link-preview-description{
+  display:-webkit-box;
+  overflow:hidden;
+  color:#999;
+  font-size:12px;
+  line-height:1.45;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:3;
+}
+.cz-link-preview-domain{
+  overflow:hidden;
+  color:#666;
+  font-size:10.5px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.cz-link-preview-open{
+  display:grid;
+  place-items:center;
+  color:#5f5f5f;
+}
+.cz-link-preview-open svg{width:15px;height:15px}
+.cz-link-preview:hover .cz-link-preview-open{color:#ff6258}
+.cz-link-preview.is-loading{opacity:.9}
+.cz-link-preview-spinner{animation:cz-link-preview-spin .85s linear infinite}
+@keyframes cz-link-preview-spin{to{transform:rotate(360deg)}}
+
+.cz-link-preview-compact{
+  width:min(100%,460px);
+  margin:7px 0 2px;
+  border-radius:7px;
+}
+.cz-link-preview-compact.has-media .cz-link-preview-anchor{
+  grid-template-columns:72px minmax(0,1fr) 28px;
+}
+.cz-link-preview-compact .cz-link-preview-media{
+  height:72px;
+}
+.cz-link-preview-compact .cz-link-preview-content{
+  gap:3px;
+  padding:8px 9px;
+}
+.cz-link-preview-compact .cz-link-preview-source{font-size:9.5px}
+.cz-link-preview-compact .cz-link-preview-source>img{width:14px;height:14px}
+.cz-link-preview-compact .cz-link-preview-source>small{display:none}
+.cz-link-preview-compact .cz-link-preview-title{
+  font-size:11.5px;
+  line-height:1.25;
+}
+.cz-link-preview-compact .cz-link-preview-domain{font-size:9px}
+.cz-link-preview-compact .cz-link-preview-open svg{width:13px;height:13px}
+
+.cz-link-preview-project{
+  width:100%;
+  margin:14px 0 0;
+}
+.cz-link-preview-project.has-media .cz-link-preview-anchor{
+  grid-template-columns:minmax(180px,230px) minmax(0,1fr) 38px;
+}
+.cz-link-preview-project .cz-link-preview-media{height:150px}
+.cz-link-preview-project .cz-link-preview-title{font-size:17px}
+.project-website-preview{width:100%}
+
+.community-chat-message-content{min-width:0}
+.community-chat-link-preview{max-width:430px}
+
+:root[data-theme="light"] .cz-link-preview{
+  background:#fff;
+  border-color:#e5d9d6;
+  box-shadow:0 8px 22px #32110c0d;
+}
+:root[data-theme="light"] .cz-link-preview-anchor:hover{background:#fff7f5}
+:root[data-theme="light"] .cz-link-preview-media{
+  background:#f2ecea;
+  border-right-color:#eadfdd;
+}
+:root[data-theme="light"] .cz-link-preview-title{color:#202020}
+:root[data-theme="light"] .cz-link-preview-description{color:#5f5f5f}
+:root[data-theme="light"] .cz-link-preview-domain,
+:root[data-theme="light"] .cz-link-preview-source{color:#777}
+:root[data-theme="light"] .cz-link-preview-source>small{color:#999}
+
+@media(max-width:760px){
+  .cz-link-preview{
+    width:100%;
+    margin:10px 0;
+  }
+  .cz-link-preview-full.has-media .cz-link-preview-anchor,
+  .cz-link-preview-project.has-media .cz-link-preview-anchor{
+    grid-template-columns:1fr;
+  }
+  .cz-link-preview-full.no-media .cz-link-preview-anchor,
+  .cz-link-preview-project.no-media .cz-link-preview-anchor{
+    grid-template-columns:1fr;
+  }
+  .cz-link-preview-full .cz-link-preview-media,
+  .cz-link-preview-project .cz-link-preview-media{
+    width:100%;
+    height:158px;
+    border-right:0;
+    border-bottom:1px solid #ffffff0f;
+  }
+  .cz-link-preview-full .cz-link-preview-content,
+  .cz-link-preview-project .cz-link-preview-content{
+    padding:11px 12px 13px;
+  }
+  .cz-link-preview-full .cz-link-preview-open,
+  .cz-link-preview-project .cz-link-preview-open{
+    position:absolute;
+    top:8px;
+    right:8px;
+    width:28px;
+    height:28px;
+    border:1px solid #ffffff18;
+    border-radius:50%;
+    background:#090909cc;
+    color:#aaa;
+  }
+  .cz-link-preview-source{padding-right:26px}
+  .cz-link-preview-source>small{display:none}
+  .cz-link-preview-title{
+    white-space:normal;
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+  }
+  .cz-link-preview-description{-webkit-line-clamp:2}
+  .cz-link-preview-compact{
+    width:min(100%,360px);
+    margin-top:6px;
+  }
+  .cz-link-preview-compact.has-media .cz-link-preview-anchor{
+    grid-template-columns:60px minmax(0,1fr) 24px;
+  }
+  .cz-link-preview-compact .cz-link-preview-media{height:60px}
+  .cz-link-preview-compact .cz-link-preview-content{padding:6px 7px}
+  .cz-link-preview-compact .cz-link-preview-title{
+    display:block;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+  }
+  .project-website-preview{margin-top:4px}
+  :root[data-theme="light"] .cz-link-preview-full .cz-link-preview-open,
+  :root[data-theme="light"] .cz-link-preview-project .cz-link-preview-open{
+    background:#fffffff0;
+    border-color:#e5d9d6;
+  }
+}
