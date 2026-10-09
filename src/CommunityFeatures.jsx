@@ -25,6 +25,7 @@ import {
 } from './services/communityFeaturesApi'
 import { getMemberDecorations } from './services/membershipApi'
 import { EffectBadge, EffectName } from './VisualEffects'
+import { ForumIcon } from './ForumIcon'
 
 function FeatureShell({ title, onBack, children, wide = true }) {
   return (
@@ -244,7 +245,9 @@ export function RankingsPage({ navigate }) {
               onClick={() => row.username && navigate('/membro/' + encodeURIComponent(row.username))}
             >
               <span className={'rank-number rank-' + Math.min(index+1,4)}>
-                {index===0?'🥇':index===1?'🥈':index===2?'🥉':'#'+row.rank}
+                {index < 3
+                  ? <ForumIcon icon="tabler:medal" className={'ranking-medal-icon medal-' + (index + 1)} />
+                  : '#'+row.rank}
               </span>
               <MiniAvatar item={row} />
               <span className="ranking-person">
