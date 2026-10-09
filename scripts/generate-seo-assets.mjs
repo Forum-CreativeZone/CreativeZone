@@ -202,7 +202,11 @@ function buildTopicJsonLd(topic, profile, category) {
 }
 
 async function main() {
-  const template = await readFile(templatePath, 'utf8')
+  let template = await readFile(templatePath, 'utf8')
+  if (siteUrl !== DEFAULT_SITE_URL) {
+    template = template.replaceAll(DEFAULT_SITE_URL, siteUrl)
+    await writeFile(templatePath, template, 'utf8')
+  }
   let topics = []
   let categories = []
   let profiles = []
