@@ -2,7 +2,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/generate-seo-assets.mjs",
     "preview": "vite preview",
     "lint": "eslint src vite.config.js playwright.config.js scripts",
     "test:unit": "vitest run src",
