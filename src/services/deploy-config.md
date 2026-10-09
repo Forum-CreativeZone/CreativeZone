@@ -2,6 +2,7 @@
 
 ## Frontend
 - Build with Vite
+- Official production URL: `https://forum.creativezone.pro`
 - Configure environment variables
 - Connect Supabase URL and publishable key
 
