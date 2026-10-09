@@ -67,7 +67,7 @@ test('adapts the forum information rail between desktop and mobile', async ({ pa
   await page.goto('/')
   await expect(page.locator('.forum-home-sidebar')).toBeVisible()
   await expect(page.locator('.forum-mobile-dashboard')).toBeHidden()
-  await expect(page.getByText('Estatísticas do fórum', { exact: true })).toBeVisible()
+  await expect(page.locator('.forum-home-sidebar').getByText('Estatísticas do fórum', { exact: true })).toBeVisible()
 
   await page.setViewportSize({ width: 390, height: 844 })
   await expect(page.locator('.forum-home-sidebar')).toBeHidden()
