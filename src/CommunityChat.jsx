@@ -221,7 +221,7 @@ export function CommunityChat({
   const typingStopRef = useRef(null)
 
   const visibleMessages = useMemo(
-    () => messages.filter((item) => !ignoredIds.includes(item.user_id)),
+    () => messages.filter((item) => !item.deleted_at && !ignoredIds.includes(item.user_id)),
     [messages, ignoredIds]
   )
 
@@ -487,10 +487,8 @@ export function CommunityChat({
       } else {
         await deleteChatMessage(message.id)
       }
-      try {
-        const item = await getChatMessage(message.id)
-        if (item) upsertMessage(item)
-      } catch {}
+      setMessages((current) => current.filter((item) => item.id !== message.id))
+      setReplyTo((current) => current?.id === message.id ? null : current)
       setMenuId(null)
       notify?.('Mensagem removida.')
     } catch (error) {
@@ -511,10 +509,8 @@ export function CommunityChat({
     try {
       await moderateChatMessage(message.id, action, reason)
       if (action === 'delete') {
-        try {
-          const item = await getChatMessage(message.id)
-          if (item) upsertMessage(item)
-        } catch {}
+        setMessages((current) => current.filter((item) => item.id !== message.id))
+        setReplyTo((current) => current?.id === message.id ? null : current)
       }
       setMenuId(null)
       notify?.(label)
