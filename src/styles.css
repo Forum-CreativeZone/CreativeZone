@@ -5707,7 +5707,7 @@ main{
   background:linear-gradient(180deg,#111,#0b0b0b);
   box-shadow:0 14px 36px #0004;
 }
-.package-security-card>header{
+.package-security-card:not(.security-report)>header{
   display:grid;
   grid-template-columns:44px minmax(0,1fr) auto;
   align-items:center;
@@ -5716,7 +5716,7 @@ main{
   border-bottom:1px solid #ffffff10;
   background:linear-gradient(90deg,#17332044,transparent 72%);
 }
-.package-security-card.has-alerts>header{background:linear-gradient(90deg,#421b174f,transparent 72%)}
+.package-security-card:not(.security-report).has-alerts>header{background:linear-gradient(90deg,#421b174f,transparent 72%)}
 .package-security-icon{
   width:42px;height:42px;display:grid;place-items:center;border-radius:9px;
   border:1px solid #ffffff12;background:#181818;color:#8a8a8a;
@@ -5725,14 +5725,14 @@ main{
 .package-security-icon.severity-none{color:#69d487;background:#14301c}
 .package-security-icon.severity-medium{color:#e5bb67;background:#3a2b16}
 .package-security-icon.severity-high,.package-security-icon.severity-critical{color:#ff7a6f;background:#421b17}
-.package-security-card>header>span:nth-child(2){min-width:0;display:grid;gap:2px}
-.package-security-card>header small{color:#6caa7d;font-size:9.5px;font-weight:850;letter-spacing:1px}
-.package-security-card.has-alerts>header small{color:#ff7067}
-.package-security-card>header strong{
+.package-security-card:not(.security-report)>header>span:nth-child(2){min-width:0;display:grid;gap:2px}
+.package-security-card:not(.security-report)>header small{color:#6caa7d;font-size:9.5px;font-weight:850;letter-spacing:1px}
+.package-security-card:not(.security-report).has-alerts>header small{color:#ff7067}
+.package-security-card:not(.security-report)>header strong{
   min-width:0;overflow:hidden;color:#eee;font-size:15px;text-overflow:ellipsis;white-space:nowrap;
 }
-.package-security-card>header strong code{color:#bbb;font-size:12px}
-.package-security-card>header em{color:#707070;font-size:10.5px;font-style:normal}
+.package-security-card:not(.security-report)>header strong code{color:#bbb;font-size:12px}
+.package-security-card:not(.security-report)>header em{color:#707070;font-size:10.5px;font-style:normal}
 .package-security-summary{
   display:grid;
   gap:11px;
@@ -5751,7 +5751,7 @@ main{
   color:#ddd;font-size:14px;
 }
 .package-security-summary>span small{color:#666;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.4px}
-.package-security-card>footer{
+.package-security-card:not(.security-report)>footer{
   padding:9px 15px;border-top:1px solid #ffffff0d;color:#666;font-size:9.5px;
 }
 .package-security-card.is-loading,.package-security-card.is-error{
@@ -6614,4 +6614,107 @@ main{
     margin:0 auto;
   }
   .thread-post-content>.post-signature img{max-height:150px}
+}
+
+
+/* Security report isolation: legacy package-card rules must never affect v2 report. */
+.package-security-card.security-report > header.security-report-header{
+  display:flex;
+  grid-template-columns:none;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:18px 20px;
+  background:#101114;
+}
+.package-security-card.security-report.has-alerts > header.security-report-header{
+  background:#101114;
+}
+.package-security-card.security-report > header.security-report-header small{
+  color:inherit;
+  font-size:inherit;
+  font-weight:inherit;
+  letter-spacing:inherit;
+}
+.package-security-card.security-report > header.security-report-header strong{
+  min-width:0;
+  overflow:visible;
+  color:inherit;
+  font-size:inherit;
+  text-overflow:clip;
+  white-space:normal;
+}
+.package-security-card.security-report > header.security-report-header strong code{
+  color:inherit;
+  font-size:inherit;
+}
+.package-security-card.security-report > footer.security-report-footer{
+  min-height:50px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:10px 20px;
+  border-top:1px solid #202226;
+  background:#0b0c0e;
+  color:inherit;
+  font-size:inherit;
+}
+.package-security-card.security-report .security-report-identity{
+  flex:1 1 auto;
+  width:auto;
+  max-width:calc(100% - 132px);
+}
+.package-security-card.security-report .security-report-identity>div{
+  width:auto;
+  min-width:0;
+  max-width:100%;
+}
+.package-security-card.security-report .security-report-kicker{
+  display:block;
+  width:auto;
+  max-width:100%;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.package-security-card.security-report .security-report-title{
+  width:auto;
+  max-width:100%;
+  flex-wrap:nowrap;
+}
+.package-security-card.security-report .security-report-title strong{
+  flex:0 1 auto;
+  width:auto;
+  max-width:100%;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.package-security-card.security-report .security-report-title code{
+  flex:none;
+  white-space:nowrap;
+}
+.package-security-card.security-report .security-report-subtitle{
+  width:auto;
+  white-space:nowrap;
+}
+@media(max-width:760px){
+  .package-security-card.security-report > header.security-report-header{
+    align-items:flex-start;
+    flex-direction:column;
+    padding:15px;
+  }
+  .package-security-card.security-report .security-report-identity{
+    width:100%;
+    max-width:100%;
+  }
+  .package-security-card.security-report .security-report-title{
+    flex-wrap:wrap;
+  }
+  .package-security-card.security-report > footer.security-report-footer{
+    align-items:flex-start;
+    flex-direction:column;
+    padding:10px 15px;
+  }
 }
