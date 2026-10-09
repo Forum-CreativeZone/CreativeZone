@@ -27,7 +27,7 @@ export function ForumIcon({ name, icon, className = '', title = '' }) {
 
   return React.createElement('iconify-icon', {
     icon: value,
-    class: className || undefined,
+    className: className || undefined,
     title: title || undefined,
     'aria-hidden': title ? undefined : 'true',
   })
