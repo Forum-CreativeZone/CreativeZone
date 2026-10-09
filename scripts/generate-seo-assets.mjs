@@ -80,6 +80,25 @@ function addJsonLd(html, data) {
   return html.replace('</head>', `  <script type="application/ld+json">${json}</script>\n</head>`)
 }
 
+function setRootFallback(html, bodyHtml = '') {
+  const rootPattern = /<div\s+id=["']root["']\s*>[\s\S]*?<\/div>/i
+  const root = `<div id="root">${bodyHtml}</div>`
+  return rootPattern.test(html) ? html.replace(rootPattern, root) : html
+}
+
+function seoFallbackShell({ eyebrow = 'CreativeZone', title, description = '', content = '' }) {
+  return `
+    <main data-seo-prerender="true" style="max-width:1180px;margin:24px auto;padding:24px;font-family:system-ui,sans-serif;color:inherit">
+      <article>
+        <p style="margin:0 0 8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase">${escapeHtml(eyebrow)}</p>
+        <h1 style="margin:0 0 14px;font-size:30px;line-height:1.2">${escapeHtml(title)}</h1>
+        ${description ? `<p style="max-width:850px;line-height:1.6">${escapeHtml(description)}</p>` : ''}
+        ${content}
+      </article>
+    </main>
+  `
+}
+
 function buildSeoHtml(template, {
   title,
   description,
@@ -87,6 +106,7 @@ function buildSeoHtml(template, {
   type = 'website',
   robots = 'index,follow,max-image-preview:large',
   jsonLd,
+  bodyHtml = '',
 }) {
   let html = template
   html = setTitle(html, title)
@@ -105,6 +125,7 @@ function buildSeoHtml(template, {
   html = setMeta(html, 'name', 'twitter:description', description)
   html = setMeta(html, 'name', 'twitter:image', defaultImage)
   if (jsonLd) html = addJsonLd(html, jsonLd)
+  if (bodyHtml) html = setRootFallback(html, bodyHtml)
   return html
 }
 
@@ -212,8 +233,17 @@ async function main() {
   let template = await readFile(templatePath, 'utf8')
   if (siteUrl !== DEFAULT_SITE_URL) {
     template = template.replaceAll(DEFAULT_SITE_URL, siteUrl)
-    await writeFile(templatePath, template, 'utf8')
   }
+  template = setRootFallback(
+    template,
+    seoFallbackShell({
+      eyebrow: 'Comunidade Creative Lab',
+      title: 'CreativeZone',
+      description: 'Comunidade para tecnologia, software, hardware, IA, automação, games, projetos e colaboração entre membros.',
+    })
+  )
+  await writeFile(templatePath, template, 'utf8')
+
   let topics = []
   let categories = []
   let profiles = []
@@ -269,16 +299,30 @@ async function main() {
     const route = topicPath(topic)
     const canonicalUrl = siteUrl + route
     const description = truncate(topic.content) || `Discussão no fórum CreativeZone: ${topic.title}`
+    const profile = profilesById.get(topic.author_id)
+    const category = categoriesById.get(topic.category_id)
+    const published = topic.created_at
+      ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(topic.created_at))
+      : ''
+    const topicText = plainText(topic.content)
+    const topicBody = seoFallbackShell({
+      eyebrow: category?.name || 'Fórum CreativeZone',
+      title: topic.title,
+      description: [
+        profile?.display_name || profile?.username ? 'Por ' + (profile?.display_name || profile?.username) : '',
+        published ? 'Publicado em ' + published : '',
+      ].filter(Boolean).join(' · '),
+      content: topicText
+        ? `<div style="max-width:900px;margin-top:22px;line-height:1.7"><p>${escapeHtml(topicText)}</p></div>`
+        : '',
+    })
     const html = buildSeoHtml(template, {
       title: topic.title + ' | CreativeZone',
       description,
       canonicalUrl,
       type: 'article',
-      jsonLd: buildTopicJsonLd(
-        topic,
-        profilesById.get(topic.author_id),
-        categoriesById.get(topic.category_id)
-      ),
+      jsonLd: buildTopicJsonLd(topic, profile, category),
+      bodyHtml: topicBody,
     })
     await writeRouteHtml(route, html)
   }
@@ -300,11 +344,32 @@ async function main() {
         url: siteUrl + '/',
       },
     }
+    const childLinks = categories
+      .filter((item) => item.parent_id === category.id)
+      .map((item) =>
+        `<li><a href="/forum/${encodeURIComponent(item.slug)}">${escapeHtml(item.name)}</a></li>`
+      )
+    const topicLinks = topics
+      .filter((item) => item.category_id === category.id)
+      .slice(0, 100)
+      .map((item) =>
+        `<li><a href="${topicPath(item)}">${escapeHtml(item.title)}</a></li>`
+      )
+    const categoryLinks = [...childLinks, ...topicLinks]
+    const categoryBody = seoFallbackShell({
+      eyebrow: category.node_type === 'forum' ? 'Fórum' : 'Categoria',
+      title: category.name,
+      description,
+      content: categoryLinks.length
+        ? `<nav aria-label="Conteúdo desta área" style="margin-top:22px"><ul style="display:grid;gap:8px">${categoryLinks.join('')}</ul></nav>`
+        : '',
+    })
     const html = buildSeoHtml(template, {
       title: category.name + ' | Fórum CreativeZone',
       description,
       canonicalUrl,
       jsonLd,
+      bodyHtml: categoryBody,
     })
     await writeRouteHtml(route, html)
   }
@@ -348,6 +413,10 @@ async function main() {
       title: route.title,
       description: route.description,
       canonicalUrl,
+      bodyHtml: seoFallbackShell({
+        title: route.title.replace(/\s*\|.*$/, '').replace(/\s*—.*$/, ''),
+        description: route.description,
+      }),
     })
     await writeRouteHtml(route.path, html)
   }
