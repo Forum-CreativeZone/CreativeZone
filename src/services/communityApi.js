@@ -176,7 +176,7 @@ export async function uploadProfileCover(userId, file) {
 
 export async function uploadProfileSignature(userId, file) {
   const client = requireSupabase()
-  return replaceProfileStorageImage({
+  await replaceProfileStorageImage({
     client,
     userId,
     file,
@@ -187,6 +187,15 @@ export async function uploadProfileSignature(userId, file) {
     invalidMessage: 'Selecione uma imagem válida para a assinatura.',
     sizeMessage: 'A assinatura deve ter no máximo 8 MB.',
   })
+
+  const { data, error } = await client
+    .from('profiles')
+    .update({ signature_type: 'image' })
+    .eq('id', userId)
+    .select()
+    .single()
+  if (error) throw error
+  return data
 }
 
 function normalizeSignatureImageUrl(value) {
@@ -238,7 +247,91 @@ export async function setProfileSignatureImageUrl(userId, value) {
 
   const { data: nextProfile, error: updateError } = await client
     .from('profiles')
-    .update({ signature })
+    .update({ signature, signature_type: 'image' })
+    .eq('id', userId)
+    .select()
+    .single()
+  if (updateError) throw updateError
+
+  const oldPaths = new Set(
+    (existingFiles || [])
+      .filter((item) => item?.name)
+      .map((item) => userId + '/' + item.name)
+  )
+
+  const previousPath = storagePathFromPublicUrl(
+    currentProfile?.signature || '',
+    'profile-signatures'
+  )
+  if (previousPath?.startsWith(userId + '/')) oldPaths.add(previousPath)
+
+  if (oldPaths.size) {
+    const { error: cleanupError } = await client
+      .storage
+      .from('profile-signatures')
+      .remove([...oldPaths])
+
+    if (cleanupError) {
+      console.warn('Não foi possível limpar uma assinatura antiga do Storage.', cleanupError)
+    }
+  }
+
+  return nextProfile
+}
+
+function normalizeInteractiveSignatureUrl(value) {
+  const trimmed = String(value || '').trim()
+  if (!trimmed) return ''
+
+  let url
+  try {
+    url = new URL(trimmed)
+  } catch {
+    throw new Error('Informe o link HTTPS da assinatura interativa.')
+  }
+
+  if (url.protocol !== 'https:') {
+    throw new Error('Assinaturas interativas precisam usar HTTPS.')
+  }
+
+  const host = url.hostname.toLowerCase()
+  const allowedHost =
+    host === 'raw.githack.com'
+    || host === 'githack.com'
+    || host.endsWith('.github.io')
+
+  if (!allowedHost) {
+    throw new Error('Por segurança, assinaturas HTML interativas devem estar hospedadas no RawGitHack ou GitHub Pages.')
+  }
+
+  if (host.includes('youtube') || host.includes('vimeo')) {
+    throw new Error('Vídeos não podem ser usados como assinatura.')
+  }
+
+  return url.href
+}
+
+export async function setProfileInteractiveSignatureUrl(userId, value) {
+  const client = requireSupabase()
+  const signature = normalizeInteractiveSignatureUrl(value)
+
+  const [{ data: currentProfile, error: profileError }, { data: existingFiles, error: listError }] = await Promise.all([
+    client.from('profiles').select('signature,signature_type').eq('id', userId).single(),
+    client.storage.from('profile-signatures').list(userId, {
+      limit: 1000,
+      sortBy: { column: 'created_at', order: 'desc' },
+    }),
+  ])
+
+  if (profileError) throw profileError
+  if (listError) throw listError
+
+  const { data: nextProfile, error: updateError } = await client
+    .from('profiles')
+    .update({
+      signature,
+      signature_type: signature ? 'interactive' : 'image',
+    })
     .eq('id', userId)
     .select()
     .single()
