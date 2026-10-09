@@ -53,6 +53,7 @@ import {
   uploadProfileCover,
   uploadProfileSignature,
   setProfileSignatureImageUrl,
+  setProfileInteractiveSignatureUrl,
 } from './services/communityApi'
 import {
   getEligibleFeaturedProjects,
@@ -602,9 +603,16 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
     setBusy(true)
     try {
       let effectiveSignature = draft.signature || ''
-      if (effectiveSignature !== (profile?.signature || '')) {
-        const signatureProfile = await setProfileSignatureImageUrl(userId, effectiveSignature)
+      let effectiveSignatureType = draft.signature_type === 'interactive' ? 'interactive' : 'image'
+      if (
+        effectiveSignature !== (profile?.signature || '')
+        || effectiveSignatureType !== (profile?.signature_type || 'image')
+      ) {
+        const signatureProfile = effectiveSignatureType === 'interactive'
+          ? await setProfileInteractiveSignatureUrl(userId, effectiveSignature)
+          : await setProfileSignatureImageUrl(userId, effectiveSignature)
         effectiveSignature = signatureProfile.signature || ''
+        effectiveSignatureType = signatureProfile.signature_type || effectiveSignatureType
       }
 
       const payload = {
@@ -615,6 +623,7 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
         interests: Array.isArray(draft.interests) ? draft.interests : [],
         status_message: draft.status_message || '',
         signature: effectiveSignature,
+        signature_type: effectiveSignatureType,
         show_activity: Boolean(draft.show_activity),
         show_online: Boolean(draft.show_online),
         allow_follow: Boolean(draft.allow_follow),
@@ -723,12 +732,21 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
   async function applySignatureUrl() {
     setBusy(true)
     try {
-      const next = await setProfileSignatureImageUrl(userId, draft.signature || '')
+      const interactive = draft.signature_type === 'interactive'
+      const next = interactive
+        ? await setProfileInteractiveSignatureUrl(userId, draft.signature || '')
+        : await setProfileSignatureImageUrl(userId, draft.signature || '')
       setProfile(next)
       setDraft(next)
-      notify(next.signature ? 'Link da assinatura aplicado.' : 'Assinatura removida.')
+      notify(
+        next.signature
+          ? interactive
+            ? 'Assinatura interativa aplicada.'
+            : 'Link da assinatura aplicado.'
+          : 'Assinatura removida.'
+      )
     } catch (error) {
-      notify(error?.message || 'Não foi possível aplicar o link da assinatura.')
+      notify(error?.message || 'Não foi possível aplicar a assinatura.')
     } finally {
       setBusy(false)
     }
@@ -814,25 +832,59 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
               <section className="forum-signature-editor">
                 <div className="forum-signature-editor-head">
                   <span>
-                    <ForumIcon name="image" />
+                    <ForumIcon name={draft.signature_type === 'interactive' ? 'tools' : 'image'} />
                     <strong>Assinatura do fórum</strong>
                   </span>
-                  <small>Aparece abaixo dos tópicos e respostas. Somente imagens; vídeos não são aceitos.</small>
+                  <small>
+                    Aparece abaixo dos tópicos e respostas. Pode ser uma imagem/GIF ou uma assinatura HTML interativa hospedada e isolada.
+                  </small>
+                </div>
+
+                <div className="forum-signature-modes" role="group" aria-label="Tipo de assinatura">
+                  <button
+                    type="button"
+                    className={(draft.signature_type || 'image') === 'image' ? 'active' : ''}
+                    onClick={() => setProfileField('signature_type', 'image')}
+                  >
+                    <ForumIcon name="image" /> Imagem / GIF
+                  </button>
+                  <button
+                    type="button"
+                    className={draft.signature_type === 'interactive' ? 'active' : ''}
+                    onClick={() => setProfileField('signature_type', 'interactive')}
+                  >
+                    <ForumIcon name="tools" /> Interativa / HTML
+                  </button>
                 </div>
 
                 {draft.signature ? (
-                  <div className="forum-signature-preview">
-                    <img src={draft.signature} alt="Pré-visualização da assinatura" />
-                  </div>
+                  draft.signature_type === 'interactive' ? (
+                    <div className="forum-signature-preview interactive">
+                      <iframe
+                        src={draft.signature}
+                        title="Pré-visualização da assinatura interativa"
+                        sandbox="allow-scripts allow-same-origin"
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                        scrolling="no"
+                      />
+                    </div>
+                  ) : (
+                    <div className="forum-signature-preview">
+                      <img src={draft.signature} alt="Pré-visualização da assinatura" />
+                    </div>
+                  )
                 ) : (
                   <div className="forum-signature-empty">
-                    <ForumIcon name="image" />
+                    <ForumIcon name={draft.signature_type === 'interactive' ? 'tools' : 'image'} />
                     <span>Nenhuma assinatura definida.</span>
                   </div>
                 )}
 
                 <label className="forum-signature-url">
-                  Link direto da imagem
+                  {draft.signature_type === 'interactive'
+                    ? 'Link da versão incorporável da assinatura'
+                    : 'Link direto da imagem'}
                   <div>
                     <ForumIcon name="link" />
                     <input
@@ -840,7 +892,11 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
                       maxLength={1000}
                       value={draft.signature || ''}
                       onChange={(e) => setProfileField('signature', e.target.value)}
-                      placeholder="https://site.com/minha-assinatura.gif"
+                      placeholder={
+                        draft.signature_type === 'interactive'
+                          ? 'https://raw.githack.com/usuario/repo/main/assinatura/embed.html'
+                          : 'https://site.com/minha-assinatura.gif'
+                      }
                     />
                     <button
                       type="button"
@@ -848,21 +904,23 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
                       disabled={busy}
                       onClick={applySignatureUrl}
                     >
-                      Aplicar link
+                      Aplicar
                     </button>
                   </div>
                 </label>
 
                 <div className="forum-signature-actions">
-                  <label className="action primary-action">
-                    <ForumIcon name="upload" /> Enviar imagem
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={signatureUploadChange}
-                      hidden
-                    />
-                  </label>
+                  {(draft.signature_type || 'image') === 'image' && (
+                    <label className="action primary-action">
+                      <ForumIcon name="upload" /> Enviar imagem
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={signatureUploadChange}
+                        hidden
+                      />
+                    </label>
+                  )}
                   {draft.signature && (
                     <button
                       type="button"
@@ -875,9 +933,16 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
                   )}
                 </div>
 
-                <small className="forum-signature-help">
-                  Aceita PNG, JPG, WEBP, GIF animado, AVIF e outros formatos de imagem compatíveis com o navegador. Upload de até 8 MB.
-                </small>
+                {draft.signature_type === 'interactive' ? (
+                  <small className="forum-signature-help">
+                    Não cole HTML ou JSON diretamente no perfil. Hospede a animação no GitHub e use uma página <code>embed.html</code>.
+                    O fórum carrega essa página em um iframe sandboxado, sem acesso à página principal.
+                  </small>
+                ) : (
+                  <small className="forum-signature-help">
+                    Aceita PNG, JPG, WEBP, GIF animado, AVIF e outros formatos de imagem compatíveis com o navegador. Upload de até 8 MB.
+                  </small>
+                )}
               </section>
               {projectChoices.length > 0 && (
                 <fieldset className="featured-project-picker">
