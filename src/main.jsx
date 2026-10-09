@@ -26,6 +26,7 @@ import {
   LockKeyhole,
   Trophy,
   BarChart3,
+  Pin,
 } from 'lucide-react'
 import '@fontsource-variable/dm-sans'
 import * as A from './design-assets'
@@ -114,6 +115,7 @@ import {
 import { ProfessionalEditor, RichForumContent } from './ProfessionalEditor'
 import { TopicPoll } from './TopicPoll'
 import { createTopicPoll } from './services/pollApi'
+import { moderateTopic } from './services/extendedApi'
 import { EliteAreaPage } from './MembershipSection'
 import { AdminDashboard } from './AdminDashboard'
 import { getMemberDecorations, getMembershipState } from './services/membershipApi'
@@ -2001,6 +2003,30 @@ function App() {
     }
   }
 
+  async function toggleThreadState(action) {
+    if (!routeTopicId || !['moderator', 'admin'].includes(profile?.role)) return
+    try {
+      await moderateTopic(routeTopicId, action, 'Ação aplicada diretamente no tópico.')
+      setRouteTopic((current) => {
+        if (!current) return current
+        if (action === 'pin') return { ...current, pinned: true }
+        if (action === 'unpin') return { ...current, pinned: false }
+        if (action === 'lock') return { ...current, locked: true }
+        if (action === 'unlock') return { ...current, locked: false }
+        return current
+      })
+      await refreshForum()
+      setToast(
+        action === 'pin' ? 'Tópico fixado.'
+          : action === 'unpin' ? 'Tópico desafixado.'
+            : action === 'lock' ? 'Tópico fechado para novas respostas.'
+              : 'Tópico reaberto.'
+      )
+    } catch (error) {
+      setToast(error?.message || 'Não foi possível alterar o estado do tópico.')
+    }
+  }
+
   async function favorite(id) {
     if (!user?.id) {
       setToast('Entre para salvar tópicos.')
@@ -2814,14 +2840,36 @@ function App() {
                 </div>
               )}
             </div>
-            <button
-              className={'action thread-watch-button ' + (watchingTopic ? 'watching' : '')}
-              onClick={toggleTopicWatch}
-              disabled={watchBusy}
-            >
-              {watchingTopic ? <BellOff /> : <Bell />}
-              {watchBusy ? 'Aguarde...' : watchingTopic ? 'Deixar de assistir' : 'Assistir tópico'}
-            </button>
+            <div className="thread-watch-actions">
+              {['moderator', 'admin'].includes(profile?.role) && (
+                <div className="thread-staff-state-actions">
+                  <button
+                    type="button"
+                    className={'action ' + (routeTopic.pinned ? 'active' : '')}
+                    title={routeTopic.pinned ? 'Desafixar tópico' : 'Fixar tópico'}
+                    onClick={() => toggleThreadState(routeTopic.pinned ? 'unpin' : 'pin')}
+                  >
+                    <Pin /> {routeTopic.pinned ? 'Fixado' : 'Fixar'}
+                  </button>
+                  <button
+                    type="button"
+                    className={'action ' + (routeTopic.locked ? 'active' : '')}
+                    title={routeTopic.locked ? 'Reabrir tópico' : 'Fechar tópico'}
+                    onClick={() => toggleThreadState(routeTopic.locked ? 'unlock' : 'lock')}
+                  >
+                    <LockKeyhole /> {routeTopic.locked ? 'Fechado' : 'Fechar'}
+                  </button>
+                </div>
+              )}
+              <button
+                className={'action thread-watch-button ' + (watchingTopic ? 'watching' : '')}
+                onClick={toggleTopicWatch}
+                disabled={watchBusy}
+              >
+                {watchingTopic ? <BellOff /> : <Bell />}
+                {watchBusy ? 'Aguarde...' : watchingTopic ? 'Deixar de assistir' : 'Assistir tópico'}
+              </button>
+            </div>
           </div>
 
           <TopicPoll
