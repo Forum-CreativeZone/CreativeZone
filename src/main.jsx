@@ -25,6 +25,7 @@ import {
   Download,
   LockKeyhole,
   Trophy,
+  BarChart3,
 } from 'lucide-react'
 import '@fontsource-variable/dm-sans'
 import * as A from './design-assets'
@@ -111,6 +112,8 @@ import {
   truncateText,
 } from './seo'
 import { ProfessionalEditor, RichForumContent } from './ProfessionalEditor'
+import { TopicPoll } from './TopicPoll'
+import { createTopicPoll } from './services/pollApi'
 import { EliteAreaPage } from './MembershipSection'
 import { AdminDashboard } from './AdminDashboard'
 import { getMemberDecorations, getMembershipState } from './services/membershipApi'
@@ -162,6 +165,7 @@ function mapTopic(topic) {
     replies: Number(topic.reply_count || 0),
     locked: Boolean(topic.locked),
     pinned: Boolean(topic.pinned),
+    hasPoll: Boolean(topic.has_poll),
     authorId: topic.author_id,
     authorUsername: topic.author_username || topic.profiles?.username || '',
     signature: topic.author_signature || topic.profiles?.signature || '',
@@ -652,6 +656,15 @@ function ComposerPage({
   const [publishing, setPublishing] = useState(false)
   const [watchAfterPublish, setWatchAfterPublish] = useState(draft.watchAfterPublish ?? true)
   const [emailAfterPublish, setEmailAfterPublish] = useState(draft.emailAfterPublish ?? true)
+  const [pollEnabled, setPollEnabled] = useState(Boolean(draft.poll?.question))
+  const [pollQuestion, setPollQuestion] = useState(draft.poll?.question || '')
+  const [pollOptions, setPollOptions] = useState(
+    Array.isArray(draft.poll?.options) && draft.poll.options.length >= 2
+      ? draft.poll.options
+      : ['', '']
+  )
+  const [pollAllowMultiple, setPollAllowMultiple] = useState(Boolean(draft.poll?.allowMultiple))
+  const [pollClosesAt, setPollClosesAt] = useState(draft.poll?.closesAt || '')
   const [draftSavedAt, setDraftSavedAt] = useState(null)
   const canManageDownloads = Boolean(profile?.system_owner)
 
@@ -709,6 +722,12 @@ function ComposerPage({
         downloads: canManageDownloads ? downloads : [],
         watchAfterPublish,
         emailAfterPublish,
+        poll: pollEnabled ? {
+          question: pollQuestion,
+          options: pollOptions,
+          allowMultiple: pollAllowMultiple,
+          closesAt: pollClosesAt,
+        } : null,
       })
     )
     setDraftSavedAt(new Date())
@@ -734,6 +753,11 @@ function ComposerPage({
     downloads,
     watchAfterPublish,
     emailAfterPublish,
+    pollEnabled,
+    pollQuestion,
+    pollOptions,
+    pollAllowMultiple,
+    pollClosesAt,
     canManageDownloads,
   ])
 
@@ -749,6 +773,14 @@ function ComposerPage({
         attachments,
         watchAfterPublish,
         emailAfterPublish: watchAfterPublish && emailAfterPublish,
+        poll: pollEnabled
+          ? {
+              question: pollQuestion.trim(),
+              options: pollOptions.map((item) => String(item || '').trim()).filter(Boolean),
+              allowMultiple: pollAllowMultiple,
+              closesAt: pollClosesAt || null,
+            }
+          : null,
         downloads: canManageDownloads
           ? downloads
               .map((item) => ({
@@ -899,6 +931,99 @@ function ComposerPage({
             </div>
           </section>
         )}
+
+        <section className="composer-poll-panel">
+          <header>
+            <div>
+              <BarChart3 />
+              <span>
+                <strong>Enquete</strong>
+                <small>Crie uma votação que será exibida acima da primeira publicação.</small>
+              </span>
+            </div>
+            <label className="composer-poll-toggle">
+              <input
+                type="checkbox"
+                checked={pollEnabled}
+                onChange={(event) => setPollEnabled(event.target.checked)}
+              />
+              <span>{pollEnabled ? 'Ativada' : 'Adicionar enquete'}</span>
+            </label>
+          </header>
+
+          {pollEnabled && (
+            <div className="composer-poll-fields">
+              <label>
+                Pergunta
+                <input
+                  required
+                  maxLength={280}
+                  value={pollQuestion}
+                  onChange={(event) => setPollQuestion(event.target.value)}
+                  placeholder="Ex.: Qual recurso você prefere?"
+                />
+              </label>
+
+              <div className="composer-poll-options">
+                {pollOptions.map((option, index) => (
+                  <label key={index}>
+                    Opção {index + 1}
+                    <span>
+                      <input
+                        required={index < 2}
+                        maxLength={180}
+                        value={option}
+                        onChange={(event) => setPollOptions((current) =>
+                          current.map((item, itemIndex) => itemIndex === index ? event.target.value : item)
+                        )}
+                        placeholder={'Resposta ' + (index + 1)}
+                      />
+                      {pollOptions.length > 2 && (
+                        <button
+                          type="button"
+                          className="action danger-action"
+                          aria-label={'Remover opção ' + (index + 1)}
+                          onClick={() => setPollOptions((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                        >
+                          <Trash2 />
+                        </button>
+                      )}
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              {pollOptions.length < 10 && (
+                <button
+                  type="button"
+                  className="action composer-poll-add"
+                  onClick={() => setPollOptions((current) => [...current, ''])}
+                >
+                  <Plus /> Adicionar opção
+                </button>
+              )}
+
+              <div className="composer-poll-settings">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={pollAllowMultiple}
+                    onChange={(event) => setPollAllowMultiple(event.target.checked)}
+                  />
+                  Permitir múltiplas escolhas
+                </label>
+                <label>
+                  Encerrar automaticamente
+                  <input
+                    type="datetime-local"
+                    value={pollClosesAt}
+                    onChange={(event) => setPollClosesAt(event.target.value)}
+                  />
+                </label>
+              </div>
+            </div>
+          )}
+        </section>
 
         <section className="composer-tags-panel">
           <label htmlFor="topic-tags">Etiquetas / Tags</label>
@@ -1954,6 +2079,23 @@ function App() {
         slug: slugify(topic.title) + '-' + Date.now().toString(36),
       })
 
+      if (topic.poll?.question && topic.poll?.options?.length >= 2) {
+        try {
+          await createTopicPoll({
+            topicId: created.id,
+            question: topic.poll.question,
+            options: topic.poll.options,
+            allowMultiple: Boolean(topic.poll.allowMultiple),
+            closesAt: topic.poll.closesAt
+              ? new Date(topic.poll.closesAt).toISOString()
+              : null,
+          })
+        } catch (pollError) {
+          await deleteTopic(created.id).catch(() => {})
+          throw pollError
+        }
+      }
+
       if (topic.downloads?.length) {
         try {
           await createTopicDownloads({
@@ -2681,6 +2823,12 @@ function App() {
               {watchBusy ? 'Aguarde...' : watchingTopic ? 'Deixar de assistir' : 'Assistir tópico'}
             </button>
           </div>
+
+          <TopicPoll
+            topicId={routeTopic.id}
+            session={session}
+            notify={setToast}
+          />
 
           <div className="thread-board">
             <ThreadPostCard
