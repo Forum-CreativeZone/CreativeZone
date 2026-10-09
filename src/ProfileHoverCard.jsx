@@ -91,6 +91,36 @@ export function ProfileHoverLayer() {
   }, [])
 
   useEffect(() => {
+    if (!target?.username) return undefined
+
+    function ensureStillHovering(event) {
+      const element = event.target?.closest?.('[data-profile-username]')
+      const username = element?.dataset?.profileUsername || ''
+      if (username !== target.username) {
+        closeNow()
+      }
+    }
+
+    function dismiss() {
+      closeNow()
+    }
+
+    document.addEventListener('pointermove', ensureStillHovering, true)
+    document.addEventListener('pointerdown', dismiss, true)
+    window.addEventListener('scroll', dismiss, true)
+    window.addEventListener('resize', dismiss)
+    window.addEventListener('blur', dismiss)
+
+    return () => {
+      document.removeEventListener('pointermove', ensureStillHovering, true)
+      document.removeEventListener('pointerdown', dismiss, true)
+      window.removeEventListener('scroll', dismiss, true)
+      window.removeEventListener('resize', dismiss)
+      window.removeEventListener('blur', dismiss)
+    }
+  }, [target?.username])
+
+  useEffect(() => {
     let active = true
     if (!target?.username) return undefined
 
