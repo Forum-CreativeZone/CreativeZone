@@ -137,6 +137,22 @@ export function ThreadAuthorPanel({
   )
 }
 
+function ForumSignature({ value }) {
+  const signature = String(value || '').trim()
+  if (!/^https?:\/\//i.test(signature)) return null
+
+  return (
+    <div className="post-signature">
+      <img
+        src={signature}
+        alt="Assinatura do membro"
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
+  )
+}
+
 export function ThreadPostCard({
   profile,
   stats,
@@ -172,7 +188,7 @@ export function ThreadPostCard({
           {children}
         </div>
 
-        {signature && <div className="post-signature">{signature}</div>}
+        <ForumSignature value={signature} />
 
         {actions && <footer className="thread-post-actions">{actions}</footer>}
       </div>
