@@ -1514,6 +1514,9 @@ function App() {
       '/novo-topico',
       '/esqueci-senha',
       '/redefinir-senha',
+      '/buscar',
+      '/feed',
+      '/chat',
     ]
 
     if (routeTopicId) {
@@ -1564,6 +1567,15 @@ function App() {
           'Discussões da comunidade CreativeZone sobre ' + routeForumNode.name + '.',
         canonicalPath: '/forum/' + encodeURIComponent(routeForumNode.slug),
         jsonLd: buildCategoryStructuredData(routeForumNode),
+      })
+      return
+    }
+
+    if (routeTagSlug) {
+      applySeo({
+        title: '#' + routeTagSlug + ' | CreativeZone',
+        description: 'Tópicos da comunidade CreativeZone relacionados à tag #' + routeTagSlug + '.',
+        canonicalPath: '/tag/' + encodeURIComponent(routeTagSlug),
       })
       return
     }
@@ -1632,6 +1644,7 @@ function App() {
     routeTopic,
     routeForumSlug,
     routeForumNode,
+    routeTagSlug,
     routeMemberUsername,
   ])
 
