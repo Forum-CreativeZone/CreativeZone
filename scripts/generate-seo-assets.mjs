@@ -325,6 +325,7 @@ async function main() {
       bodyHtml: topicBody,
     })
     await writeRouteHtml(route, html)
+    await writeRouteHtml('/topico/' + encodeURIComponent(topic.id), html)
   }
 
   for (const category of categories) {
