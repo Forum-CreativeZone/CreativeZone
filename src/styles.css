@@ -4579,3 +4579,11 @@
   .forum-signature-url>div>.action{grid-column:1 / -1}
   .thread-post-content>.post-signature img{max-height:170px}
 }
+
+
+.ranking-medal-icon{
+  font-size:24px;
+}
+.ranking-medal-icon.medal-1{color:#f3c85b}
+.ranking-medal-icon.medal-2{color:#c9d0d8}
+.ranking-medal-icon.medal-3{color:#c88d5b}
