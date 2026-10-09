@@ -5392,9 +5392,12 @@ main{
   border-color:#ffffff1b;
   box-shadow:0 18px 42px #0005;
 }
-.cz-link-preview-full .cz-link-preview-anchor,
-.cz-link-preview-project .cz-link-preview-anchor{
+.cz-link-preview.cz-link-preview-full.has-media .cz-link-preview-anchor,
+.cz-link-preview.cz-link-preview-full.no-media .cz-link-preview-anchor,
+.cz-link-preview.cz-link-preview-project.has-media .cz-link-preview-anchor,
+.cz-link-preview.cz-link-preview-project.no-media .cz-link-preview-anchor{
   display:block;
+  grid-template-columns:none;
 }
 .cz-link-preview-full .cz-link-preview-media,
 .cz-link-preview-project .cz-link-preview-media{
