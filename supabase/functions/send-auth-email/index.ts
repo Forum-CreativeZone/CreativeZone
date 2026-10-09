@@ -155,7 +155,9 @@ function copyFor(type: string) {
 }
 
 function verificationUrl(type: string, hash: string, redirectTo?: string) {
-  const redirect = redirectTo || SITE_URL
+  const redirect = String(redirectTo || SITE_URL)
+    .replace("https://assets-forum.gestao-quiroz.workers.dev", SITE_URL)
+    .replace(/\/+$/, "")
   return `${SUPABASE_URL}/auth/v1/verify?token=${encodeURIComponent(hash)}&type=${encodeURIComponent(type)}&redirect_to=${encodeURIComponent(redirect)}`
 }
 
