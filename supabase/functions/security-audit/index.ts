@@ -224,9 +224,10 @@ async function repoTree(ref: RepoRef, branch: string) {
     return {
       paths,
       truncated: Boolean(data?.truncated),
+      sha: String(data?.sha || ""),
     }
   } catch {
-    return { paths: [], truncated: false }
+    return { paths: [], truncated: false, sha: "" }
   }
 }
 
@@ -954,13 +955,23 @@ async function auditProject(projectId: string, options: {
   if (!project.repo_url) throw new Error("Adicione um repositório GitHub ao projeto para habilitar a auditoria.")
   if (!project.security_audit_enabled) throw new Error("A auditoria automática está desativada neste projeto.")
 
+  const ref = parseGitHubRepo(project.repo_url)
+
   const { data: existing } = await admin
     .from("project_security_state")
     .select("*")
     .eq("project_id", projectId)
     .maybeSingle()
 
-  if (!options.force && existing?.next_scan_at && new Date(existing.next_scan_at).getTime() > Date.now()) {
+  const sameRepository =
+    String(existing?.summary?.repository || "").toLowerCase() === ref.url.toLowerCase()
+
+  if (
+    !options.force &&
+    sameRepository &&
+    existing?.next_scan_at &&
+    new Date(existing.next_scan_at).getTime() > Date.now()
+  ) {
     return { skipped: true, state: existing }
   }
 
@@ -971,7 +982,6 @@ async function auditProject(projectId: string, options: {
     updated_at: new Date().toISOString(),
   }, { onConflict: "project_id" })
 
-  const ref = parseGitHubRepo(project.repo_url)
   const startedAt = new Date().toISOString()
   const { data: audit, error: auditError } = await admin
     .from("project_security_audits")
@@ -993,8 +1003,8 @@ async function auditProject(projectId: string, options: {
     const repoInfo = await githubRepoInfo(ref)
     if (repoInfo?.private) throw new Error("Este repositório é privado. A auditoria automática atual exige um repositório GitHub público.")
     const defaultBranch = String(repoInfo?.default_branch || "main")
-    const commitSha = String(repoInfo?.pushed_at || repoInfo?.updated_at || "")
     const tree = await repoTree(ref, defaultBranch)
+    const commitSha = tree.sha || String(repoInfo?.pushed_at || repoInfo?.updated_at || "")
 
     const sbom = await requestGitHubSbom(ref)
     let dependencies = dependenciesFromSbom(sbom)
@@ -1119,7 +1129,6 @@ async function batchAction() {
   const { data: projects, error } = await admin
     .from("projects")
     .select("id,project_security_state(next_scan_at,status)")
-    .eq("visibility", "public")
     .eq("security_audit_enabled", true)
     .not("repo_url", "is", null)
     .limit(50)
