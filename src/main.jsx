@@ -153,6 +153,7 @@ function mapTopic(topic) {
     authorId: topic.author_id,
     authorUsername: topic.author_username || topic.profiles?.username || '',
     signature: topic.author_signature || topic.profiles?.signature || '',
+    signatureType: topic.author_signature_type || topic.profiles?.signature_type || 'image',
     profile: topic.profiles || null,
     createdAt: topic.created_at,
     updatedAt: topic.updated_at,
@@ -2566,6 +2567,7 @@ function App() {
               number={1}
               original
               signature={routeTopic.signature}
+              signatureType={routeTopic.signatureType}
               actions={
                 <>
                   <ReactionButton session={session} topicId={routeTopic.id} notify={setToast} />
@@ -2693,6 +2695,7 @@ function App() {
                   createdAt={post.created_at}
                   number={index + 2}
                   signature={post.profiles?.signature}
+                  signatureType={post.profiles?.signature_type || 'image'}
                   actions={
                     <>
                       <ReactionButton session={session} postId={post.id} notify={setToast} />
