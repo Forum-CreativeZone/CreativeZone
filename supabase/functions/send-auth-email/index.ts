@@ -5,7 +5,7 @@ import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0"
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!
-const RESEND_FROM = Deno.env.get("RESEND_FROM") || "CreativeZone <onboarding@resend.dev>"
+const RESEND_FROM = Deno.env.get("RESEND_FROM") || "CreativeZone <conta@creativezone.pro>"
 const SEND_EMAIL_HOOK_SECRET = Deno.env.get("SEND_EMAIL_HOOK_SECRET") || ""
 const SITE_URL = String(Deno.env.get("PUBLIC_SITE_URL") || "https://forum.creativezone.pro")
   .replace("https://assets-forum.gestao-quiroz.workers.dev", "https://forum.creativezone.pro")
