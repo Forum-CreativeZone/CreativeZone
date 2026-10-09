@@ -174,6 +174,102 @@ export async function uploadProfileCover(userId, file) {
   })
 }
 
+export async function uploadProfileSignature(userId, file) {
+  const client = requireSupabase()
+  return replaceProfileStorageImage({
+    client,
+    userId,
+    file,
+    bucket: 'profile-signatures',
+    profileField: 'signature',
+    prefix: 'signature',
+    maxBytes: 8 * 1024 * 1024,
+    invalidMessage: 'Selecione uma imagem válida para a assinatura.',
+    sizeMessage: 'A assinatura deve ter no máximo 8 MB.',
+  })
+}
+
+function normalizeSignatureImageUrl(value) {
+  const trimmed = String(value || '').trim()
+  if (!trimmed) return ''
+
+  let url
+  try {
+    url = new URL(trimmed)
+  } catch {
+    throw new Error('Informe um link de imagem válido.')
+  }
+
+  if (!['http:','https:'].includes(url.protocol)) {
+    throw new Error('A assinatura deve usar um link http ou https.')
+  }
+
+  const host = url.hostname.toLowerCase()
+  const pathname = url.pathname.toLowerCase()
+  const videoExtension = /\.(?:mp4|webm|mov|m4v|avi|mkv|wmv)(?:$|\?)/i.test(url.href)
+  const videoHost =
+    host === 'youtube.com' ||
+    host.endsWith('.youtube.com') ||
+    host === 'youtu.be' ||
+    host === 'vimeo.com' ||
+    host.endsWith('.vimeo.com')
+
+  if (videoExtension || videoHost || pathname.includes('/video/')) {
+    throw new Error('Vídeos não podem ser usados como assinatura. Use uma imagem ou GIF.')
+  }
+
+  return url.href
+}
+
+export async function setProfileSignatureImageUrl(userId, value) {
+  const client = requireSupabase()
+  const signature = normalizeSignatureImageUrl(value)
+
+  const [{ data: currentProfile, error: profileError }, { data: existingFiles, error: listError }] = await Promise.all([
+    client.from('profiles').select('signature').eq('id', userId).single(),
+    client.storage.from('profile-signatures').list(userId, {
+      limit: 1000,
+      sortBy: { column: 'created_at', order: 'desc' },
+    }),
+  ])
+
+  if (profileError) throw profileError
+  if (listError) throw listError
+
+  const { data: nextProfile, error: updateError } = await client
+    .from('profiles')
+    .update({ signature })
+    .eq('id', userId)
+    .select()
+    .single()
+  if (updateError) throw updateError
+
+  const oldPaths = new Set(
+    (existingFiles || [])
+      .filter((item) => item?.name)
+      .map((item) => userId + '/' + item.name)
+  )
+
+  const previousPath = storagePathFromPublicUrl(
+    currentProfile?.signature || '',
+    'profile-signatures'
+  )
+  if (previousPath?.startsWith(userId + '/')) oldPaths.add(previousPath)
+
+  if (oldPaths.size) {
+    const { error: cleanupError } = await client
+      .storage
+      .from('profile-signatures')
+      .remove([...oldPaths])
+
+    if (cleanupError) {
+      console.warn('Não foi possível limpar uma assinatura antiga do Storage.', cleanupError)
+    }
+  }
+
+  return nextProfile
+}
+
 export async function getProfileHoverSummary(username) {
   const client = requireSupabase()
   const { data: profile, error: profileError } = await client
