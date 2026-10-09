@@ -3,16 +3,19 @@ import { createClient } from "npm:@supabase/supabase-js@2"
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || ""
 const SERVICE_KEY = (() => {
+  const legacy = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+  if (legacy) return legacy
+
   const raw = Deno.env.get("SUPABASE_SECRET_KEYS")
   if (raw) {
     try {
       const keys = JSON.parse(raw)
       if (keys?.default) return String(keys.default)
     } catch {
-      // Fall back to the legacy service-role key below.
+      // No usable server key was found.
     }
   }
-  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
+  return ""
 })()
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
