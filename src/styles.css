@@ -324,6 +324,28 @@
 .interest-chips{display:flex;gap:7px;flex-wrap:wrap}
 .interest-chips span{background:#ffffff0d;border:1px solid #ffffff14;border-radius:20px;padding:5px 9px;font-size:12px}
 .signature-preview,.post-signature{margin-top:12px;padding:10px 12px;border-top:1px solid var(--line);font-size:12px;color:#aaa;font-style:italic}
+.profile-signature-render{
+  width:min(100%,920px);
+  margin-top:12px;
+  padding:12px 0;
+  border-top:1px solid var(--line);
+  overflow:hidden;
+  font-style:normal;
+}
+.profile-signature-render img{
+  display:block;
+  max-width:100%;
+  max-height:220px;
+  object-fit:contain;
+  border-radius:3px;
+}
+.profile-signature-render-interactive iframe{
+  display:block;
+  width:100%;
+  aspect-ratio:2172 / 724;
+  border:0;
+  background:transparent;
+}
 .badge-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .badge-grid>div{display:grid;gap:5px;padding:14px;border:1px solid #ffffff14;border-radius:7px}
 .badge-grid>div>span{font-size:28px}
@@ -4578,6 +4600,7 @@
   .forum-signature-url>div{grid-template-columns:20px minmax(0,1fr)}
   .forum-signature-url>div>.action{grid-column:1 / -1}
   .thread-post-content>.post-signature img{max-height:170px}
+  .profile-signature-render img{max-height:170px}
 }
 
 
