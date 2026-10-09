@@ -174,6 +174,38 @@ export async function uploadProfileCover(userId, file) {
   })
 }
 
+export async function getProfileHoverSummary(username) {
+  const client = requireSupabase()
+  const { data: profile, error: profileError } = await client
+    .from('profiles')
+    .select('id,username,display_name,avatar_url,cover_url,role,system_owner,status_message,occupation,reputation,created_at')
+    .ilike('username', username)
+    .single()
+  if (profileError) throw profileError
+
+  const [membershipRes, cosmeticsRes, topicsRes, postsRes] = await Promise.all([
+    client.rpc('get_membership_state', { p_user_id: profile.id }),
+    client.from('profile_cosmetics').select('*').eq('user_id', profile.id).maybeSingle(),
+    client.from('topics').select('id', { count: 'exact', head: true }).eq('author_id', profile.id),
+    client.from('posts').select('id', { count: 'exact', head: true }).eq('author_id', profile.id),
+  ])
+
+  for (const result of [membershipRes, cosmeticsRes, topicsRes, postsRes]) {
+    if (result.error) throw result.error
+  }
+
+  return {
+    profile,
+    membership: membershipRes.data?.[0] || null,
+    cosmetics: cosmeticsRes.data || null,
+    stats: {
+      topics: topicsRes.count ?? 0,
+      posts: postsRes.count ?? 0,
+      reputation: profile.reputation ?? 0,
+    },
+  }
+}
+
 export async function getPublicProfile(username) {
   const client = requireSupabase()
   const { data: profile, error } = await client
