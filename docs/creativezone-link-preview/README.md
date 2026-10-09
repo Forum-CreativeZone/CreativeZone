@@ -20,6 +20,8 @@ Os projetos `metascraper` e `browserless` estão sob licença MIT. Caso código 
 
 A licença upstream permite uso, cópia, modificação, distribuição, sublicenciamento e uso comercial, desde que o aviso de copyright/licença seja mantido nas cópias ou porções substanciais.
 
+Os avisos de terceiros estão registrados em [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
+
 ---
 
 ## Objetivo
