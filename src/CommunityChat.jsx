@@ -31,6 +31,7 @@ import {
 import { ReportButton } from './ExtendedCommunityPages'
 import { getMemberDecorations } from './services/membershipApi'
 import { EffectName, EffectRole } from './VisualEffects'
+import { LinkPreviewCard } from './LinkPreview'
 
 const EMOJIS = ['😀','😄','😂','🙂','😉','😍','🤔','😎','🥳','😅','😭','😡','👍','👎','👏','🙌','🔥','❤️','💡','🚀','✅','🎮','💻','🤖']
 
@@ -87,6 +88,13 @@ function ChatText({ text = '', navigate }) {
       })}
     </>
   )
+}
+
+function ChatLinkPreview({ text = '' }) {
+  const match = String(text).match(/https?:\/\/[^\s]+/i)
+  if (!match?.[0]) return null
+  const url = match[0].replace(/[),.;!?]+$/, '')
+  return <LinkPreviewCard url={url} variant="compact" className="community-chat-link-preview" />
 }
 
 function OnlineMembersPanel({ members, decorations, navigate }) {
@@ -780,13 +788,16 @@ export function CommunityChat({
                         </div>
                       </div>
                     ) : (
-                      <p className="community-chat-message-text">
-                        {message.deleted_at ? (
-                          <em>Mensagem removida.</em>
-                        ) : (
-                          <ChatText text={message.content} navigate={navigate} />
-                        )}
-                      </p>
+                      <div className="community-chat-message-content">
+                        <p className="community-chat-message-text">
+                          {message.deleted_at ? (
+                            <em>Mensagem removida.</em>
+                          ) : (
+                            <ChatText text={message.content} navigate={navigate} />
+                          )}
+                        </p>
+                        {!message.deleted_at && <ChatLinkPreview text={message.content} />}
+                      </div>
                     )}
                   </div>
 
