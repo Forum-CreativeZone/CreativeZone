@@ -1,7 +1,7 @@
-const DEFAULT_SITE_URL = 'https://assets-forum.gestao-quiroz.workers.dev'
+const DEFAULT_SITE_URL = 'https://forum.creativezone.pro'
 const DEFAULT_TITLE = 'CreativeZone — Comunidade Creative Lab'
 const DEFAULT_DESCRIPTION = 'Comunidade CreativeZone para tecnologia, software, hardware, IA, automação, games, projetos e colaboração entre membros.'
-const DEFAULT_IMAGE = 'https://raw.githubusercontent.com/Inosuke-Company/CreativeZone/main/assets/banner.png'
+const DEFAULT_IMAGE = 'https://forum.creativezone.pro/banner.png'
 
 export function getPublicSiteUrl() {
   const configured = String(import.meta.env.VITE_PUBLIC_SITE_URL || '').trim().replace(/\/+$/, '')
