@@ -38,6 +38,7 @@ export async function getChatMessages(limit = 120) {
   const { data, error } = await client
     .from('chat_messages')
     .select(chatMessageSelect)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(safeLimit)
 
@@ -51,6 +52,7 @@ export async function getChatMessage(messageId) {
     .from('chat_messages')
     .select(chatMessageSelect)
     .eq('id', messageId)
+    .is('deleted_at', null)
     .maybeSingle()
 
   if (error) throw error
