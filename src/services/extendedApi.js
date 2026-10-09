@@ -149,7 +149,7 @@ export async function getProjects() {
   const client = requireSupabase()
   const { data, error } = await client
     .from('projects')
-    .select('*, owner:profiles!projects_owner_id_fkey(id,username,display_name,avatar_url,occupation), project_members(user_id,role,status)')
+    .select('*, owner:profiles!projects_owner_id_fkey(id,username,display_name,avatar_url,occupation), project_members(user_id,role,status), project_security_state(*)')
     .neq('status', 'archived')
     .order('created_at', { ascending: false })
   if (error) throw error
@@ -160,7 +160,7 @@ export async function getProject(slug) {
   const client = requireSupabase()
   const { data, error } = await client
     .from('projects')
-    .select('*, owner:profiles!projects_owner_id_fkey(id,username,display_name,avatar_url,occupation), project_members(*, profile:profiles!project_members_user_id_fkey(id,username,display_name,avatar_url,occupation)), project_updates(*, author:profiles!project_updates_author_id_fkey(id,username,display_name,avatar_url))')
+    .select('*, owner:profiles!projects_owner_id_fkey(id,username,display_name,avatar_url,occupation), project_members(*, profile:profiles!project_members_user_id_fkey(id,username,display_name,avatar_url,occupation)), project_updates(*, author:profiles!project_updates_author_id_fkey(id,username,display_name,avatar_url)), project_security_state(*)')
     .eq('slug', slug)
     .maybeSingle()
   if (error) throw error
