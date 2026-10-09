@@ -5,7 +5,9 @@
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application",
-    "html_handling": "drop-trailing-slash"
+    "html_handling": "drop-trailing-slash",
+    "binding": "ASSETS",
+    "run_worker_first": true
   },
   "observability": {
     "enabled": true
@@ -15,5 +17,6 @@
       "pattern": "forum.creativezone.pro",
       "custom_domain": true
     }
-  ]
+  ],
+  "main": "worker.js"
 }
