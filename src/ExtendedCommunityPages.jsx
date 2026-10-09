@@ -31,6 +31,7 @@ import {
   updateProject,
   updateProjectStatus,
 } from './services/extendedApi'
+import { LinkPreviewCard } from './LinkPreview'
 
 function Shell({ title, onBack, children }) {
   return (
@@ -436,6 +437,11 @@ export function ProjectPage({ slug, session, navigate, notify }) {
               />
             )}
           </div>
+          {project.website_url && (
+            <div className="project-website-preview">
+              <LinkPreviewCard url={project.website_url} variant="project" eager />
+            </div>
+          )}
           {canManage && <div className="project-status-controls">
             {['idea','planning','active','paused','completed'].map(value=><button className="action" key={value} onClick={()=>changeStatus(value)}>{value}</button>)}
           </div>}
