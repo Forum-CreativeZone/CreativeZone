@@ -41,6 +41,7 @@ function LastActivity({ summary, onOpenTopic }) {
   return (
     <button
       className="forum-index-last"
+      data-profile-username={summary.last_actor_username || undefined}
       onClick={() => onOpenTopic(summary.last_topic_id)}
     >
       <span className="forum-last-avatar">
