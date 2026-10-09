@@ -99,6 +99,15 @@ import {
   touchLastSeen,
 } from './services/communityApi'
 import { getPageCount, slugify } from './utils/forumUtils'
+import {
+  applySeo,
+  buildCategoryStructuredData,
+  buildTopicPath,
+  buildTopicStructuredData,
+  parseTopicRouteId,
+  seoDefaults,
+  truncateText,
+} from './seo'
 import { ProfessionalEditor, RichForumContent } from './ProfessionalEditor'
 import { EliteAreaPage } from './MembershipSection'
 import { AdminDashboard } from './AdminDashboard'
@@ -134,6 +143,7 @@ function mapTopic(topic) {
   if (!topic) return null
   return {
     id: topic.id,
+    slug: topic.slug || '',
     user:
       topic.author_display_name ||
       topic.profiles?.display_name ||
@@ -144,6 +154,7 @@ function mapTopic(topic) {
     description: topic.content,
     category: topic.category_name || topic.categories?.name || 'Geral',
     categoryId: topic.category_id,
+    categorySlug: topic.category_slug || topic.categories?.slug || '',
     avatarUrl: topic.author_avatar_url || topic.profiles?.avatar_url || '',
     views: topic.views || 0,
     stars: topic.views || 0,
@@ -1464,7 +1475,7 @@ function App() {
   ])
 
   const topicMatch = path.match(/^\/topico\/([^/]+)$/)
-  const routeTopicId = topicMatch ? decodeURIComponent(topicMatch[1]) : null
+  const routeTopicId = topicMatch ? parseTopicRouteId(topicMatch[1]) : null
 
   const refreshTopicDownloads = useCallback(async () => {
     if (!routeTopicId) {
@@ -1491,6 +1502,138 @@ function App() {
   const routeProjectSlug = projectMatch?.[1] ? decodeURIComponent(projectMatch[1]) : null
   const tagMatch = path.match(/^\/tag\/([^/]+)$/)
   const routeTagSlug = tagMatch?.[1] ? decodeURIComponent(tagMatch[1]) : null
+
+  useEffect(() => {
+    const noindexPrefixes = [
+      '/conta',
+      '/entrar',
+      '/cadastro',
+      '/mensagens',
+      '/admin',
+      '/moderacao',
+      '/novo-topico',
+      '/esqueci-senha',
+      '/redefinir-senha',
+    ]
+
+    if (routeTopicId) {
+      if (!routeTopic) {
+        applySeo({
+          title: 'Carregando tópico | CreativeZone',
+          description: seoDefaults.description,
+          canonicalPath: path,
+          robots: 'noindex,follow',
+        })
+        return
+      }
+
+      const canonicalPath = buildTopicPath(routeTopic)
+      applySeo({
+        title: routeTopic.title + ' | CreativeZone',
+        description:
+          truncateText(routeTopic.description || '', 165) ||
+          'Discussão publicada na comunidade CreativeZone.',
+        canonicalPath,
+        type: 'article',
+        jsonLd: buildTopicStructuredData(routeTopic),
+      })
+
+      if (window.location.pathname !== canonicalPath) {
+        const nextHref = canonicalPath + window.location.search + window.location.hash
+        window.history.replaceState({}, '', nextHref)
+        setPath(canonicalPath)
+      }
+      return
+    }
+
+    if (routeForumSlug) {
+      if (!routeForumNode) {
+        applySeo({
+          title: 'Fórum | CreativeZone',
+          description: seoDefaults.description,
+          canonicalPath: path,
+          robots: 'noindex,follow',
+        })
+        return
+      }
+
+      applySeo({
+        title: routeForumNode.name + ' | Fórum CreativeZone',
+        description:
+          truncateText(routeForumNode.description || '', 165) ||
+          'Discussões da comunidade CreativeZone sobre ' + routeForumNode.name + '.',
+        canonicalPath: '/forum/' + encodeURIComponent(routeForumNode.slug),
+        jsonLd: buildCategoryStructuredData(routeForumNode),
+      })
+      return
+    }
+
+    if (routeMemberUsername) {
+      applySeo({
+        title: routeMemberUsername + ' | Membro CreativeZone',
+        description: 'Perfil público de ' + routeMemberUsername + ' na comunidade CreativeZone.',
+        canonicalPath: '/membro/' + encodeURIComponent(routeMemberUsername),
+      })
+      return
+    }
+
+    if (noindexPrefixes.some((prefix) => path === prefix || path.startsWith(prefix + '/'))) {
+      applySeo({
+        title: 'CreativeZone',
+        description: seoDefaults.description,
+        canonicalPath: path,
+        robots: 'noindex,nofollow',
+      })
+      return
+    }
+
+    const staticPages = {
+      '/': {
+        title: seoDefaults.title,
+        description: seoDefaults.description,
+      },
+      '/creativezone': {
+        title: 'CreativeZone — Comunidade Creative Lab',
+        description: 'Conheça a CreativeZone, comunidade da Creative Lab para tecnologia, criatividade, projetos e colaboração.',
+      },
+      '/projetos': {
+        title: 'Projetos da comunidade | CreativeZone',
+        description: 'Projetos criados e compartilhados pelos membros da comunidade CreativeZone.',
+      },
+      '/categorias': {
+        title: 'Categorias do fórum | CreativeZone',
+        description: 'Explore as categorias e fóruns da comunidade CreativeZone.',
+      },
+      '/membros': {
+        title: 'Membros da comunidade | CreativeZone',
+        description: 'Conheça os membros que participam da comunidade CreativeZone.',
+      },
+      '/ranking': {
+        title: 'Ranking da comunidade | CreativeZone',
+        description: 'Ranking de participação e reputação dos membros da CreativeZone.',
+      },
+      '/conquistas': {
+        title: 'Conquistas da comunidade | CreativeZone',
+        description: 'Conquistas, troféus e progressão dos membros da CreativeZone.',
+      },
+    }
+
+    const current = staticPages[path] || {
+      title: seoDefaults.title,
+      description: seoDefaults.description,
+    }
+    applySeo({
+      ...current,
+      canonicalPath: path,
+    })
+  }, [
+    path,
+    routeTopicId,
+    routeTopic,
+    routeForumSlug,
+    routeForumNode,
+    routeMemberUsername,
+  ])
 
   useEffect(() => {
     let cancelled = false
@@ -1752,8 +1895,11 @@ function App() {
 
   function openTopic(topic) {
     setReply('')
-    const id = typeof topic === 'string' ? topic : topic?.id
-    if (id) navigate('/topico/' + encodeURIComponent(id))
+    if (typeof topic === 'string') {
+      if (topic) navigate('/topico/' + encodeURIComponent(topic))
+      return
+    }
+    if (topic?.id) navigate(buildTopicPath(topic))
   }
 
   function chooseCategory(name) {
@@ -1839,7 +1985,7 @@ function App() {
       setPage(1)
       await refreshForum()
       setToast('Tópico publicado na CreativeZone.')
-      navigate('/topico/' + encodeURIComponent(created.id))
+      navigate(buildTopicPath(created))
     } catch (error) {
       setToast(error?.message || 'Não foi possível publicar o tópico.')
       throw error
@@ -2790,7 +2936,7 @@ function App() {
               <h2>Tópicos relacionados</h2>
               <div>
                 {relatedTopics.map((item) => (
-                  <button key={item.id} onClick={() => navigate('/topico/' + item.id)}>
+                  <button key={item.id} onClick={() => navigate(buildTopicPath(item))}>
                     <strong>{item.title}</strong>
                     <span>{item.category_name} · {item.shared_tags} tag(s) em comum · {item.reply_count} respostas</span>
                   </button>
