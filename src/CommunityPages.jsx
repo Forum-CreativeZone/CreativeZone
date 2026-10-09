@@ -874,11 +874,18 @@ function ReactionsSection({ data, navigate }) {
 }
 function PeopleSection({ data, navigate }) {
   if (!data) return <p className="community-empty">Carregando...</p>
-  return <div className="people-grid">{data.map((item) => <button key={item.profile?.id} onClick={() => navigate(`/membro/${item.profile?.username}`)}><Avatar profile={item.profile} size={48}/><span><strong>{item.profile?.display_name || item.profile?.username}</strong><small>@{item.profile?.username}</small></span></button>)}{!data.length && <p className="community-empty">Nenhum membro nesta lista.</p>}</div>
+  return <div className="people-grid">{data.map((item) => <button
+  key={item.profile?.id}
+  data-profile-username={item.profile?.username || undefined}
+  onClick={() => navigate(`/membro/${item.profile?.username}`)}
+><Avatar profile={item.profile} size={48}/><span><strong>{item.profile?.display_name || item.profile?.username}</strong><small>@{item.profile?.username}</small></span></button>)}{!data.length && <p className="community-empty">Nenhum membro nesta lista.</p>}</div>
 }
 function IgnoredSection({ data, userId, reload, notify, navigate }) {
   if (!data) return <p className="community-empty">Carregando...</p>
-  return <div className="people-grid">{data.map((item) => <div className="ignored-person" key={item.profile?.id}><button onClick={() => navigate(`/membro/${item.profile?.username}`)}><Avatar profile={item.profile} size={48}/><span><strong>{item.profile?.display_name || item.profile?.username}</strong><small>@{item.profile?.username}</small></span></button><button className="action" onClick={async () => { await toggleIgnore(userId,item.profile.id); notify('Usuário removido da lista de ignorados.'); reload() }}>Remover</button></div>)}{!data.length && <p className="community-empty">Nenhum usuário ignorado.</p>}</div>
+  return <div className="people-grid">{data.map((item) => <div className="ignored-person" key={item.profile?.id}><button
+  data-profile-username={item.profile?.username || undefined}
+  onClick={() => navigate(`/membro/${item.profile?.username}`)}
+><Avatar profile={item.profile} size={48}/><span><strong>{item.profile?.display_name || item.profile?.username}</strong><small>@{item.profile?.username}</small></span></button><button className="action" onClick={async () => { await toggleIgnore(userId,item.profile.id); notify('Usuário removido da lista de ignorados.'); reload() }}>Remover</button></div>)}{!data.length && <p className="community-empty">Nenhum usuário ignorado.</p>}</div>
 }
 function AccountNotifications({ data, reload, userId, navigate }) {
   if (!data) return <p className="community-empty">Carregando...</p>
@@ -1069,11 +1076,18 @@ export function MessagesPage({ username, session, members, navigate, notify }) {
             </>
           )}
           <h3>Nova conversa</h3>
-          {filteredMembers.filter((m)=>m.id!==userId).slice(0,20).map((member)=><button key={member.id} onClick={()=>navigate(`/mensagens/${member.username}`)}><Avatar profile={member} size={36}/><span><strong>{member.display_name||member.username}</strong><small>@{member.username}</small></span></button>)}
+          {filteredMembers.filter((m)=>m.id!==userId).slice(0,20).map((member)=><button
+  key={member.id}
+  data-profile-username={member.username || undefined}
+  onClick={()=>navigate(`/mensagens/${member.username}`)}
+><Avatar profile={member} size={36}/><span><strong>{member.display_name||member.username}</strong><small>@{member.username}</small></span></button>)}
         </aside>
         <section className="conversation-pane">
           {!partner ? <p className="community-empty">Escolha um membro para iniciar uma conversa.</p> : <>
-            <header><button onClick={()=>navigate(`/membro/${partner.username}`)}><Avatar profile={partner} size={44}/><span><strong>{partner.display_name||partner.username}</strong><small>@{partner.username}</small></span></button></header>
+            <header><button
+  data-profile-username={partner.username || undefined}
+  onClick={()=>navigate(`/membro/${partner.username}`)}
+><Avatar profile={partner} size={44}/><span><strong>{partner.display_name||partner.username}</strong><small>@{partner.username}</small></span></button></header>
             <div className="message-stream">{filteredMessages.map((message)=><div key={message.id} className={message.sender_id===userId?'mine':'theirs'}><span>{message.content}</span><small>{formatRelative(message.created_at)}</small></div>)}</div>
             <form className="message-composer" onSubmit={send}><textarea required maxLength={5000} value={text} onChange={(e)=>setText(e.target.value)} placeholder="Escreva uma mensagem..."/><button className="action primary-action"><Send/>Enviar</button></form>
           </>}
