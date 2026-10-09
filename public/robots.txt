@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://assets-forum.gestao-quiroz.workers.dev/sitemap.xml
+Sitemap: https://ljxbewukkvenwjnjjjyf.supabase.co/functions/v1/creativezone-sitemap
