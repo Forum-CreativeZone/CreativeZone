@@ -4587,3 +4587,73 @@
 .ranking-medal-icon.medal-1{color:#f3c85b}
 .ranking-medal-icon.medal-2{color:#c9d0d8}
 .ranking-medal-icon.medal-3{color:#c88d5b}
+
+
+/* Interactive forum signatures */
+.forum-signature-modes{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+}
+.forum-signature-modes button{
+  min-height:36px;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:7px 11px;
+  border:1px solid #ffffff16;
+  border-radius:6px;
+  background:#181818;
+  color:#888;
+  font-size:12px;
+  font-weight:700;
+}
+.forum-signature-modes button:hover{
+  border-color:#6d302b;
+  color:#ddd;
+}
+.forum-signature-modes button.active{
+  border-color:#9b352d;
+  background:#2a1210;
+  color:#ff8d84;
+}
+.forum-signature-modes iconify-icon{font-size:16px}
+.forum-signature-preview.interactive{
+  padding:0;
+  background:transparent;
+}
+.forum-signature-preview.interactive iframe,
+.post-signature-interactive iframe{
+  display:block;
+  width:100%;
+  aspect-ratio:2172 / 724;
+  border:0;
+  background:transparent;
+}
+.thread-post-content>.post-signature-interactive{
+  width:min(100%,920px);
+  padding:12px 0;
+}
+.forum-signature-help code{
+  padding:1px 4px;
+  border:1px solid #ffffff18;
+  border-radius:4px;
+  background:#080808;
+  color:#d7b3af;
+  font:11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+:root[data-theme="light"] .forum-signature-modes button{
+  background:#f7f7f7;
+  color:#666;
+  border-color:#ddd;
+}
+:root[data-theme="light"] .forum-signature-modes button.active{
+  background:#fff0ee;
+  color:#8b2e27;
+  border-color:#d89a94;
+}
+:root[data-theme="light"] .forum-signature-help code{
+  background:#f4f4f4;
+  color:#6f302b;
+  border-color:#ddd;
+}
