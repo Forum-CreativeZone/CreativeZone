@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { getForumNodeSummaries, getTopicsPage } from './services/forumApi'
 import { createCategory } from './services/categoryApi'
+import { buildTopicPath } from './seo'
 
 function NodeIcon({ type }) {
   if (type === 'category') return <FolderTree />
@@ -364,9 +365,13 @@ export function ForumNodePage({
                   return (
                     <article className="forum-child-row" key={child.id}>
                       <div className="forum-child-primary">
-                        <button
+                        <a
                           className="forum-child-open"
-                          onClick={() => navigate('/forum/' + encodeURIComponent(child.slug))}
+                          href={'/forum/' + encodeURIComponent(child.slug)}
+                          onClick={(event) => {
+                            event.preventDefault()
+                            navigate('/forum/' + encodeURIComponent(child.slug))
+                          }}
                         >
                           <span className={'forum-child-icon type-' + child.node_type}>
                             <NodeIcon type={child.node_type} />
@@ -377,19 +382,22 @@ export function ForumNodePage({
                             <p>{child.description || 'Área da comunidade CreativeZone.'}</p>
                           </span>
                           <ChevronRight />
-                        </button>
+                        </a>
 
                         {descendants.length > 0 && (
                           <div className="forum-child-sublinks">
                             {descendants.map((descendant) => (
-                              <button
-                                type="button"
+                              <a
                                 key={descendant.id}
-                                onClick={() => navigate('/forum/' + encodeURIComponent(descendant.slug))}
+                                href={'/forum/' + encodeURIComponent(descendant.slug)}
+                                onClick={(event) => {
+                                  event.preventDefault()
+                                  navigate('/forum/' + encodeURIComponent(descendant.slug))
+                                }}
                               >
                                 <MessageSquare />
                                 {descendant.name}
-                              </button>
+                              </a>
                             ))}
                           </div>
                         )}
@@ -410,28 +418,37 @@ export function ForumNodePage({
                         <span><b>{summary.post_count || 0}</b> respostas</span>
                       </div>
 
-                      <button
-                        className="forum-child-last"
-                        data-profile-username={summary.last_actor_username || undefined}
-                        disabled={!summary.last_topic_id}
-                        onClick={() => summary.last_topic_id && onOpenTopic(summary.last_topic_id)}
-                      >
-                        {summary.last_topic_id ? (
-                          <>
-                            <span className="forum-last-avatar"><ActorAvatar summary={summary} /></span>
-                            <span>
-                              <strong>{summary.last_topic_title}</strong>
-                              <small>
-                                {summary.last_actor_display_name || summary.last_actor_username || 'Membro'}
-                                {summary.last_activity_at ? ' · ' + formatActivity(summary.last_activity_at) : ''}
-                              </small>
-                            </span>
-                            <ChevronRight />
-                          </>
-                        ) : (
+                      {summary.last_topic_id ? (
+                        <a
+                          className="forum-child-last"
+                          href={buildTopicPath({
+                            id: summary.last_topic_id,
+                            title: summary.last_topic_title,
+                          })}
+                          data-profile-username={summary.last_actor_username || undefined}
+                          onClick={(event) => {
+                            event.preventDefault()
+                            onOpenTopic({
+                              id: summary.last_topic_id,
+                              title: summary.last_topic_title,
+                            })
+                          }}
+                        >
+                          <span className="forum-last-avatar"><ActorAvatar summary={summary} /></span>
+                          <span>
+                            <strong>{summary.last_topic_title}</strong>
+                            <small>
+                              {summary.last_actor_display_name || summary.last_actor_username || 'Membro'}
+                              {summary.last_activity_at ? ' · ' + formatActivity(summary.last_activity_at) : ''}
+                            </small>
+                          </span>
+                          <ChevronRight />
+                        </a>
+                      ) : (
+                        <span className="forum-child-last forum-child-last-empty">
                           <span className="forum-no-activity">Nenhuma publicação ainda</span>
-                        )}
-                      </button>
+                        </span>
+                      )}
 
                       {createTarget?.parent?.id === child.id && (
                         <ChildCreateForm
@@ -469,7 +486,14 @@ export function ForumNodePage({
                   const latestName = topic.last_actor_display_name || topic.last_actor_username || topic.author_display_name || topic.author_username || 'Membro'
                   const latestAvatar = topic.last_actor_avatar_url || topic.author_avatar_url
                   return (
-                    <button key={topic.id} onClick={() => onOpenTopic(topic.id)}>
+                    <a
+                      key={topic.id}
+                      href={buildTopicPath(topic)}
+                      onClick={(event) => {
+                        event.preventDefault()
+                        onOpenTopic(topic)
+                      }}
+                    >
                       <span
                         className="forum-topic-avatar"
                         data-profile-username={topic.author_username || undefined}
@@ -506,7 +530,7 @@ export function ForumNodePage({
                         </span>
                       </span>
                       {topic.pinned && <span className="forum-topic-pinned">FIXADO</span>}
-                    </button>
+                    </a>
                   )
                 })}
               </div>
