@@ -965,13 +965,52 @@ export function ProfessionalEditor({
 
       {dialog === 'security' && (
         <EditorDialog
-          title="CreativeZone Security — verificar dependência"
+          title="CreativeZone Security — analisar dependência"
           onClose={closeDialog}
           onSubmit={submitSecurity}
           submitLabel="Inserir análise"
         >
+          <div className="editor-security-explainer">
+            <strong>O que esta ferramenta verifica?</strong>
+            <p>
+              Ela consulta se uma <b>biblioteca/dependência de software</b> possui
+              vulnerabilidades conhecidas em uma versão específica.
+            </p>
+            <p>
+              <b>Não é um scanner de link, arquivo, ZIP ou executável.</b> Links e anexos
+              terão verificações próprias dentro do CreativeZone Security.
+            </p>
+          </div>
+
+          <div className="editor-security-examples">
+            <span>Exemplos rápidos</span>
+            <button
+              type="button"
+              onClick={() => setDialogData((current) => ({
+                ...current,
+                ecosystem: 'PyPI',
+                packageName: 'jinja2',
+                version: '2.4.1',
+              }))}
+            >
+              Python: jinja2 2.4.1
+            </button>
+            <button
+              type="button"
+              onClick={() => setDialogData((current) => ({
+                ...current,
+                ecosystem: 'npm',
+                packageName: 'express',
+                version: '4.18.2',
+              }))}
+            >
+              Node.js: express 4.18.2
+            </button>
+          </div>
+
           <label>
             Ecossistema
+            <small>Onde esse pacote é distribuído. Ex.: npm para Node.js, PyPI para Python, Maven para Java.</small>
             <select
               autoFocus
               value={dialogData.ecosystem || 'npm'}
@@ -989,26 +1028,49 @@ export function ProfessionalEditor({
               <option value="GitHub Actions">GitHub Actions</option>
             </select>
           </label>
+
           <label>
-            Pacote
+            Pacote / biblioteca
+            <small>O nome da dependência usada pelo programa. Não coloque URL nem nome de arquivo.</small>
             <input
               required
               value={dialogData.packageName || ''}
               onChange={(event) => setDialogData((current) => ({ ...current, packageName: event.target.value }))}
-              placeholder={dialogData.ecosystem === 'Maven' ? 'org.exemplo:pacote' : 'nome-do-pacote'}
+              placeholder={
+                dialogData.ecosystem === 'PyPI' ? 'ex.: jinja2'
+                  : dialogData.ecosystem === 'Maven' ? 'ex.: org.exemplo:pacote'
+                    : dialogData.ecosystem === 'GitHub Actions' ? 'ex.: actions/checkout'
+                      : 'ex.: express'
+              }
             />
           </label>
+
           <label>
-            Versão exata
+            Versão exata instalada
+            <small>É a versão que você quer saber se possui vulnerabilidades conhecidas.</small>
             <input
               required
               value={dialogData.version || ''}
               onChange={(event) => setDialogData((current) => ({ ...current, version: event.target.value }))}
-              placeholder="ex.: 4.18.2"
+              placeholder={
+                dialogData.ecosystem === 'PyPI' ? 'ex.: 2.4.1'
+                  : dialogData.ecosystem === 'GitHub Actions' ? 'ex.: v4'
+                    : 'ex.: 4.18.2'
+              }
             />
           </label>
+
+          <div className="editor-security-what-happens">
+            <strong>O que acontecerá?</strong>
+            <span>
+              A publicação receberá um card dinâmico mostrando alertas conhecidos,
+              severidade, score e versões corrigidas quando disponíveis.
+            </span>
+          </div>
+
           <small className="editor-security-hint">
-            A publicação exibirá uma análise dinâmica das vulnerabilidades conhecidas para esta versão.
+            Para projetos com repositório GitHub, você não precisa preencher isso manualmente:
+            a CreativeZone lê os manifests e lockfiles do projeto e audita as dependências automaticamente.
           </small>
         </EditorDialog>
       )}
