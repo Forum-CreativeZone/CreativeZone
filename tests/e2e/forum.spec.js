@@ -60,3 +60,20 @@ test('keeps login and signup forms vertically structured', async ({ page }) => {
   const displayNameBox = await page.getByLabel('Nome exibido').boundingBox()
   expect((displayNameBox?.y || 0)).toBeGreaterThan((usernameBox?.y || 0))
 })
+
+
+test('adapts the forum information rail between desktop and mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 1365, height: 900 })
+  await page.goto('/')
+  await expect(page.locator('.forum-home-sidebar')).toBeVisible()
+  await expect(page.locator('.forum-mobile-dashboard')).toBeHidden()
+  await expect(page.getByText('Estatísticas do fórum', { exact: true })).toBeVisible()
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(page.locator('.forum-home-sidebar')).toBeHidden()
+  await expect(page.locator('.forum-mobile-dashboard')).toBeVisible()
+
+  const mobileDashboard = page.locator('.forum-mobile-dashboard')
+  await expect(mobileDashboard.getByText('Comunidade agora', { exact: true })).toBeVisible()
+  await expect(mobileDashboard.getByText('Categorias', { exact: true })).toBeVisible()
+})
