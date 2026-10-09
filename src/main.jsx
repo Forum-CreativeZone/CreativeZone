@@ -511,7 +511,14 @@ function Topic({ topic, onOpen, onFavorite, favorites, onMenu }) {
             </span>
             <span className="dash" />
             <span className="online-label">{topic.category}</span>
-            <h3>{topic.title}</h3>
+            <h3>
+              <span className="topic-status-icons" aria-label="Status do tópico">
+                {topic.pinned && <Pin title="Tópico fixado" />}
+                {topic.locked && <LockKeyhole title="Tópico fechado" />}
+                {topic.hasPoll && <BarChart3 title="Enquete" />}
+              </span>
+              <span>{topic.title}</span>
+            </h3>
           </div>
           <p>{topic.description}</p>
         </div>
