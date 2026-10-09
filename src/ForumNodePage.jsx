@@ -485,6 +485,7 @@ export function ForumNodePage({
                 {topics.map((topic) => {
                   const latestName = topic.last_actor_display_name || topic.last_actor_username || topic.author_display_name || topic.author_username || 'Membro'
                   const latestAvatar = topic.last_actor_avatar_url || topic.author_avatar_url
+                  const hasReplies = Number(topic.reply_count || 0) > 0
                   return (
                     <a
                       key={topic.id}
@@ -517,18 +518,27 @@ export function ForumNodePage({
                           {topic.views || 0} visualizações
                         </small>
                       </span>
-                      <span
-                        className="forum-topic-latest"
-                        data-profile-username={topic.last_actor_username || topic.author_username || undefined}
-                      >
-                        <span className="forum-last-avatar">
-                          {latestAvatar ? <img src={latestAvatar} alt="" /> : <b>{latestName.slice(0, 1)}</b>}
+                      {hasReplies ? (
+                        <span
+                          className="forum-topic-latest"
+                          data-profile-username={topic.last_actor_username || topic.author_username || undefined}
+                        >
+                          <span className="forum-last-avatar">
+                            {latestAvatar ? <img src={latestAvatar} alt="" /> : <b>{latestName.slice(0, 1)}</b>}
+                          </span>
+                          <span>
+                            <strong>{latestName}</strong>
+                            <small>{formatActivity(topic.last_activity_at || topic.updated_at || topic.created_at)}</small>
+                          </span>
                         </span>
-                        <span>
-                          <strong>{latestName}</strong>
-                          <small>{formatActivity(topic.last_activity_at || topic.updated_at || topic.created_at)}</small>
+                      ) : (
+                        <span className="forum-topic-latest forum-topic-latest-origin">
+                          <span>
+                            <strong>Publicado</strong>
+                            <small>{formatActivity(topic.created_at || topic.updated_at)}</small>
+                          </span>
                         </span>
-                      </span>
+                      )}
                       {topic.pinned && <span className="forum-topic-pinned">FIXADO</span>}
                     </a>
                   )
