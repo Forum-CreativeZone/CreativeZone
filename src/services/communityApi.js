@@ -311,6 +311,64 @@ function normalizeInteractiveSignatureUrl(value) {
   return url.href
 }
 
+export async function removeProfileSignature(userId) {
+  const client = requireSupabase()
+
+  const [{ data: currentProfile, error: profileError }, { data: existingFiles, error: listError }] = await Promise.all([
+    client.from('profiles').select('signature').eq('id', userId).single(),
+    client.storage.from('profile-signatures').list(userId, {
+      limit: 1000,
+      sortBy: { column: 'created_at', order: 'desc' },
+    }),
+  ])
+
+  if (profileError) throw profileError
+  if (listError) throw listError
+
+  const { data: nextProfile, error: updateError } = await client
+    .from('profiles')
+    .update({ signature: '', signature_type: 'image' })
+    .eq('id', userId)
+    .select()
+    .single()
+  if (updateError) throw updateError
+
+  const oldPaths = new Set(
+    (existingFiles || [])
+      .filter((item) => item?.name)
+      .map((item) => userId + '/' + item.name)
+  )
+
+  const previousPath = storagePathFromPublicUrl(
+    currentProfile?.signature || '',
+    'profile-signatures'
+  )
+  if (previousPath?.startsWith(userId + '/')) oldPaths.add(previousPath)
+
+  if (oldPaths.size) {
+    const { error: cleanupError } = await client
+      .storage
+      .from('profile-signatures')
+      .remove([...oldPaths])
+
+    if (cleanupError) {
+      console.warn('A assinatura foi removida do perfil, mas um arquivo antigo não pôde ser limpo do Storage.', cleanupError)
+    }
+  }
+
+  const { data: confirmedProfile, error: confirmError } = await client
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single()
+  if (confirmError) throw confirmError
+  if (confirmedProfile.signature) {
+    throw new Error('A assinatura não foi removida do perfil. Tente novamente.')
+  }
+
+  return confirmedProfile || nextProfile
+}
+
 export async function setProfileInteractiveSignatureUrl(userId, value) {
   const client = requireSupabase()
   const signature = normalizeInteractiveSignatureUrl(value)
