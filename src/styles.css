@@ -893,7 +893,7 @@
 .thread-profile-stats dt svg{width:12px;height:12px}
 .thread-profile-stats dd{margin:0;color:#bbb;font-size:12px;text-align:right;overflow:hidden;text-overflow:ellipsis;max-width:90px}
 
-.thread-post-content{min-width:0;display:flex;flex-direction:column}
+.thread-post-content{min-width:0;max-width:100%;display:flex;flex-direction:column;overflow:hidden}
 .thread-post-meta{
   min-height:38px;
   padding:9px 13px;
@@ -1716,8 +1716,8 @@
 .rich-forum-content h2,.rich-forum-content h3,.rich-forum-content h4{margin:15px 0 7px;color:#fff}
 .rich-forum-content h2{font-size:20px}.rich-forum-content h3{font-size:17px}.rich-forum-content h4{font-size:14px}
 .rich-forum-content ul{margin:5px 0 10px 22px;list-style:disc}
-.rich-forum-content code{padding:1px 4px;border-radius:3px;background:#272727;color:#ffaaa4;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-.rich-forum-content a{color:#ff6860;text-decoration:underline;text-underline-offset:2px}
+.rich-forum-content code{max-width:100%;padding:1px 4px;border-radius:3px;background:#272727;color:#ffaaa4;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere;word-break:break-word}
+.rich-forum-content a{max-width:100%;color:#ff6860;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere;word-break:break-word}
 .rich-forum-content>blockquote,.rich-forum-content .rich-quote{margin:9px 0;padding:9px 11px;border-left:3px solid #8b302a;background:#ffffff05;border-radius:0 5px 5px 0}
 .rich-spacer{height:7px}
 .rich-embed{width:min(100%,760px);margin:12px 0;border:1px solid #ffffff14;border-radius:7px;overflow:hidden;background:#080808}
@@ -1737,7 +1737,7 @@
   width:auto;
   height:auto;
   max-width:100%;
-  max-height:min(520px,70vh);
+  max-height:min(480px,62vh);
   object-fit:contain;
   border-radius:7px;
   border:1px solid #ffffff12;
@@ -3916,10 +3916,19 @@
   max-width:100%;
   margin:14px 0;
 }
+.rich-inline-attachment{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+}
 .rich-inline-attachment img{
-  max-width:min(100%,860px);
-  max-height:680px;
+  display:block;
+  width:auto;
+  height:auto;
+  max-width:100%;
+  max-height:min(480px,62vh);
   object-fit:contain;
+  box-sizing:border-box;
 }
 .rich-attachment-missing,
 .rich-file-card{
@@ -4066,7 +4075,7 @@
   }
 }
 @media(max-width:760px){
-  .rich-image-link img{max-height:min(360px,55vh)}
+  .rich-image-link img,.rich-inline-attachment img{max-height:min(320px,50vh)}
   .professional-toolbar-advanced{gap:3px}
   .toolbar-select-group select{max-width:92px}
   .professional-editor-advanced>textarea{min-height:340px;padding:14px}
