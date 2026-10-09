@@ -2,7 +2,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-const DEFAULT_SITE_URL = 'https://assets-forum.gestao-quiroz.workers.dev'
+const DEFAULT_SITE_URL = 'https://forum.creativezone.pro'
 const siteUrl = String(
   process.env.VITE_PUBLIC_SITE_URL ||
   process.env.PUBLIC_SITE_URL ||
@@ -18,7 +18,7 @@ const supabaseKey = String(
 
 const distDir = path.resolve('dist')
 const templatePath = path.join(distDir, 'index.html')
-const defaultImage = 'https://raw.githubusercontent.com/Inosuke-Company/CreativeZone/main/assets/banner.png'
+const defaultImage = 'https://forum.creativezone.pro/banner.png'
 
 function plainText(value = '') {
   return String(value)
