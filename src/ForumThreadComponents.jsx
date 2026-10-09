@@ -152,6 +152,8 @@ function ForumSignature({ value, type = 'image' }) {
           referrerPolicy="no-referrer"
           loading="lazy"
           scrolling="no"
+          allowTransparency
+          style={{ backgroundColor: 'transparent', colorScheme: 'normal' }}
         />
       </div>
     )
