@@ -91,6 +91,39 @@ function Avatar({ profile, size = 56 }) {
   )
 }
 
+function ProfileForumSignature({ value, type = 'image' }) {
+  const signature = String(value || '').trim()
+  if (!/^https?:\/\//i.test(signature)) return null
+
+  if (type === 'interactive') {
+    return (
+      <div className="profile-signature-render profile-signature-render-interactive">
+        <iframe
+          src={signature}
+          title="Assinatura interativa do membro"
+          sandbox="allow-scripts allow-same-origin"
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          scrolling="no"
+          allowTransparency
+          style={{ backgroundColor: 'transparent', colorScheme: 'normal' }}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="profile-signature-render">
+      <img
+        src={signature}
+        alt="Assinatura do membro"
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
+  )
+}
+
 function formatDate(value) {
   if (!value) return ''
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(new Date(value))
@@ -525,7 +558,15 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
                 </div>
               </>
             )}
-            {profile.signature && <><h3>Assinatura</h3><div className="signature-preview">{profile.signature}</div></>}
+            {profile.signature && (
+              <>
+                <h3>Assinatura</h3>
+                <ProfileForumSignature
+                  value={profile.signature}
+                  type={profile.signature_type || 'image'}
+                />
+              </>
+            )}
           </div>
         )}
         {tab === 'trofeus' && (
