@@ -17,6 +17,8 @@ import {
   Send,
   Settings,
   Shield,
+  ShieldCheck,
+  AlertTriangle,
   Trophy,
   Upload,
   User,
@@ -361,6 +363,7 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
     posts,
     badges,
     featuredProjects = [],
+    securityProjects = [],
     membership = null,
     cosmetics = null,
   } = data
@@ -546,6 +549,42 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
                 </div>
               </>
             )}
+            {securityProjects.length > 0 && (
+              <>
+                <h3>Projetos auditados</h3>
+                <div className="profile-security-projects">
+                  {securityProjects.map((project) => {
+                    const dangerous = ['critical','high'].includes(project.highest_severity)
+                    return (
+                      <button
+                        key={project.id}
+                        className={'profile-security-project severity-' + (project.highest_severity || 'none')}
+                        onClick={() => navigate('/projetos/' + encodeURIComponent(project.slug))}
+                      >
+                        <span className="profile-security-project-icon">
+                          {dangerous ? <AlertTriangle /> : <ShieldCheck />}
+                        </span>
+                        <span>
+                          <strong>{project.title}</strong>
+                          <small>
+                            {project.relationship === 'owner' ? 'Responsável' : 'Colaborador'}
+                            {' · '}
+                            {project.dependency_count || 0} dependências
+                            {' · '}
+                            {project.vulnerability_count || 0} alertas
+                          </small>
+                        </span>
+                        <b>{project.security_score}/100</b>
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="profile-security-note">
+                  Auditorias automáticas analisam dependências conhecidas dos repositórios públicos vinculados aos projetos.
+                </p>
+              </>
+            )}
+
             {(profile.website_url || profile.portfolio_url || profile.github_url || profile.linkedin_url || profile.discord_handle) && (
               <>
                 <h3>Links e redes</h3>
