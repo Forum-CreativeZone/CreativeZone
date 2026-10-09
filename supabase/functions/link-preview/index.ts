@@ -590,7 +590,7 @@ async function fetchHtml(target: URL) {
         redirect: "manual",
         signal: controller.signal,
         headers: {
-          "User-Agent": "CreativeZone-LinkPreview/1.0 (+https://github.com/Forum-CreativeZone/CreativeZone)",
+          "User-Agent": "CreativeZone-LinkPreview/1.0 (+https://forum.creativezone.pro/)",
           "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.2",
           "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.7",
           "Cache-Control": "no-cache",
