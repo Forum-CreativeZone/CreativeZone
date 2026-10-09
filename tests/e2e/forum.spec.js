@@ -75,5 +75,7 @@ test('adapts the forum information rail between desktop and mobile', async ({ pa
 
   const mobileDashboard = page.locator('.forum-mobile-dashboard')
   await expect(mobileDashboard.getByText('Comunidade agora', { exact: true })).toBeVisible()
-  await expect(mobileDashboard.getByText('Categorias', { exact: true })).toBeVisible()
+  await expect(
+    mobileDashboard.locator('.forum-side-categories .forum-side-card-head strong')
+  ).toHaveText('Categorias')
 })
