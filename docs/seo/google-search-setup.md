@@ -42,3 +42,13 @@ Depois que o domínio estiver apontado para o Worker:
 ## Títulos
 
 Os títulos visíveis dos tópicos também são usados como base do título SEO. Não é necessário reescrevê-los quando já forem claros e descritivos. Evitar repetição artificial de palavras-chave.
+
+## Sitemap ao vivo
+
+Além do `/sitemap.xml` gerado em cada build, existe um sitemap público dinâmico no Supabase:
+
+`https://ljxbewukkvenwjnjjjyf.supabase.co/functions/v1/creativezone-sitemap`
+
+O `robots.txt` anuncia os dois. O sitemap ao vivo consulta tópicos e categorias públicas diretamente e, por isso, novos tópicos podem aparecer nele sem depender de um novo deploy do frontend.
+
+Quando o domínio próprio entrar em produção, definir também o secret `PUBLIC_SITE_URL` da Edge Function com a mesma origem usada em `VITE_PUBLIC_SITE_URL`, para que o sitemap dinâmico passe a emitir os URLs do novo domínio.
