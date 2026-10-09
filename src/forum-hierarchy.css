@@ -65,6 +65,9 @@
 
 .forum-topic-table>button,.forum-topic-table>a{grid-template-columns:54px minmax(0,1fr) 230px auto}
 .forum-topic-latest{min-width:0;display:grid;grid-template-columns:36px minmax(0,1fr);align-items:center;gap:8px;padding-left:12px;border-left:1px solid #ffffff0d}
+.forum-topic-latest-origin{grid-template-columns:minmax(0,1fr);align-content:center}
+.forum-topic-latest-origin>span{min-width:0;display:grid;gap:3px}
+.forum-topic-latest-origin strong{color:#8c8c8c;font-weight:650}
 .forum-topic-latest .forum-last-avatar{width:34px;height:34px}
 .forum-topic-latest>span:last-child{min-width:0;display:grid;gap:3px}
 .forum-topic-latest strong{overflow:hidden;color:#bbb;font-size:12px;white-space:nowrap;text-overflow:ellipsis}
