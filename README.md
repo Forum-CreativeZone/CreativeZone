@@ -108,6 +108,18 @@ Os projetos da comunidade também podem ganhar vida na organização **[Creatiiv
 
 ---
 
+## 🛡 CreativeZone Security
+
+A CreativeZone possui auditoria de dependências integrada ao fórum e aos projetos.
+
+O sistema permite analisar pacote + versão diretamente em tópicos/respostas pelo Editor Profissional, auditar automaticamente repositórios GitHub vinculados a projetos, detectar manifests/lockfiles, acompanhar um **Security Score** e exibir projetos auditados no perfil técnico dos membros.
+
+Projetos elegíveis são reavaliados periodicamente e mantêm histórico de auditorias. A navegação do fórum não depende do serviço de auditoria: em caso de indisponibilidade, o conteúdo continua funcionando normalmente.
+
+Documentação completa: [CreativeZone Security](./docs/creativezone-security/README.md).
+
+---
+
 ## 🔗 CreativeZone Link Preview
 
 A CreativeZone possui um motor próprio de previews de links, sem dependência obrigatória da Microlink Cloud.
