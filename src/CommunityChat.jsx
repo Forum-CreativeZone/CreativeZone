@@ -75,6 +75,7 @@ function ChatText({ text = '', navigate }) {
               type="button"
               className="community-chat-mention"
               key={part + index}
+              data-profile-username={username || undefined}
               onClick={() => navigate('/membro/' + encodeURIComponent(username))}
             >
               {part}
@@ -112,6 +113,7 @@ function OnlineMembersPanel({ members, decorations, navigate }) {
               type="button"
               className="community-chat-online-member"
               key={member.user_id}
+              data-profile-username={username || undefined}
               onClick={() => username && navigate('/membro/' + encodeURIComponent(username))}
               disabled={!username}
               title={username ? 'Abrir perfil de @' + username : name}
@@ -693,6 +695,7 @@ export function CommunityChat({
                   <button
                     type="button"
                     className="community-chat-avatar"
+                    data-profile-username={authorUsername || undefined}
                     onClick={() => authorUsername && navigate('/membro/' + encodeURIComponent(authorUsername))}
                     disabled={!authorUsername}
                   >
@@ -707,6 +710,7 @@ export function CommunityChat({
                     <div className="community-chat-message-meta">
                       <button
                         type="button"
+                        data-profile-username={authorUsername || undefined}
                         onClick={() => authorUsername && navigate('/membro/' + encodeURIComponent(authorUsername))}
                         disabled={!authorUsername}
                       >
