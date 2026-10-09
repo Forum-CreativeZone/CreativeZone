@@ -7,6 +7,7 @@ const DEFAULT_SITE_URL = 'https://forum.creativezone.pro'
 function getSiteUrl() {
   return String(Deno.env.get('PUBLIC_SITE_URL') || DEFAULT_SITE_URL)
     .trim()
+    .replace('https://assets-forum.gestao-quiroz.workers.dev', DEFAULT_SITE_URL)
     .replace(/\/+$/, '')
 }
 
