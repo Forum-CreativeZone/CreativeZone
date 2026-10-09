@@ -32,6 +32,7 @@ import {
   updateProjectStatus,
 } from './services/extendedApi'
 import { LinkPreviewCard } from './LinkPreview'
+import { ProjectSecurityPanel, SecurityScoreBadge } from './SecurityAudit'
 
 function Shell({ title, onBack, children }) {
   return (
@@ -270,6 +271,12 @@ export function ModerationPage({ profile, session, navigate, notify }) {
   )
 }
 
+function projectSecurityState(project) {
+  const value = project?.project_security_state
+  if (Array.isArray(value)) return value[0] || null
+  return value || null
+}
+
 function ProjectStatus({ value }) {
   const labels={idea:'Ideia',planning:'Planejamento',active:'Ativo',paused:'Pausado',completed:'Concluído',archived:'Arquivado'}
   return <span className={'project-status status-'+value}>{labels[value] || value}</span>
@@ -344,7 +351,11 @@ export function ProjectsPage({ session, navigate, notify }) {
       <div className="projects-grid">
         {projects.map(project=>(
           <button className="project-card" key={project.id} onClick={()=>navigate('/projetos/'+project.slug)}>
-            <div className="project-card-top"><Code2/><ProjectStatus value={project.status}/></div>
+            <div className="project-card-top">
+              <Code2/>
+              <ProjectStatus value={project.status}/>
+              {project.repo_url && <SecurityScoreBadge state={projectSecurityState(project)} compact />}
+            </div>
             <h3>{project.title}</h3>
             <p>{project.summary}</p>
             <div className="project-tags">{(project.tags||[]).slice(0,5).map(tag=><span key={tag}>{tag}</span>)}</div>
@@ -442,6 +453,14 @@ export function ProjectPage({ slug, session, navigate, notify }) {
               <LinkPreviewCard url={project.website_url} variant="project" eager />
             </div>
           )}
+
+          <ProjectSecurityPanel
+            project={{ ...project, project_security_state: projectSecurityState(project) }}
+            canManage={canManage}
+            notify={notify}
+            onChanged={load}
+          />
+
           {canManage && <div className="project-status-controls">
             {['idea','planning','active','paused','completed'].map(value=><button className="action" key={value} onClick={()=>changeStatus(value)}>{value}</button>)}
           </div>}
