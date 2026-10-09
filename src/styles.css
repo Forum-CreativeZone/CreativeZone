@@ -5981,3 +5981,96 @@ main{
     border-top:1px solid #ffffff10;
   }
 }
+
+
+/* Editor dialogs: standalone overlay, safe inside topic/reply forms */
+.editor-dialog-backdrop{
+  position:fixed!important;
+  inset:0!important;
+  z-index:119!important;
+  width:100vw!important;
+  height:100dvh!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#0009!important;
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+  cursor:default!important;
+}
+.editor-floating-dialog{
+  z-index:120;
+}
+.editor-floating-dialog>footer{
+  min-height:58px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:9px;
+  padding:10px 12px;
+  border-top:1px solid #ffffff12;
+  background:#202020;
+}
+.editor-dialog-cancel,
+.editor-dialog-confirm{
+  min-height:38px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:8px 14px!important;
+  border-radius:6px!important;
+  font-size:12px!important;
+  font-weight:750!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+.editor-dialog-cancel{
+  border:1px solid #505050!important;
+  background:#181818!important;
+  color:#c8c8c8!important;
+}
+.editor-dialog-cancel:hover{
+  border-color:#727272!important;
+  background:#222!important;
+  color:#fff!important;
+}
+.editor-dialog-confirm{
+  min-width:176px;
+  border:1px solid #d34338!important;
+  background:linear-gradient(180deg,#d43c31,#ad281f)!important;
+  color:#fff!important;
+  box-shadow:0 5px 18px #b42c2730;
+}
+.editor-dialog-confirm:hover{
+  filter:brightness(1.08);
+}
+.editor-dialog-confirm:active{
+  transform:translateY(1px);
+}
+:root[data-theme="light"] .editor-dialog-backdrop{background:#0006!important}
+:root[data-theme="light"] .editor-floating-dialog>footer{
+  background:#faf7f6;
+  border-color:#e3d9d7;
+}
+:root[data-theme="light"] .editor-dialog-cancel{
+  border-color:#d3c8c6!important;
+  background:#fff!important;
+  color:#555!important;
+}
+@media(max-width:760px){
+  .editor-floating-dialog{
+    top:50%;
+    max-height:calc(100dvh - 24px);
+  }
+  .editor-floating-dialog>footer{
+    min-height:64px;
+    gap:8px;
+    padding:10px;
+  }
+  .editor-dialog-cancel,
+  .editor-dialog-confirm{
+    flex:1;
+    min-width:0;
+  }
+}
