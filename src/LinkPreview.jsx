@@ -93,6 +93,7 @@ export function LinkPreviewCard({
         'cz-link-preview',
         'cz-link-preview-' + variant,
         hasMetadata ? 'is-resolved' : 'is-fallback',
+        showImage ? 'has-media' : 'no-media',
         loading ? 'is-loading' : '',
         className,
       ].filter(Boolean).join(' ')}
