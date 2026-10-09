@@ -1821,6 +1821,15 @@ function App() {
   const currentPopularPage = Math.min(popularPage, popularTotal)
   const displayedPopular = popularTopics
   const visibleActivity = activity.filter((item) => !ignoredIds.includes(item.authorId))
+  const rootCategories = useMemo(
+    () => categories
+      .filter((category) => !category.parent_id && category.node_type === 'category')
+      .sort((a, b) =>
+        Number(a.sort_order || 0) - Number(b.sort_order || 0) ||
+        String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
+      ),
+    [categories]
+  )
   const routeCategoryPath = useMemo(
     () => getCategoryPath(categories, routeTopic?.categoryId),
     [categories, routeTopic?.categoryId]
@@ -3080,7 +3089,7 @@ function App() {
       {isHome && (
         <div className="mobile-themes">
           <div ref={mobileThemes}>
-            {categoryTree.map((category) => (
+            {rootCategories.map((category) => (
               <button
                 key={category.id}
                 className={'mobile-category-' + category.node_type}
