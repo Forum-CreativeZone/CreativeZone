@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { MessageCircle, ShieldCheck, User } from 'lucide-react'
+
 import { getProfileHoverSummary } from './services/communityApi'
 import { EffectName } from './VisualEffects'
+import { ForumIcon } from './ForumIcon'
 
 const hoverProfileCache = new Map()
 
@@ -24,12 +25,11 @@ function formatJoined(value) {
   }
 }
 
-export function ProfileHoverLayer({ navigate }) {
+export function ProfileHoverLayer() {
   const [target, setTarget] = useState(null)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const openTimer = useRef(null)
-  const closeTimer = useRef(null)
 
   function clearOpenTimer() {
     if (openTimer.current) {
@@ -38,19 +38,10 @@ export function ProfileHoverLayer({ navigate }) {
     }
   }
 
-  function clearCloseTimer() {
-    if (closeTimer.current) {
-      clearTimeout(closeTimer.current)
-      closeTimer.current = null
-    }
-  }
-
-  function closeSoon() {
-    clearCloseTimer()
-    closeTimer.current = setTimeout(() => {
-      setTarget(null)
-      setData(null)
-    }, 180)
+  function closeNow() {
+    clearOpenTimer()
+    setTarget(null)
+    setData(null)
   }
 
   useEffect(() => {
@@ -66,7 +57,6 @@ export function ProfileHoverLayer({ navigate }) {
       if (!username) return
 
       clearOpenTimer()
-      clearCloseTimer()
 
       openTimer.current = setTimeout(() => {
         const rect = element.getBoundingClientRect()
@@ -87,9 +77,7 @@ export function ProfileHoverLayer({ navigate }) {
     function onMouseOut(event) {
       const element = findProfileTarget(event.target)
       if (!element || element.contains(event.relatedTarget)) return
-      if (event.relatedTarget?.closest?.('.profile-hover-card')) return
-      clearOpenTimer()
-      closeSoon()
+      closeNow()
     }
 
     document.addEventListener('mouseover', onMouseOver)
@@ -99,7 +87,6 @@ export function ProfileHoverLayer({ navigate }) {
       document.removeEventListener('mouseover', onMouseOver)
       document.removeEventListener('mouseout', onMouseOut)
       clearOpenTimer()
-      clearCloseTimer()
     }
   }, [])
 
@@ -157,9 +144,6 @@ export function ProfileHoverLayer({ navigate }) {
     <aside
       className="profile-hover-card"
       style={{ left, top, width: cardWidth }}
-      onMouseEnter={clearCloseTimer}
-      onMouseLeave={closeSoon}
-      onClick={(event) => event.stopPropagation()}
     >
       {loading ? (
         <div className="profile-hover-loading">
@@ -200,7 +184,7 @@ export function ProfileHoverLayer({ navigate }) {
                   </b>
                 )}
                 <b className={'role-' + (profile.role || 'member')}>
-                  <ShieldCheck /> {roleLabel(profile.role)}
+                  <ForumIcon name="shield" /> {roleLabel(profile.role)}
                 </b>
               </div>
             </div>
@@ -220,26 +204,7 @@ export function ProfileHoverLayer({ navigate }) {
             <span><b>{formatJoined(profile.created_at)}</b><small>Membro desde</small></span>
           </div>
 
-          <div className="profile-hover-actions">
-            <button
-              type="button"
-              onClick={() => {
-                setTarget(null)
-                navigate('/membro/' + encodeURIComponent(profile.username))
-              }}
-            >
-              <User /> Ver perfil
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setTarget(null)
-                navigate('/mensagens/' + encodeURIComponent(profile.username))
-              }}
-            >
-              <MessageCircle /> Mensagem
-            </button>
-          </div>
+
         </>
       ) : (
         <div className="profile-hover-unavailable">Perfil indisponível.</div>
