@@ -138,9 +138,24 @@ export function ThreadAuthorPanel({
   )
 }
 
-function ForumSignature({ value }) {
+function ForumSignature({ value, type = 'image' }) {
   const signature = String(value || '').trim()
   if (!/^https?:\/\//i.test(signature)) return null
+
+  if (type === 'interactive') {
+    return (
+      <div className="post-signature post-signature-interactive">
+        <iframe
+          src={signature}
+          title="Assinatura interativa do membro"
+          sandbox="allow-scripts allow-same-origin"
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          scrolling="no"
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="post-signature">
@@ -166,6 +181,7 @@ export function ThreadPostCard({
   children,
   actions,
   signature,
+  signatureType = 'image',
   decoration,
 }) {
   return (
@@ -189,7 +205,7 @@ export function ThreadPostCard({
           {children}
         </div>
 
-        <ForumSignature value={signature} />
+        <ForumSignature value={signature} type={signatureType} />
 
         {actions && <footer className="thread-post-actions">{actions}</footer>}
       </div>
