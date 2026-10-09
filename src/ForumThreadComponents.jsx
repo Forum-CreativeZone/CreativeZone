@@ -7,6 +7,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { EffectAvatarFrame, EffectBadge, EffectName, EffectRole } from './VisualEffects'
+import { ForumIcon } from './ForumIcon'
 
 function formatJoined(value) {
   if (!value) return '—'
@@ -81,7 +82,7 @@ export function ThreadAuthorPanel({
       <div className="thread-identity-badges">
         {isOwner && (
           <EffectBadge effect={cosmetics.badge_effect || 'architect-forge'} className="identity-badge architect">
-            🏗️ Arquiteto CreativeZone
+            <ForumIcon name="architect" /> Arquiteto CreativeZone
           </EffectBadge>
         )}
         {membership?.plan_id && membership.plan_id !== 'free' && (
