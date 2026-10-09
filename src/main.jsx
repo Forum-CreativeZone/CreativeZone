@@ -77,7 +77,7 @@ import { ForumNodePage } from './ForumNodePage'
 import { ForumIndex } from './ForumIndex'
 import { ForumSidebar } from './ForumSidebar'
 import { CommunityChat } from './CommunityChat'
-import { CategoriesPage } from './CategoryPages'
+import { CategoriesPage, CategorySuggestionButton } from './CategoryPages'
 import {
   getPostMedia,
   getTopicMedia,
@@ -187,33 +187,6 @@ function getCategoryPath(categories, categoryId) {
   }
 
   return path
-}
-
-function flattenCategoryTree(categories) {
-  const byParent = new Map()
-  for (const category of categories || []) {
-    const key = category.parent_id || 'root'
-    const items = byParent.get(key) || []
-    items.push(category)
-    byParent.set(key, items)
-  }
-
-  for (const items of byParent.values()) {
-    items.sort((a, b) =>
-      Number(a.sort_order || 0) - Number(b.sort_order || 0) ||
-      String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
-    )
-  }
-
-  const result = []
-  const walk = (parentId, depth) => {
-    for (const category of byParent.get(parentId) || []) {
-      result.push({ ...category, depth })
-      walk(category.id, depth + 1)
-    }
-  }
-  walk('root', 0)
-  return result
 }
 
 function Icon({ name }) {
