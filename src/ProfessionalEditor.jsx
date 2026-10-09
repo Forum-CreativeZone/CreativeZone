@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { ForumIcon } from './ForumIcon'
 import { LinkPreviewCard } from './LinkPreview'
+import { PackageSecurityCard } from './SecurityAudit'
+import { decodeSecurityEmbed, encodeSecurityEmbed } from './services/securityApi'
 import {
   AlignLeft,
   Bold,
@@ -20,6 +22,7 @@ import {
   Redo2,
   RemoveFormatting,
   Save,
+  ShieldCheck,
   Smile,
   Table2,
   Type,
@@ -385,6 +388,19 @@ function MarkdownBlock({ text = '', media = [], downloadSlot = null }) {
       continue
     }
 
+    const securityEmbed = decodeSecurityEmbed(trimmed)
+    if (securityEmbed) {
+      nodes.push(
+        <PackageSecurityCard
+          key={'security-' + index}
+          ecosystem={securityEmbed.ecosystem}
+          packageName={securityEmbed.packageName}
+          version={securityEmbed.version}
+        />
+      )
+      continue
+    }
+
     if (/^https?:\/\/\S+$/.test(trimmed)) {
       nodes.push(<UrlEmbed key={'url-' + index} value={trimmed} />)
       continue
@@ -656,7 +672,11 @@ export function ProfessionalEditor({
   }
 
   function openDialog(name) {
-    setDialogData({ url: '', text: selectedText() })
+    setDialogData(
+      name === 'security'
+        ? { url: '', text: '', ecosystem: 'npm', packageName: '', version: '' }
+        : { url: '', text: selectedText() }
+    )
     setDialog(name)
     setEmojiOpen(false)
     setImageMenuOpen(false)
@@ -688,6 +708,16 @@ export function ProfessionalEditor({
     const url = safeHttpUrl(dialogData.url)
     if (!url) return
     insert('\n![' + (dialogData.text || 'GIF') + '](' + url.href + ')\n')
+    closeDialog()
+  }
+
+  function submitSecurity(event) {
+    event.preventDefault()
+    const ecosystem = String(dialogData.ecosystem || '').trim()
+    const packageName = String(dialogData.packageName || '').trim()
+    const version = String(dialogData.version || '').trim()
+    if (!ecosystem || !packageName || !version) return
+    insert('\n' + encodeSecurityEmbed({ ecosystem, packageName, version }) + '\n')
     closeDialog()
   }
 
@@ -877,6 +907,14 @@ export function ProfessionalEditor({
               else wrap(String.fromCharCode(96))
             }}><Code2 /></button>
             <button type="button" title="Código alternativo BB" onClick={() => wrap('[code]','[/code]','código')}><span className="toolbar-bb-label">[]</span></button>
+            <button
+              type="button"
+              title="Verificar dependência com CreativeZone Security"
+              onClick={() => openDialog('security')}
+              className="toolbar-security-check"
+            >
+              <ShieldCheck />
+            </button>
             {showDownloadMarkerTool && (
               <button
                 type="button"
@@ -922,6 +960,56 @@ export function ProfessionalEditor({
               placeholder="Texto do link"
             />
           </label>
+        </EditorDialog>
+      )}
+
+      {dialog === 'security' && (
+        <EditorDialog
+          title="CreativeZone Security — verificar dependência"
+          onClose={closeDialog}
+          onSubmit={submitSecurity}
+          submitLabel="Inserir análise"
+        >
+          <label>
+            Ecossistema
+            <select
+              autoFocus
+              value={dialogData.ecosystem || 'npm'}
+              onChange={(event) => setDialogData((current) => ({ ...current, ecosystem: event.target.value }))}
+            >
+              <option value="npm">npm / Node.js</option>
+              <option value="PyPI">PyPI / Python</option>
+              <option value="Go">Go</option>
+              <option value="crates.io">crates.io / Rust</option>
+              <option value="Maven">Maven / Java</option>
+              <option value="NuGet">NuGet / .NET</option>
+              <option value="RubyGems">RubyGems / Ruby</option>
+              <option value="Packagist">Packagist / PHP</option>
+              <option value="Pub">Pub / Dart</option>
+              <option value="GitHub Actions">GitHub Actions</option>
+            </select>
+          </label>
+          <label>
+            Pacote
+            <input
+              required
+              value={dialogData.packageName || ''}
+              onChange={(event) => setDialogData((current) => ({ ...current, packageName: event.target.value }))}
+              placeholder={dialogData.ecosystem === 'Maven' ? 'org.exemplo:pacote' : 'nome-do-pacote'}
+            />
+          </label>
+          <label>
+            Versão exata
+            <input
+              required
+              value={dialogData.version || ''}
+              onChange={(event) => setDialogData((current) => ({ ...current, version: event.target.value }))}
+              placeholder="ex.: 4.18.2"
+            />
+          </label>
+          <small className="editor-security-hint">
+            A publicação exibirá uma análise dinâmica das vulnerabilidades conhecidas para esta versão.
+          </small>
         </EditorDialog>
       )}
 
