@@ -9,7 +9,7 @@ const service = createClient(supabaseUrl, serviceRoleKey, {
 });
 
 const VAPID_PUBLIC = "BAtmaLgtvqyI5b_KIcAij0-U2K6CQ9YmajktFYLM3Jm2JrBZLulntzIxWsTfZzzAkZzqPF6VhWFb5Y1-CzCdKzo";
-const SITE_URL = "https://assets-forum.gestao-quiroz.workers.dev";
+const SITE_URL = Deno.env.get("PUBLIC_SITE_URL") || "https://forum.creativezone.pro";
 
 const typeTitles: Record<string, string> = {
   new_reply: "Nova resposta",
