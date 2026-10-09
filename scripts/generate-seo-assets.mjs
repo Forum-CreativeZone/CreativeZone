@@ -122,6 +122,26 @@ async function fetchRest(table, select, extra = '') {
   return response.json()
 }
 
+async function fetchAllRest(table, select, extra = '') {
+  const pageSize = 1000
+  const rows = []
+  let offset = 0
+
+  while (true) {
+    const separator = extra ? '&' : ''
+    const page = await fetchRest(
+      table,
+      select,
+      extra + separator + 'limit=' + pageSize + '&offset=' + offset
+    )
+    rows.push(...page)
+    if (page.length < pageSize) break
+    offset += pageSize
+  }
+
+  return rows
+}
+
 async function writeRouteHtml(routePath, html) {
   const directory = path.join(distDir, routePath.replace(/^\//, ''))
   await mkdir(directory, { recursive: true })
@@ -190,17 +210,17 @@ async function main() {
   if (supabaseUrl && supabaseKey) {
     try {
       ;[topics, categories, profiles] = await Promise.all([
-        fetchRest(
+        fetchAllRest(
           'topics',
           'id,category_id,author_id,title,slug,content,views,created_at,updated_at',
           'order=updated_at.desc'
         ),
-        fetchRest(
+        fetchAllRest(
           'categories',
           'id,name,slug,description,node_type,sort_order',
           'order=sort_order.asc'
         ),
-        fetchRest(
+        fetchAllRest(
           'profiles',
           'id,username,display_name,profile_visibility,account_status',
           'profile_visibility=eq.public&account_status=eq.active'
@@ -209,7 +229,7 @@ async function main() {
 
       const topicIds = topics.map((topic) => topic.id)
       if (topicIds.length) {
-        const counts = await fetchRest(
+        const counts = await fetchAllRest(
           'posts',
           'topic_id',
           'topic_id=in.(' + topicIds.join(',') + ')'
