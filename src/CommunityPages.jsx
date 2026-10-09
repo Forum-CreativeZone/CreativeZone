@@ -957,7 +957,11 @@ export function NotificationsPanel({ session, navigate, onClose }) {
   }, [userId])
 
   if (!session) return <p className="community-empty">Entre para ver suas notificações.</p>
-  return <div className="overlay-notifications personal-notifications"><button className="mark-all-overlay" onClick={async()=>{await markAllNotificationsRead(session.user.id); setItems(await getNotifications(session.user.id))}}>Marcar todas como lidas</button>{items.map((item)=><button key={item.id} className={item.read?'':'unread'} onClick={async()=>{await markNotificationRead(item.id); onClose(); if(item.data?.path) navigate(item.data.path); else if(item.data?.topic_id) navigate(`/topico/${item.data.topic_id}`); else if(item.type==='direct_message' && item.actor?.username) navigate(`/mensagens/${item.actor.username}`)}}><Avatar profile={item.actor} size={40}/><span><strong>{notificationTitle(item)}</strong><small>{item.actor?.display_name || item.actor?.username || 'CreativeZone'} · {formatRelative(item.created_at)}</small></span></button>)}{!items.length&&<p className="community-empty">Nenhuma notificação.</p>}</div>
+  return <div className="overlay-notifications personal-notifications"><button className="mark-all-overlay" onClick={async()=>{await markAllNotificationsRead(session.user.id); setItems(await getNotifications(session.user.id))}}>Marcar todas como lidas</button>{items.map((item)=><button
+  key={item.id}
+  className={item.read?'':'unread'}
+  data-profile-username={item.actor?.username || undefined}
+  onClick={async()=>{await markNotificationRead(item.id); onClose(); if(item.data?.path) navigate(item.data.path); else if(item.data?.topic_id) navigate(`/topico/${item.data.topic_id}`); else if(item.type==='direct_message' && item.actor?.username) navigate(`/mensagens/${item.actor.username}`)}}><Avatar profile={item.actor} size={40}/><span><strong>{notificationTitle(item)}</strong><small>{item.actor?.display_name || item.actor?.username || 'CreativeZone'} · {formatRelative(item.created_at)}</small></span></button>)}{!items.length&&<p className="community-empty">Nenhuma notificação.</p>}</div>
 }
 
 export function MessagesPage({ username, session, members, navigate, notify }) {
@@ -1065,14 +1069,23 @@ export function MessagesPage({ username, session, members, navigate, notify }) {
         <aside className="conversation-list">
           <input className="dm-search" value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Buscar pessoa ou mensagem..." />
           <h3>Conversas</h3>
-          {filteredInbox.map((item) => <button className={partner?.id===item.partner?.id?'active':''} key={item.partner?.id} onClick={()=>navigate(`/mensagens/${item.partner?.username}`)}><Avatar profile={item.partner} size={42}/><span><strong>{item.partner?.display_name || item.partner?.username}</strong><small>{item.lastMessage.content.slice(0,50)}</small></span>{item.unread>0&&<b>{item.unread}</b>}</button>)}
+          {filteredInbox.map((item) => <button
+  className={partner?.id===item.partner?.id?'active':''}
+  key={item.partner?.id}
+  data-profile-username={item.partner?.username || undefined}
+  onClick={()=>navigate(`/mensagens/${item.partner?.username}`)}
+><Avatar profile={item.partner} size={42}/><span><strong>{item.partner?.display_name || item.partner?.username}</strong><small>{item.lastMessage.content.slice(0,50)}</small></span>{item.unread>0&&<b>{item.unread}</b>}</button>)}
           {messageSearchResults.length > 0 && (
             <>
               <h3>Resultados em mensagens</h3>
               {messageSearchResults.slice(0,20).map((result) => {
                 const other = result.sender_id === userId ? result.recipient : result.sender
                 return (
-                  <button key={result.id} onClick={()=>other?.username && navigate(`/mensagens/${other.username}`)}>
+                  <button
+                    key={result.id}
+                    data-profile-username={other?.username || undefined}
+                    onClick={()=>other?.username && navigate(`/mensagens/${other.username}`)}
+                  >
                     <Avatar profile={other} size={36}/>
                     <span>
                       <strong>{other?.display_name || other?.username || 'Membro'}</strong>
