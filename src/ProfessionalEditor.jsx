@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { ForumIcon } from './ForumIcon'
+import { LinkPreviewCard } from './LinkPreview'
 import {
   AlignLeft,
   Bold,
@@ -207,7 +208,7 @@ function UrlEmbed({ value }) {
     )
   }
 
-  return <p><a href={url.href} target="_blank" rel="noreferrer noopener">{url.href}</a></p>
+  return <LinkPreviewCard url={url.href} variant="full" />
 }
 
 function AttachmentBlock({ name, media = [] }) {
