@@ -703,6 +703,42 @@ function vulnerabilitySeverity(vuln: Record<string, unknown>): Severity {
   return order.find((item) => severities.includes(item)) || "unknown"
 }
 
+function vulnerabilityCanonicalKey(vuln: Record<string, unknown>) {
+  const values = [
+    String(vuln.id || ""),
+    ...(Array.isArray(vuln.aliases) ? vuln.aliases.map(String) : []),
+  ].filter(Boolean)
+  return (
+    values.find((value) => /^CVE-/i.test(value)) ||
+    values.find((value) => /^GHSA-/i.test(value)) ||
+    values[0] ||
+    crypto.randomUUID()
+  ).toUpperCase()
+}
+
+function dedupeVulnerabilityDetails(rows: Array<Record<string, unknown>>) {
+  const map = new Map<string, Record<string, unknown>>()
+  for (const vuln of rows) {
+    const key = vulnerabilityCanonicalKey(vuln)
+    const existing = map.get(key)
+    if (!existing) {
+      map.set(key, vuln)
+      continue
+    }
+    const preferred = /^GHSA-/i.test(String(vuln.id || "")) && !/^GHSA-/i.test(String(existing.id || ""))
+      ? vuln
+      : existing
+    const aliases = [...new Set([
+      ...(Array.isArray(existing.aliases) ? existing.aliases.map(String) : []),
+      ...(Array.isArray(vuln.aliases) ? vuln.aliases.map(String) : []),
+      String(existing.id || ""),
+      String(vuln.id || ""),
+    ].filter(Boolean))]
+    map.set(key, { ...preferred, aliases })
+  }
+  return [...map.values()]
+}
+
 function fixedVersions(vuln: Record<string, unknown>, dep: Dependency) {
   const found = new Set<string>()
   for (const affected of (Array.isArray(vuln.affected) ? vuln.affected : []) as Array<Record<string, unknown>>) {
@@ -726,7 +762,7 @@ function severitySummary(findings: Array<Record<string, unknown>>) {
     const vulns = Array.isArray(finding.vulnerabilities) ? finding.vulnerabilities as Array<Record<string, unknown>> : []
     if (vulns.length) vulnerableDependencies += 1
     for (const vuln of vulns) {
-      const id = String(vuln.id || "")
+      const id = String(vuln.canonical_key || vuln.id || "")
       if (id && uniqueVulns.has(id)) continue
       if (id) uniqueVulns.add(id)
       const sev = normalizeSeverityValue(vuln.severity)
@@ -769,22 +805,24 @@ async function analyzeDependencies(dependencies: Dependency[]) {
 
   for (const item of queried) {
     if (!item.ids.length) continue
-    const vulnerabilities = item.ids
-      .map((id) => details.get(id))
-      .filter(Boolean)
-      .map((vuln: Record<string, unknown>) => ({
-        id: vuln.id,
-        aliases: Array.isArray(vuln.aliases) ? vuln.aliases.slice(0, 10) : [],
-        summary: compact(vuln.summary || vuln.details || "Vulnerabilidade conhecida.", 500),
-        severity: vulnerabilitySeverity(vuln),
-        fixed_versions: fixedVersions(vuln, item.dependency),
-        references: (Array.isArray(vuln.references) ? vuln.references : [])
-          .map((ref: Record<string, unknown>) => String(ref?.url || ""))
-          .filter((url: string) => /^https?:\/\//.test(url))
-          .slice(0, 5),
-        modified: vuln.modified || null,
-        published: vuln.published || null,
-      }))
+    const vulnerabilities = dedupeVulnerabilityDetails(
+      item.ids
+        .map((id) => details.get(id))
+        .filter(Boolean) as Array<Record<string, unknown>>
+    ).map((vuln: Record<string, unknown>) => ({
+      id: vuln.id,
+      aliases: Array.isArray(vuln.aliases) ? vuln.aliases.slice(0, 12) : [],
+      canonical_key: vulnerabilityCanonicalKey(vuln),
+      summary: compact(vuln.summary || vuln.details || "Vulnerabilidade conhecida.", 500),
+      severity: vulnerabilitySeverity(vuln),
+      fixed_versions: fixedVersions(vuln, item.dependency),
+      references: (Array.isArray(vuln.references) ? vuln.references : [])
+        .map((ref: Record<string, unknown>) => String(ref?.url || ""))
+        .filter((url: string) => /^https?:\/\//.test(url))
+        .slice(0, 5),
+      modified: vuln.modified || null,
+      published: vuln.published || null,
+    }))
 
     findings.push({
       ecosystem: item.dependency.ecosystem || "",
