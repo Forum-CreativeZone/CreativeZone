@@ -51,6 +51,8 @@ import {
   toggleReaction,
   uploadAvatar,
   uploadProfileCover,
+  uploadProfileSignature,
+  setProfileSignatureImageUrl,
 } from './services/communityApi'
 import {
   getEligibleFeaturedProjects,
@@ -69,6 +71,7 @@ import { ReportButton } from './ExtendedCommunityPages'
 import { MembershipSection } from './MembershipSection'
 import { getMembershipState } from './services/membershipApi'
 import { EffectAvatarFrame, EffectBadge, EffectCoverFrame, EffectName, EffectRole, EffectSurface } from './VisualEffects'
+import { ForumIcon } from './ForumIcon'
 
 function Avatar({ profile, size = 56 }) {
   const name = profile?.display_name || profile?.username || 'Membro'
@@ -598,6 +601,12 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
     if (!draft.occupation?.trim()) return notify('A ocupação é obrigatória.')
     setBusy(true)
     try {
+      let effectiveSignature = draft.signature || ''
+      if (effectiveSignature !== (profile?.signature || '')) {
+        const signatureProfile = await setProfileSignatureImageUrl(userId, effectiveSignature)
+        effectiveSignature = signatureProfile.signature || ''
+      }
+
       const payload = {
         username: draft.username?.trim(),
         display_name: draft.display_name?.trim(),
@@ -605,7 +614,7 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
         occupation: draft.occupation.trim(),
         interests: Array.isArray(draft.interests) ? draft.interests : [],
         status_message: draft.status_message || '',
-        signature: draft.signature || '',
+        signature: effectiveSignature,
         show_activity: Boolean(draft.show_activity),
         show_online: Boolean(draft.show_online),
         allow_follow: Boolean(draft.allow_follow),
@@ -694,6 +703,51 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
     finally { setBusy(false) }
   }
 
+  async function signatureUploadChange(event) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setBusy(true)
+    try {
+      const next = await uploadProfileSignature(userId, file)
+      setProfile(next)
+      setDraft(next)
+      notify('Assinatura de imagem atualizada.')
+    } catch (error) {
+      notify(error?.message || 'Não foi possível atualizar a assinatura.')
+    } finally {
+      event.target.value = ''
+      setBusy(false)
+    }
+  }
+
+  async function applySignatureUrl() {
+    setBusy(true)
+    try {
+      const next = await setProfileSignatureImageUrl(userId, draft.signature || '')
+      setProfile(next)
+      setDraft(next)
+      notify(next.signature ? 'Link da assinatura aplicado.' : 'Assinatura removida.')
+    } catch (error) {
+      notify(error?.message || 'Não foi possível aplicar o link da assinatura.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function removeSignature() {
+    setBusy(true)
+    try {
+      const next = await setProfileSignatureImageUrl(userId, '')
+      setProfile(next)
+      setDraft(next)
+      notify('Assinatura removida.')
+    } catch (error) {
+      notify(error?.message || 'Não foi possível remover a assinatura.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   function toggleFeaturedProject(projectId) {
     const limit = membershipState?.entitlements?.featured_projects || 3
     setFeaturedProjectIds((current) => {
@@ -757,7 +811,74 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
               <label>Discord<input maxLength={100} value={draft.discord_handle || ''} onChange={(e) => setProfileField('discord_handle', e.target.value)} placeholder="@usuario" /></label>
               <label>Status<input maxLength={120} value={draft.status_message || ''} onChange={(e) => setProfileField('status_message', e.target.value)} placeholder="Uma frase curta sobre você" /></label>
               <label>Sobre você<textarea maxLength={1200} value={draft.bio || ''} onChange={(e) => setProfileField('bio', e.target.value)} /></label>
-              <label>Assinatura do fórum<textarea maxLength={500} value={draft.signature || ''} onChange={(e) => setProfileField('signature', e.target.value)} placeholder="Aparecerá abaixo das suas respostas." /></label>
+              <section className="forum-signature-editor">
+                <div className="forum-signature-editor-head">
+                  <span>
+                    <ForumIcon name="image" />
+                    <strong>Assinatura do fórum</strong>
+                  </span>
+                  <small>Aparece abaixo dos tópicos e respostas. Somente imagens; vídeos não são aceitos.</small>
+                </div>
+
+                {draft.signature ? (
+                  <div className="forum-signature-preview">
+                    <img src={draft.signature} alt="Pré-visualização da assinatura" />
+                  </div>
+                ) : (
+                  <div className="forum-signature-empty">
+                    <ForumIcon name="image" />
+                    <span>Nenhuma assinatura definida.</span>
+                  </div>
+                )}
+
+                <label className="forum-signature-url">
+                  Link direto da imagem
+                  <div>
+                    <ForumIcon name="link" />
+                    <input
+                      type="url"
+                      maxLength={1000}
+                      value={draft.signature || ''}
+                      onChange={(e) => setProfileField('signature', e.target.value)}
+                      placeholder="https://site.com/minha-assinatura.gif"
+                    />
+                    <button
+                      type="button"
+                      className="action"
+                      disabled={busy}
+                      onClick={applySignatureUrl}
+                    >
+                      Aplicar link
+                    </button>
+                  </div>
+                </label>
+
+                <div className="forum-signature-actions">
+                  <label className="action primary-action">
+                    <ForumIcon name="upload" /> Enviar imagem
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={signatureUploadChange}
+                      hidden
+                    />
+                  </label>
+                  {draft.signature && (
+                    <button
+                      type="button"
+                      className="action danger-action"
+                      disabled={busy}
+                      onClick={removeSignature}
+                    >
+                      Remover assinatura
+                    </button>
+                  )}
+                </div>
+
+                <small className="forum-signature-help">
+                  Aceita PNG, JPG, WEBP, GIF animado, AVIF e outros formatos de imagem compatíveis com o navegador. Upload de até 8 MB.
+                </small>
+              </section>
               {projectChoices.length > 0 && (
                 <fieldset className="featured-project-picker">
                   <legend>
