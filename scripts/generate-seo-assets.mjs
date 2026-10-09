@@ -346,7 +346,7 @@ async function main() {
   await writeFile(path.join(distDir, 'sitemap.xml'), sitemap, 'utf8')
   await writeFile(
     path.join(distDir, 'robots.txt'),
-    `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}/sitemap.xml\n`,
+    `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}/sitemap.xml\nSitemap: https://ljxbewukkvenwjnjjjyf.supabase.co/functions/v1/creativezone-sitemap\n`,
     'utf8'
   )
 
