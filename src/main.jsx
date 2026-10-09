@@ -51,6 +51,7 @@ import {
   updatePost,
   deletePost,
   getForumAuthorStats,
+  getForumHomeStats,
   isWatchingTopic,
   watchTopic,
   unwatchTopic,
@@ -74,8 +75,9 @@ import { PasswordRecoveryPage } from './AuthRecoveryPages'
 import { ThreadPostCard } from './ForumThreadComponents'
 import { ForumNodePage } from './ForumNodePage'
 import { ForumIndex } from './ForumIndex'
+import { ForumSidebar } from './ForumSidebar'
 import { CommunityChat } from './CommunityChat'
-import { CategoriesPage, CategorySuggestionButton } from './CategoryPages'
+import { CategoriesPage } from './CategoryPages'
 import {
   getPostMedia,
   getTopicMedia,
@@ -117,7 +119,6 @@ import { ProfileHoverLayer } from './ProfileHoverCard'
 import {
   AchievementsPage,
   AdvancedSearchPage,
-  PersonalizedFeed,
   RankingsPage,
   TagPage,
 } from './CommunityFeatures'
@@ -1173,6 +1174,9 @@ function App() {
   const [reply, setReply] = useState('')
   const [topics, setTopics] = useState([])
   const [popularTopics, setPopularTopics] = useState([])
+  const [sidebarTrendingTopics, setSidebarTrendingTopics] = useState([])
+  const [sidebarRecentTopics, setSidebarRecentTopics] = useState([])
+  const [forumHomeStats, setForumHomeStats] = useState({})
   const [topicCount, setTopicCount] = useState(0)
   const [popularTopicCount, setPopularTopicCount] = useState(0)
   const [routeTopic, setRouteTopic] = useState(null)
@@ -1294,18 +1298,27 @@ function App() {
         popularPageData,
         recentPosts,
         memberRows,
+        sidebarRecentPage,
+        sidebarPopularPage,
+        homeStats,
       ] = await Promise.all([
         getCategories(),
         getTopicsPage({ page, pageSize: 3, query, categoryId: selectedCategory, ignoredIds }),
         getTopicsPage({ page: popularPage, pageSize: 3, query, categoryId: selectedCategory, sort: 'popular', ignoredIds }),
         getRecentPosts(),
         getMembers(),
+        getTopicsPage({ page: 1, pageSize: 5, sort: 'recent', ignoredIds }),
+        getTopicsPage({ page: 1, pageSize: 5, sort: 'popular', ignoredIds }),
+        getForumHomeStats(),
       ])
 
       setCategories(categoryRows)
       setMembers(memberRows)
       setTopics((recentPage.items || []).map(mapTopic))
       setPopularTopics((popularPageData.items || []).map(mapTopic))
+      setSidebarRecentTopics((sidebarRecentPage.items || []).map(mapTopic))
+      setSidebarTrendingTopics((sidebarPopularPage.items || []).map(mapTopic))
+      setForumHomeStats(homeStats || {})
       setTopicCount(recentPage.total || 0)
       setPopularTopicCount(popularPageData.total || 0)
       setActivity(
@@ -1835,7 +1848,6 @@ function App() {
   const currentPopularPage = Math.min(popularPage, popularTotal)
   const displayedPopular = popularTopics
   const visibleActivity = activity.filter((item) => !ignoredIds.includes(item.authorId))
-  const categoryTree = useMemo(() => flattenCategoryTree(categories), [categories])
   const routeCategoryPath = useMemo(
     () => getCategoryPath(categories, routeTopic?.categoryId),
     [categories, routeTopic?.categoryId]
@@ -2242,73 +2254,41 @@ function App() {
               </>
             ) : (
               <>
-                <PersonalizedFeed session={session} navigate={navigate} />
+                <div className="forum-mobile-dashboard">
+                  <ForumSidebar
+                    categories={categories}
+                    onlineMembers={forumOnlineMembers}
+                    trendingTopics={sidebarTrendingTopics}
+                    recentTopics={sidebarRecentTopics}
+                    stats={forumHomeStats}
+                    session={session}
+                    navigate={navigate}
+                    notify={setToast}
+                    onOpenTopic={openTopic}
+                  />
+                </div>
                 <ForumIndex
-                categories={categories}
-                navigate={navigate}
-                notify={setToast}
-                onOpenTopic={openTopic}
-              />
+                  categories={categories}
+                  navigate={navigate}
+                  notify={setToast}
+                  onOpenTopic={openTopic}
+                />
               </>
             )}
           </div>
 
-          <aside>
-            <section className="activity">
-              <h2>Últimas publicações</h2>
-              {activity.length ? (
-                visibleActivity.map((item) => (
-                  <button
-                    className="activityitem"
-                    key={item.id}
-                    data-profile-username={item.authorUsername || undefined}
-                    onClick={() => openTopic(item.topicId)}
-                  >
-                    <Avatar src={item.avatarUrl} small />
-                    <span>
-                      <strong>{item.user}</strong> &gt; <strong>{item.topicTitle}</strong>
-                      <br />
-                      “{item.text.slice(0, 62)}{item.text.length > 62 ? '...' : ''}”
-                    </span>
-                  </button>
-                ))
-              ) : (
-                <p className="side-empty">As respostas da comunidade aparecerão aqui.</p>
-              )}
-            </section>
-
-            <section className="themes">
-              <h2>
-                Categorias
-                <button aria-label="Gerenciar categorias" onClick={() => navigate('/categorias')}>
-                  <Icon name="plus" />
-                </button>
-              </h2>
-              {categoryTree.map((category) => (
-                <button
-                  key={category.id}
-                  className={'category-side-node category-side-' + category.node_type}
-                  style={{ '--category-depth': category.depth }}
-                  onClick={() => openCategoryNode(category)}
-                >
-                  <span>{category.name}</span>
-                  <small>
-                    {category.node_type === 'category'
-                      ? 'Categoria'
-                      : category.node_type === 'section'
-                        ? 'Subcategoria'
-                        : 'Fórum'}
-                  </small>
-                </button>
-              ))}
-              <CategorySuggestionButton
-                session={session}
-                navigate={navigate}
-                notify={setToast}
-                className="category-suggest-side"
-                label="Sugerir categoria"
-              />
-            </section>
+          <aside className="forum-home-sidebar" aria-label="Informações do fórum">
+            <ForumSidebar
+              categories={categories}
+              onlineMembers={forumOnlineMembers}
+              trendingTopics={sidebarTrendingTopics}
+              recentTopics={sidebarRecentTopics}
+              stats={forumHomeStats}
+              session={session}
+              navigate={navigate}
+              notify={setToast}
+              onOpenTopic={openTopic}
+            />
           </aside>
         </main>
 
