@@ -412,6 +412,7 @@ export function ForumNodePage({
 
                       <button
                         className="forum-child-last"
+                        data-profile-username={summary.last_actor_username || undefined}
                         disabled={!summary.last_topic_id}
                         onClick={() => summary.last_topic_id && onOpenTopic(summary.last_topic_id)}
                       >
@@ -469,14 +470,20 @@ export function ForumNodePage({
                   const latestAvatar = topic.last_actor_avatar_url || topic.author_avatar_url
                   return (
                     <button key={topic.id} onClick={() => onOpenTopic(topic.id)}>
-                      <span className="forum-topic-avatar">
+                      <span
+                        className="forum-topic-avatar"
+                        data-profile-username={topic.author_username || undefined}
+                      >
                         {topic.author_avatar_url ? (
                           <img src={topic.author_avatar_url} alt="" />
                         ) : (
                           <b>{(topic.author_display_name || topic.author_username || 'M').slice(0, 1)}</b>
                         )}
                       </span>
-                      <span className="forum-topic-copy">
+                      <span
+                        className="forum-topic-copy"
+                        data-profile-username={topic.author_username || undefined}
+                      >
                         <strong>{topic.title}</strong>
                         <small>
                           {topic.author_display_name || topic.author_username || 'Membro'}
@@ -486,7 +493,10 @@ export function ForumNodePage({
                           {topic.views || 0} visualizações
                         </small>
                       </span>
-                      <span className="forum-topic-latest">
+                      <span
+                        className="forum-topic-latest"
+                        data-profile-username={topic.last_actor_username || topic.author_username || undefined}
+                      >
                         <span className="forum-last-avatar">
                           {latestAvatar ? <img src={latestAvatar} alt="" /> : <b>{latestName.slice(0, 1)}</b>}
                         </span>
