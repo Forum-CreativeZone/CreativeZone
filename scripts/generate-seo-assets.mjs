@@ -3,11 +3,14 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 const DEFAULT_SITE_URL = 'https://forum.creativezone.pro'
-const siteUrl = String(
+const configuredSiteUrl = String(
   process.env.VITE_PUBLIC_SITE_URL ||
   process.env.PUBLIC_SITE_URL ||
   DEFAULT_SITE_URL
 ).trim().replace(/\/+$/, '')
+const siteUrl = configuredSiteUrl === 'https://assets-forum.gestao-quiroz.workers.dev'
+  ? DEFAULT_SITE_URL
+  : configuredSiteUrl
 
 const supabaseUrl = String(process.env.VITE_SUPABASE_URL || '').trim().replace(/\/+$/, '')
 const supabaseKey = String(
