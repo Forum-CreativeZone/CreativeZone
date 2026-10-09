@@ -118,6 +118,10 @@ export async function signUp(emailOrOptions, passwordArg, profileArg = {}) {
     password,
     options: {
       data: profile,
+      emailRedirectTo:
+        typeof window !== 'undefined'
+          ? `${window.location.origin}/`
+          : 'https://forum.creativezone.pro/',
     },
   })
 
