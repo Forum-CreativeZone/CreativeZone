@@ -27,7 +27,7 @@ Definir no ambiente de produção:
 
 Depois fazer um novo deploy. O sitemap, robots e canonicals passarão a usar o domínio novo automaticamente.
 
-Antes de trocar, manter apenas uma origem pública principal para evitar duplicidade de URLs.
+Antes de trocar, manter apenas uma origem pública principal para evitar duplicidade de URLs. Depois que o domínio estiver validado, configurar redirecionamento permanente (301/308) do host antigo `*.workers.dev` para o domínio novo, preservando o caminho de cada página.
 
 ## Google Search Console
 
