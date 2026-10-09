@@ -269,7 +269,6 @@ function ProtectedDownloads({
   items = [],
   session,
   profile,
-  membershipState,
   navigate,
   notify,
   onRefresh,
@@ -798,7 +797,6 @@ function ComposerPage({
                     items={downloads.filter((item) => String(item.label || '').trim() || String(item.url || '').trim())}
                     session={session}
                     profile={profile}
-                    membershipState={membershipState}
                     navigate={navigate}
                     notify={notify}
                     preview
@@ -2656,7 +2654,6 @@ function App() {
                       items={topicDownloads}
                       session={session}
                       profile={profile}
-                      membershipState={membershipState}
                       navigate={navigate}
                       notify={setToast}
                       onRefresh={refreshTopicDownloads}
