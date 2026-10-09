@@ -5,7 +5,9 @@ const DEFAULT_IMAGE = 'https://forum.creativezone.pro/banner.png'
 
 export function getPublicSiteUrl() {
   const configured = String(import.meta.env.VITE_PUBLIC_SITE_URL || '').trim().replace(/\/+$/, '')
-  return configured || DEFAULT_SITE_URL
+  if (!configured) return DEFAULT_SITE_URL
+  if (configured === 'https://assets-forum.gestao-quiroz.workers.dev') return DEFAULT_SITE_URL
+  return configured
 }
 
 export function plainText(value = '') {
