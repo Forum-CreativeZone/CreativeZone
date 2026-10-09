@@ -24,6 +24,7 @@ import {
   Plus,
   Download,
   LockKeyhole,
+  Trophy,
 } from 'lucide-react'
 import '@fontsource-variable/dm-sans'
 import * as A from './design-assets'
@@ -103,6 +104,7 @@ import { EliteAreaPage } from './MembershipSection'
 import { AdminDashboard } from './AdminDashboard'
 import { getMemberDecorations, getMembershipState } from './services/membershipApi'
 import { EffectBadge, EffectName, EffectRole } from './VisualEffects'
+import { ProfileHoverLayer } from './ProfileHoverCard'
 import {
   AchievementsPage,
   AdvancedSearchPage,
@@ -274,7 +276,11 @@ function ProtectedDownloads({
   preview = false,
 }) {
   const isOwner = Boolean(profile?.system_owner)
-  const hasPaidPlan = isOwner || Number(membershipState?.rank || 0) >= 1
+  const hasPaidPlan = isOwner
+    || Boolean(membershipState?.system_owner)
+    || ['pro','elite'].includes(membershipState?.plan_id)
+    || Boolean(membershipState?.entitlements?.full_access)
+  const [accessGate, setAccessGate] = useState(null)
 
   if (!items.length) return null
 
@@ -287,17 +293,15 @@ function ProtectedDownloads({
       return
     }
 
+    const scope = item.access_scope || item.accessScope || 'member'
+
     if (!session?.user) {
-      notify?.('Crie uma conta ou entre para acessar downloads.')
-      navigate('/cadastro')
+      setAccessGate({ type: 'auth', item })
       return
     }
 
-    const scope = item.access_scope || item.accessScope || 'member'
-
     if (scope === 'paid' && !hasPaidPlan) {
-      notify?.('Este download é exclusivo para assinantes PRO e ELITE.')
-      navigate('/conta/assinatura')
+      setAccessGate({ type: 'vip', item })
       return
     }
 
@@ -348,7 +352,6 @@ function ProtectedDownloads({
         {items.map((item) => {
           const accessScope = item.access_scope || item.accessScope || 'member'
           const paidOnly = accessScope === 'paid'
-          const allowed = preview ? Boolean(item.url || item.target_url) : Boolean(session?.user) && (!paidOnly || hasPaidPlan)
           return (
             <article key={item.id} className={paidOnly ? 'paid-only' : 'members-only'}>
               <div className="protected-download-main">
@@ -379,17 +382,11 @@ function ProtectedDownloads({
 
                 <button
                   type="button"
-                  className={'action protected-download-button ' + (allowed ? 'unlocked' : 'locked')}
+                  className="action protected-download-button unlocked"
                   onClick={() => openDownload(item)}
                 >
-                  {allowed ? <Download /> : <LockKeyhole />}
-                  {preview
-                    ? 'Testar download'
-                    : !session?.user
-                      ? 'Criar conta para baixar'
-                      : paidOnly && !hasPaidPlan
-                        ? 'Requer PRO / ELITE'
-                        : 'Baixar'}
+                  <Download />
+                  {preview ? 'Testar download' : 'Baixar'}
                 </button>
 
                 {isOwner && !preview && (
@@ -406,6 +403,89 @@ function ProtectedDownloads({
           )
         })}
       </div>
+
+      {accessGate && (
+        <div className="download-access-backdrop" role="presentation" onMouseDown={() => setAccessGate(null)}>
+          <section
+            className="download-access-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label={accessGate.type === 'vip' ? 'Download exclusivo para VIP' : 'Entre para baixar'}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="download-access-close"
+              aria-label="Fechar"
+              onClick={() => setAccessGate(null)}
+            >
+              <X />
+            </button>
+
+            <span className={'download-access-icon ' + accessGate.type}>
+              {accessGate.type === 'vip' ? <LockKeyhole /> : <UserPlus />}
+            </span>
+
+            {accessGate.type === 'vip' ? (
+              <>
+                <h3>Conteúdo exclusivo PRO / ELITE</h3>
+                <p>
+                  Este arquivo está disponível para assinantes CreativeZone PRO e ELITE.
+                  Ative um plano VIP para liberar o download imediatamente.
+                </p>
+                <div className="download-access-actions">
+                  <button
+                    type="button"
+                    className="action"
+                    onClick={() => setAccessGate(null)}
+                  >
+                    Agora não
+                  </button>
+                  <button
+                    type="button"
+                    className="action primary-action"
+                    onClick={() => {
+                      setAccessGate(null)
+                      navigate('/conta/assinatura')
+                    }}
+                  >
+                    <Trophy /> Adquirir VIP
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3>Entre para fazer o download</h3>
+                <p>
+                  A leitura do tópico é pública, mas downloads e interações são liberados apenas para membros cadastrados.
+                </p>
+                <div className="download-access-actions">
+                  <button
+                    type="button"
+                    className="action"
+                    onClick={() => {
+                      setAccessGate(null)
+                      navigate('/entrar')
+                    }}
+                  >
+                    <LogIn /> Entrar
+                  </button>
+                  <button
+                    type="button"
+                    className="action primary-action"
+                    onClick={() => {
+                      setAccessGate(null)
+                      navigate('/cadastro')
+                    }}
+                  >
+                    <UserPlus /> Criar conta
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
+        </div>
+      )}
     </section>
   )
 }
@@ -422,7 +502,12 @@ function Topic({ topic, onOpen, onFavorite, favorites, onMenu }) {
         <Avatar src={topic.avatarUrl} name="daniel" />
         <div className="topicbody">
           <div className="topicheading">
-            <span className="authorname">{topic.user}</span>
+            <span
+              className="authorname"
+              data-profile-username={topic.authorUsername || undefined}
+            >
+              {topic.user}
+            </span>
             <span className="dash" />
             <span className="online-label">{topic.category}</span>
             <h3>{topic.title}</h3>
@@ -1203,6 +1288,7 @@ function App() {
           topicId: post.topic_id,
           user: post.profiles?.display_name || post.profiles?.username || 'Membro',
           authorId: post.profiles?.id || null,
+          authorUsername: post.profiles?.username || '',
           avatarUrl: post.profiles?.avatar_url || '',
           topicTitle: post.topics?.title || 'Tópico',
           text: post.content,
@@ -2001,6 +2087,7 @@ function App() {
                   <button
                     className="activityitem"
                     key={item.id}
+                    data-profile-username={item.authorUsername || undefined}
                     onClick={() => openTopic(item.topicId)}
                   >
                     <Avatar src={item.avatarUrl} small />
@@ -2229,6 +2316,7 @@ function App() {
                 <button
                   className="member-row"
                   key={member.id}
+                  data-profile-username={member.username || undefined}
                   onClick={() => navigate('/membro/' + encodeURIComponent(member.username))}
                 >
                   <Avatar src={member.avatar_url} />
@@ -2276,6 +2364,7 @@ function App() {
               return (
                 <button
                   key={item.id}
+                  data-profile-username={item.authorUsername || undefined}
                   onClick={() => openTopic(item.topicId)}
                 >
                   <Avatar src={item.avatarUrl} small />
@@ -2739,6 +2828,7 @@ function App() {
 
   return (
     <div className="app">
+      <ProfileHoverLayer navigate={navigate} />
       <header className="header">
         <nav className="leftnav" aria-label="Principal">
           <button
@@ -3027,6 +3117,7 @@ function App() {
                 return (
                   <button
                     key={item.id}
+                    data-profile-username={item.authorUsername || undefined}
                     onClick={() => {
                       setOverlay(null)
                       openTopic(item.topicId)
