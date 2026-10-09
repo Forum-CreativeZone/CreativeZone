@@ -9,6 +9,7 @@ import {
   X,
   Zap,
 } from 'lucide-react'
+import { ForumIcon } from './ForumIcon'
 import {
   adminGrantMembership,
   getMembershipPlans,
@@ -606,7 +607,7 @@ export function MembershipSection({ session, profile, state, setState, notify })
 
       <section className="membership-support-note">
         <div>
-          <strong>❤️ Apoiar sem assinatura</strong>
+          <strong><ForumIcon icon="tabler:heart" /> Apoiar sem assinatura</strong>
           <small>
             Se você só quer ajudar com a VPS, infraestrutura e futuros projetos, também pode fazer uma contribuição avulsa.
           </small>
