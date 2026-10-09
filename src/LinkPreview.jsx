@@ -83,6 +83,9 @@ export function LinkPreviewCard({
   const description = preview?.description || ''
   const publisher = preview?.publisher || domain
   const date = formattedDate(preview?.published_at)
+  const author = String(preview?.author || '').trim()
+  const lang = String(preview?.lang || '').trim()
+  const detailed = variant !== 'compact' && variant !== 'minimal'
   const showImage = Boolean(preview?.image_url && !imageFailed && variant !== 'minimal')
   const hasMetadata = Boolean(preview && preview.status !== 'failed')
 
@@ -135,14 +138,31 @@ export function LinkPreviewCard({
               <Link2 />
             )}
             <span>{publisher}</span>
-            {date && <small>{date}</small>}
+            {variant === 'compact' && date && <small>{date}</small>}
           </span>
 
+          {detailed && <small className="cz-link-preview-kicker">PRÉVIA DO SITE</small>}
           <strong className="cz-link-preview-title">{title}</strong>
           {description && variant !== 'compact' && (
             <span className="cz-link-preview-description">{description}</span>
           )}
-          <small className="cz-link-preview-domain">{domain}</small>
+
+          {detailed ? (
+            <span className="cz-link-preview-meta">
+              <small>{domain}</small>
+              {author && <small>Por {author}</small>}
+              {date && <small>{date}</small>}
+              {lang && <small>{lang.replace('_', '-')}</small>}
+            </span>
+          ) : (
+            <small className="cz-link-preview-domain">{domain}</small>
+          )}
+
+          {detailed && (
+            <span className="cz-link-preview-cta">
+              Abrir site <ExternalLink />
+            </span>
+          )}
         </span>
 
         <span className="cz-link-preview-open" aria-hidden="true">
