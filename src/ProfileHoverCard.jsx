@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { MessageCircle, ShieldCheck, User } from 'lucide-react'
-import { getPublicProfile } from './services/communityApi'
+import { getProfileHoverSummary } from './services/communityApi'
 import { EffectName } from './VisualEffects'
 
 const hoverProfileCache = new Map()
@@ -117,7 +117,7 @@ export function ProfileHoverLayer({ navigate }) {
     setLoading(true)
     setData(null)
 
-    getPublicProfile(target.username)
+    getProfileHoverSummary(target.username)
       .then((next) => {
         if (!active) return
         hoverProfileCache.set(target.username.toLowerCase(), next)
