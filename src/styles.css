@@ -5651,3 +5651,12 @@ main{
   .thread-staff-state-actions .action{flex:1;justify-content:center}
   .thread-watch-actions>.thread-watch-button{width:100%}
 }
+
+.topic-status-icons{display:inline-flex;align-items:center;gap:4px;margin-right:6px;vertical-align:middle}
+.topic-status-icons:empty{display:none}
+.topic-status-icons svg{width:14px;height:14px;color:#858585;vertical-align:-2px}
+.topic-status-icons svg:first-child{color:#e0a24a}
+@media(max-width:760px){
+  .topic-status-icons{gap:3px;margin-right:4px}
+  .topic-status-icons svg{width:12px;height:12px}
+}
