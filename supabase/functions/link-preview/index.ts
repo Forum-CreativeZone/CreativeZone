@@ -590,7 +590,7 @@ async function fetchHtml(target: URL) {
         redirect: "manual",
         signal: controller.signal,
         headers: {
-          "User-Agent": "CreativeZone-LinkPreview/1.0 (+https://github.com/Inosuke-Company/CreativeZone)",
+          "User-Agent": "CreativeZone-LinkPreview/1.0 (+https://github.com/Forum-CreativeZone/CreativeZone)",
           "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.2",
           "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.7",
           "Cache-Control": "no-cache",
@@ -634,6 +634,18 @@ async function fetchHtml(target: URL) {
   }
 
   throw new Error("too_many_redirects")
+}
+
+async function validatePublicAssetUrl(value: string | null) {
+  if (!value) return null
+  try {
+    const url = new URL(value)
+    if (!["http:", "https:"].includes(url.protocol)) return null
+    await assertPublicUrl(url)
+    return url.href.slice(0, MAX_URL_LENGTH)
+  } catch {
+    return null
+  }
 }
 
 function publicPreview(record: Partial<PreviewRecord>) {
@@ -738,11 +750,16 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    const [safeImageUrl, safeLogoUrl] = await Promise.all([
+      validatePublicAssetUrl(metadata.imageUrl),
+      validatePublicAssetUrl(metadata.logoUrl),
+    ])
+
     const useful = Boolean(
       metadata.title ||
       metadata.description ||
-      metadata.imageUrl ||
-      metadata.logoUrl
+      safeImageUrl ||
+      safeLogoUrl
     )
     const status: PreviewStatus = useful ? "ok" : "minimal"
     const expiresAt = new Date(
@@ -756,8 +773,8 @@ Deno.serve(async (req: Request) => {
       domain: final.hostname.replace(/^www\./, "").slice(0, 255),
       title: metadata.title,
       description: metadata.description,
-      image_url: metadata.imageUrl,
-      logo_url: metadata.logoUrl,
+      image_url: safeImageUrl,
+      logo_url: safeLogoUrl,
       publisher: metadata.publisher,
       author: metadata.author,
       published_at: metadata.publishedAt,
