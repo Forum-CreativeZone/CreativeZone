@@ -666,8 +666,13 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
   async function coverChange(event) {
     const file = event.target.files?.[0]
     if (!file) return
-    if (file.type === 'image/gif' && !membershipState?.entitlements?.animated_cover) {
-      notify('Capas animadas são um benefício CreativeZone Pro/Elite.')
+
+    const canUseAnimatedCover = Boolean(membershipState?.system_owner)
+      || ['pro','elite'].includes(membershipState?.plan_id)
+      || Boolean(membershipState?.entitlements?.animated_cover)
+
+    if (file.type === 'image/gif' && !canUseAnimatedCover) {
+      notify('Capas GIF animadas são exclusivas dos planos CreativeZone PRO e ELITE.')
       event.target.value = ''
       return
     }
@@ -712,6 +717,9 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
                 <span>{draft.cover_url ? 'Capa atual' : 'Adicione uma capa ao seu perfil'}</span>
                 <label className="action"><Upload /> Alterar capa<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={coverChange} hidden /></label>
               </div>
+              <small className="profile-cover-help">
+                PNG, JPG e WEBP para todos. GIF animado disponível para PRO e ELITE · máximo de 6 MB.
+              </small>
               <div className="avatar-editor">
                 <Avatar profile={draft} size={96} />
                 <label className="action"><Upload /> Alterar avatar<input type="file" accept="image/*" onChange={avatarChange} hidden /></label>
