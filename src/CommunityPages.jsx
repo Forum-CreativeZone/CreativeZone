@@ -54,6 +54,7 @@ import {
   uploadProfileSignature,
   setProfileSignatureImageUrl,
   setProfileInteractiveSignatureUrl,
+  removeProfileSignature,
 } from './services/communityApi'
 import {
   getEligibleFeaturedProjects,
@@ -93,6 +94,32 @@ function Avatar({ profile, size = 56 }) {
 function formatDate(value) {
   if (!value) return ''
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(new Date(value))
+}
+
+function getBirthDateLimits() {
+  const today = new Date()
+  const toIsoDate = (date) => {
+    const year = String(date.getFullYear()).padStart(4, '0')
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  const yearsAgo = (years) => {
+    const date = new Date(today.getFullYear() - years, today.getMonth(), today.getDate())
+    return toIsoDate(date)
+  }
+  return {
+    min: yearsAgo(120),
+    max: yearsAgo(18),
+  }
+}
+
+function getBirthDateValidationError(value, limits = getBirthDateLimits()) {
+  if (!value) return 'A data de nascimento é obrigatória.'
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'Informe uma data de nascimento válida.'
+  if (value > limits.max) return 'A CreativeZone é exclusiva para maiores de 18 anos.'
+  if (value < limits.min) return 'Informe uma data de nascimento válida.'
+  return ''
 }
 
 function formatRelative(value) {
@@ -540,6 +567,7 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
   const [membershipState, setMembershipState] = useState(null)
   const [projectChoices, setProjectChoices] = useState([])
   const [featuredProjectIds, setFeaturedProjectIds] = useState([])
+  const birthDateLimits = useMemo(() => getBirthDateLimits(), [])
 
   async function loadBase() {
     if (!userId) return
@@ -598,7 +626,8 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
 
   async function save(event) {
     event?.preventDefault()
-    if (!settings.birth_date) return notify('A data de nascimento é obrigatória.')
+    const birthDateError = getBirthDateValidationError(settings.birth_date, birthDateLimits)
+    if (birthDateError) return notify(birthDateError)
     if (!draft.occupation?.trim()) return notify('A ocupação é obrigatória.')
     setBusy(true)
     try {
@@ -660,6 +689,7 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
       )
       setProfile(result.profile)
       setDraft(result.profile)
+      setSettings(result.settings)
       if (settings.theme !== 'system') setAppearance(settings.theme)
       document.documentElement.dataset.density = settings.density
       notify('Configurações salvas.')
@@ -755,10 +785,10 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
   async function removeSignature() {
     setBusy(true)
     try {
-      const next = await setProfileSignatureImageUrl(userId, '')
+      const next = await removeProfileSignature(userId)
       setProfile(next)
       setDraft(next)
-      notify('Assinatura removida.')
+      notify('Assinatura removida com sucesso.')
     } catch (error) {
       notify(error?.message || 'Não foi possível remover a assinatura.')
     } finally {
@@ -811,11 +841,14 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
                 <input
                   required
                   type="date"
+                  min={birthDateLimits.min}
+                  max={birthDateLimits.max}
                   value={settings.birth_date || ''}
-                  disabled={Boolean(settings.birth_date)}
                   onChange={(e) => setSetting('birth_date', e.target.value)}
                 />
-                {settings.birth_date && <small className="field-help">A data de nascimento já foi definida e não pode mais ser alterada. Em caso de erro, fale com a administração.</small>}
+                <small className="field-help">
+                  Cadastro permitido apenas para maiores de 18 anos. Se você digitou a data errada, pode corrigi-la aqui.
+                </small>
               </label>
               <label>Localização (opcional)<input maxLength={100} value={settings.location_private || ''} onChange={(e) => setSetting('location_private', e.target.value)} placeholder="Cidade, estado ou país" /></label>
               <label>Ocupação *<input required maxLength={100} value={draft.occupation || ''} onChange={(e) => setProfileField('occupation', e.target.value)} placeholder="Ex.: Desenvolvedor, Designer, Estudante" /></label>
