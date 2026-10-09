@@ -581,9 +581,8 @@ async function fetchHtml(target: URL) {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
 
-    let response: Response
     try {
-      response = await fetch(current, {
+      const response = await fetch(current, {
         method: "GET",
         redirect: "manual",
         signal: controller.signal,
@@ -594,39 +593,40 @@ async function fetchHtml(target: URL) {
           "Cache-Control": "no-cache",
         },
       })
+
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get("location")
+        if (!location) throw new Error("redirect_without_location")
+        try { await response.body?.cancel() } catch {}
+        current = new URL(location, current)
+        continue
+      }
+
+      const contentType = response.headers.get("content-type") || ""
+      if (!response.ok) {
+        const error = new Error("upstream_http_" + response.status)
+        ;(error as Error & { httpStatus?: number; contentType?: string }).httpStatus = response.status
+        ;(error as Error & { httpStatus?: number; contentType?: string }).contentType = contentType
+        throw error
+      }
+
+      if (contentType &&
+          !contentType.includes("text/html") &&
+          !contentType.includes("application/xhtml+xml")) {
+        const error = new Error("unsupported_content_type")
+        ;(error as Error & { httpStatus?: number; contentType?: string }).httpStatus = response.status
+        ;(error as Error & { httpStatus?: number; contentType?: string }).contentType = contentType
+        throw error
+      }
+
+      return {
+        response,
+        html: await readHtml(response),
+        finalUrl: current,
+        contentType,
+      }
     } finally {
       clearTimeout(timeout)
-    }
-
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get("location")
-      if (!location) throw new Error("redirect_without_location")
-      current = new URL(location, current)
-      continue
-    }
-
-    const contentType = response.headers.get("content-type") || ""
-    if (!response.ok) {
-      const error = new Error("upstream_http_" + response.status)
-      ;(error as Error & { httpStatus?: number; contentType?: string }).httpStatus = response.status
-      ;(error as Error & { httpStatus?: number; contentType?: string }).contentType = contentType
-      throw error
-    }
-
-    if (contentType &&
-        !contentType.includes("text/html") &&
-        !contentType.includes("application/xhtml+xml")) {
-      const error = new Error("unsupported_content_type")
-      ;(error as Error & { httpStatus?: number; contentType?: string }).httpStatus = response.status
-      ;(error as Error & { httpStatus?: number; contentType?: string }).contentType = contentType
-      throw error
-    }
-
-    return {
-      response,
-      html: await readHtml(response),
-      finalUrl: current,
-      contentType,
     }
   }
 
@@ -694,7 +694,6 @@ Deno.serve(async (req: Request) => {
   let target: URL
   try {
     target = normalizeTargetUrl(body?.url)
-    await assertPublicUrl(target)
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "invalid_url" }, 400)
   }
@@ -725,8 +724,16 @@ Deno.serve(async (req: Request) => {
   try {
     const { response, html, finalUrl, contentType } = await fetchHtml(target)
     const metadata = extractPreview(html, finalUrl)
-    const final = new URL(metadata.canonicalUrl || finalUrl.href)
-    await assertPublicUrl(final)
+    let final = new URL(finalUrl.href)
+    if (metadata.canonicalUrl) {
+      try {
+        const canonical = new URL(metadata.canonicalUrl)
+        await assertPublicUrl(canonical)
+        final = canonical
+      } catch {
+        // A hostile/invalid canonical must not invalidate metadata fetched from a safe URL.
+      }
+    }
 
     const useful = Boolean(
       metadata.title ||
