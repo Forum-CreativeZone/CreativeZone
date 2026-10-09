@@ -6,6 +6,7 @@ import {
   MessageSquare,
 } from 'lucide-react'
 import { getForumNodeSummaries } from './services/forumApi'
+import { buildTopicPath } from './seo'
 import './forum-hierarchy.css'
 
 function formatActivity(value) {
@@ -38,11 +39,23 @@ function LastActivity({ summary, onOpenTopic }) {
     summary.last_actor_username ||
     'Membro'
 
+  const href = buildTopicPath({
+    id: summary.last_topic_id,
+    title: summary.last_topic_title,
+  })
+
   return (
-    <button
+    <a
       className="forum-index-last"
+      href={href}
       data-profile-username={summary.last_actor_username || undefined}
-      onClick={() => onOpenTopic(summary.last_topic_id)}
+      onClick={(event) => {
+        event.preventDefault()
+        onOpenTopic({
+          id: summary.last_topic_id,
+          title: summary.last_topic_title,
+        })
+      }}
     >
       <span className="forum-last-avatar">
         {summary.last_actor_avatar_url ? (
@@ -59,7 +72,7 @@ function LastActivity({ summary, onOpenTopic }) {
         </small>
       </span>
       <ChevronRight />
-    </button>
+    </a>
   )
 }
 
@@ -135,13 +148,19 @@ export function ForumIndex({ categories, navigate, notify, onOpenTopic }) {
         return (
           <section className="forum-index-category" key={root.id}>
             <header className="forum-index-category-head">
-              <button onClick={() => navigate('/forum/' + encodeURIComponent(root.slug))}>
+              <a
+                href={'/forum/' + encodeURIComponent(root.slug)}
+                onClick={(event) => {
+                  event.preventDefault()
+                  navigate('/forum/' + encodeURIComponent(root.slug))
+                }}
+              >
                 <span>
                   <small>CATEGORIA</small>
                   <strong>{root.name}</strong>
                 </span>
                 <ChevronRight />
-              </button>
+              </a>
             </header>
 
             <div className="forum-index-nodes">
@@ -152,9 +171,13 @@ export function ForumIndex({ categories, navigate, notify, onOpenTopic }) {
                 return (
                   <article className="forum-index-row" key={child.id}>
                     <div className="forum-index-node">
-                      <button
+                      <a
                         className="forum-index-node-open"
-                        onClick={() => navigate('/forum/' + encodeURIComponent(child.slug))}
+                        href={'/forum/' + encodeURIComponent(child.slug)}
+                        onClick={(event) => {
+                          event.preventDefault()
+                          navigate('/forum/' + encodeURIComponent(child.slug))
+                        }}
                       >
                         <span className={'forum-index-icon type-' + child.node_type}>
                           <NodeIcon type={child.node_type} />
@@ -164,18 +187,22 @@ export function ForumIndex({ categories, navigate, notify, onOpenTopic }) {
                           <strong>{child.name}</strong>
                           <p>{child.description || 'Área da comunidade CreativeZone.'}</p>
                         </span>
-                      </button>
+                      </a>
 
                       {descendants.length > 0 && (
                         <div className="forum-index-sublinks">
                           {descendants.map((descendant) => (
-                            <button
+                            <a
                               key={descendant.id}
-                              onClick={() => navigate('/forum/' + encodeURIComponent(descendant.slug))}
+                              href={'/forum/' + encodeURIComponent(descendant.slug)}
+                              onClick={(event) => {
+                                event.preventDefault()
+                                navigate('/forum/' + encodeURIComponent(descendant.slug))
+                              }}
                             >
                               <MessageSquare />
                               {descendant.name}
-                            </button>
+                            </a>
                           ))}
                         </div>
                       )}
