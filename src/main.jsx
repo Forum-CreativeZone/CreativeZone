@@ -1492,6 +1492,12 @@ function App() {
 
   const forumMatch = path.match(/^\/forum\/([^/]+)$/)
   const routeForumSlug = forumMatch ? decodeURIComponent(forumMatch[1]) : null
+  const routeForumNode = useMemo(
+    () => routeForumSlug
+      ? categories.find((category) => category.slug === routeForumSlug) || null
+      : null,
+    [categories, routeForumSlug]
+  )
   const memberMatch = path.match(/^\/membro\/([^/]+)$/)
   const routeMemberUsername = memberMatch ? decodeURIComponent(memberMatch[1]) : null
   const accountMatch = path.match(/^\/conta(?:\/([^/]+))?$/)
@@ -1833,12 +1839,6 @@ function App() {
   const routeCategoryPath = useMemo(
     () => getCategoryPath(categories, routeTopic?.categoryId),
     [categories, routeTopic?.categoryId]
-  )
-  const routeForumNode = useMemo(
-    () => routeForumSlug
-      ? categories.find((category) => category.slug === routeForumSlug) || null
-      : null,
-    [categories, routeForumSlug]
   )
   const routeForumPath = useMemo(
     () => getCategoryPath(categories, routeForumNode?.id),
