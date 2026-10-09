@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://assets-forum.gestao-quiroz.workers.dev/">🌐 Fórum</a>
+  <a href="https://forum.creativezone.pro/">🌐 Fórum</a>
   ·
   <a href="https://github.com/Creatiive-Lab">🧪 Creative Lab no GitHub</a>
 </p>
@@ -152,7 +152,7 @@ São personalizados e usados em fluxos como:
 - mensagens diretas;
 - avisos da moderação.
 
-> **Ambiente atual:** enquanto a CreativeZone ainda não possui domínio próprio para e-mail, o Resend opera em modo de desenvolvimento usando `onboarding@resend.dev`. A infraestrutura já está preparada para trocar o remetente quando um domínio próprio for configurado.
+> **Domínio oficial:** o fórum está publicado em `https://forum.creativezone.pro`. O domínio de envio `creativezone.pro` está sendo autenticado no Resend para substituir remetentes temporários por endereços profissionais.
 
 ---
 
@@ -350,7 +350,7 @@ Cloudflare Workers Static Assets
 
 A aplicação pública está disponível em:
 
-**https://assets-forum.gestao-quiroz.workers.dev/**
+**https://forum.creativezone.pro/**
 
 ---
 
@@ -372,9 +372,8 @@ A proposta é simples:
 
 ## 🗺️ Próximos passos
 
-- domínio próprio da CreativeZone;
-- domínio de envio verificado no Resend;
-- remetentes de produção para autenticação e notificações;
+- concluir a verificação DNS do domínio de envio `creativezone.pro` no Resend;
+- ativar remetentes profissionais para autenticação e notificações;
 - evolução contínua das ferramentas comunitárias;
 - novos projetos colaborativos na Creative Lab.
 
