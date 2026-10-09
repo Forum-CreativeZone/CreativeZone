@@ -667,9 +667,17 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
     const file = event.target.files?.[0]
     if (!file) return
 
-    const canUseAnimatedCover = Boolean(membershipState?.system_owner)
-      || ['pro','elite'].includes(membershipState?.plan_id)
-      || Boolean(membershipState?.entitlements?.animated_cover)
+    let effectiveMembership = membershipState
+    if (file.type === 'image/gif' && !effectiveMembership) {
+      try {
+        effectiveMembership = await getMembershipState(userId)
+        setMembershipState(effectiveMembership)
+      } catch {}
+    }
+
+    const canUseAnimatedCover = Boolean(effectiveMembership?.system_owner)
+      || ['pro','elite'].includes(effectiveMembership?.plan_id)
+      || Boolean(effectiveMembership?.entitlements?.animated_cover)
 
     if (file.type === 'image/gif' && !canUseAnimatedCover) {
       notify('Capas GIF animadas são exclusivas dos planos CreativeZone PRO e ELITE.')
