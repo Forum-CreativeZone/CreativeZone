@@ -80,11 +80,18 @@ function addJsonLd(html, data) {
   return html.replace('</head>', `  <script type="application/ld+json">${json}</script>\n</head>`)
 }
 
-function buildSeoHtml(template, { title, description, canonicalUrl, type = 'website', jsonLd }) {
+function buildSeoHtml(template, {
+  title,
+  description,
+  canonicalUrl,
+  type = 'website',
+  robots = 'index,follow,max-image-preview:large',
+  jsonLd,
+}) {
   let html = template
   html = setTitle(html, title)
   html = setMeta(html, 'name', 'description', description)
-  html = setMeta(html, 'name', 'robots', 'index,follow,max-image-preview:large')
+  html = setMeta(html, 'name', 'robots', robots)
   html = setCanonical(html, canonicalUrl)
   html = setMeta(html, 'property', 'og:type', type)
   html = setMeta(html, 'property', 'og:site_name', 'CreativeZone')
@@ -300,6 +307,74 @@ async function main() {
       jsonLd,
     })
     await writeRouteHtml(route, html)
+  }
+
+  const publicStaticRoutes = [
+    {
+      path: '/creativezone',
+      title: 'CreativeZone — Comunidade Creative Lab',
+      description: 'Conheça a CreativeZone, comunidade da Creative Lab para tecnologia, criatividade, projetos e colaboração.',
+    },
+    {
+      path: '/projetos',
+      title: 'Projetos da comunidade | CreativeZone',
+      description: 'Projetos criados e compartilhados pelos membros da comunidade CreativeZone.',
+    },
+    {
+      path: '/categorias',
+      title: 'Categorias do fórum | CreativeZone',
+      description: 'Explore as categorias e fóruns da comunidade CreativeZone.',
+    },
+    {
+      path: '/membros',
+      title: 'Membros da comunidade | CreativeZone',
+      description: 'Conheça os membros que participam da comunidade CreativeZone.',
+    },
+    {
+      path: '/ranking',
+      title: 'Ranking da comunidade | CreativeZone',
+      description: 'Ranking de participação e reputação dos membros da CreativeZone.',
+    },
+    {
+      path: '/conquistas',
+      title: 'Conquistas da comunidade | CreativeZone',
+      description: 'Conquistas, troféus e progressão dos membros da CreativeZone.',
+    },
+  ]
+
+  for (const route of publicStaticRoutes) {
+    const canonicalUrl = siteUrl + route.path
+    const html = buildSeoHtml(template, {
+      title: route.title,
+      description: route.description,
+      canonicalUrl,
+    })
+    await writeRouteHtml(route.path, html)
+  }
+
+  const noindexRoutes = [
+    '/entrar',
+    '/cadastro',
+    '/esqueci-senha',
+    '/redefinir-senha',
+    '/novo-topico',
+    '/buscar',
+    '/feed',
+    '/chat',
+    '/conta',
+    '/mensagens',
+    '/admin',
+    '/moderacao',
+  ]
+
+  for (const routePath of noindexRoutes) {
+    const html = buildSeoHtml(template, {
+      title: 'CreativeZone',
+      description: 'Área interna da comunidade CreativeZone.',
+      canonicalUrl: siteUrl + routePath,
+      robots: 'noindex,nofollow',
+    })
+    await writeRouteHtml(routePath, html)
   }
 
   const urls = [
