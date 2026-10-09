@@ -171,7 +171,7 @@
   .github-community-link{width:100%}
 }
 .profile-page-head{align-items:center}
-.toast{position:static;left:auto;bottom:auto;transform:none;margin:12px 44px 0;max-width:none;pointer-events:auto}
+.toast{position:fixed;z-index:100;top:76px;right:24px;left:auto;bottom:auto;transform:none;margin:0;max-width:min(420px,calc(100vw - 32px));pointer-events:auto;box-shadow:0 12px 34px #0008}
 :root[data-theme="light"] .page-card,
 :root[data-theme="light"] .guest-welcome{box-shadow:0 1px 0 #ddd}
 :root[data-theme="light"] .guest-welcome{border-color:#ddd}
@@ -191,7 +191,7 @@
   .guest-welcome{margin:10px 18px 0;display:grid}
   .guest-welcome-actions{width:100%}
   .guest-welcome-actions .action{flex:1;justify-content:center}
-  .toast{margin:8px 18px 0}
+  .toast{top:72px;right:16px;margin:0;max-width:calc(100vw - 32px)}
   .standalone-members{grid-template-columns:1fr}
   .guest-auth{position:fixed;left:18px;right:18px;bottom:54px;z-index:9;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px;justify-content:center}
   .guest-auth button{flex:1;justify-content:center}
