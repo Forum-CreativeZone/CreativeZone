@@ -9,5 +9,11 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+  "routes": [
+    {
+      "pattern": "forum.creativezone.pro",
+      "custom_domain": true
+    }
+  ]
 }
