@@ -52,6 +52,7 @@ export function ThreadAuthorPanel({
     <aside className="thread-profile-card">
       <button
         className="thread-profile-identity"
+        data-profile-username={username || undefined}
         onClick={openProfile}
         disabled={!username}
       >
