@@ -498,7 +498,7 @@ export async function getPublicProfile(username) {
     .single()
   if (error) throw error
 
-  const [topicsRes, postsRes, followersRes, followingRes, badgesRes, featuredRes, membershipRes, cosmeticsRes] = await Promise.all([
+  const [topicsRes, postsRes, followersRes, followingRes, badgesRes, featuredRes, membershipRes, cosmeticsRes, securityProjectsRes] = await Promise.all([
     client.from('topics').select('id,title,slug,created_at,views').eq('author_id', profile.id).order('created_at', { ascending: false }),
     client.from('posts').select('id,topic_id,content,created_at,topics:topics!posts_topic_id_fkey(id,title)').eq('author_id', profile.id).order('created_at', { ascending: false }).limit(30),
     client.from('follows').select('follower_id').eq('following_id', profile.id),
@@ -510,8 +510,9 @@ export async function getPublicProfile(username) {
       .order('sort_order'),
     client.rpc('get_membership_state', { p_user_id: profile.id }),
     client.from('profile_cosmetics').select('*').eq('user_id', profile.id).maybeSingle(),
+    client.rpc('get_profile_audited_projects', { p_user_id: profile.id }),
   ])
-  for (const result of [topicsRes, postsRes, followersRes, followingRes, badgesRes, featuredRes, membershipRes, cosmeticsRes]) {
+  for (const result of [topicsRes, postsRes, followersRes, followingRes, badgesRes, featuredRes, membershipRes, cosmeticsRes, securityProjectsRes]) {
     if (result.error) throw result.error
   }
 
@@ -536,6 +537,7 @@ export async function getPublicProfile(username) {
     posts: postsRes.data ?? [],
     badges: badgesRes.data ?? [],
     featuredProjects: (featuredRes.data ?? []).map((row) => ({ ...row.project, sort_order: row.sort_order })).filter((item) => item.id),
+    securityProjects: securityProjectsRes.data ?? [],
     membership: membershipRes.data?.[0] || null,
     cosmetics: cosmeticsRes.data || null,
     stats: {
