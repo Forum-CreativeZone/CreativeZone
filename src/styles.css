@@ -5881,9 +5881,9 @@ main{
 :root[data-theme="light"] .project-security-panel{
   background:#fff;border-color:#e4d9d6;box-shadow:0 10px 24px #35120d0d;
 }
-:root[data-theme="light"] .package-security-card>header,
+:root[data-theme="light"] .package-security-card:not(.security-report)>header,
 :root[data-theme="light"] .project-security-panel>header{border-color:#eee2df}
-:root[data-theme="light"] .package-security-card>header strong,
+:root[data-theme="light"] .package-security-card:not(.security-report)>header strong,
 :root[data-theme="light"] .project-security-panel>header strong,
 :root[data-theme="light"] .security-finding>header strong,
 :root[data-theme="light"] .profile-security-project strong{color:#242424}
@@ -5898,9 +5898,9 @@ main{
 :root[data-theme="light"] .project-security-manifests code{background:#f1eceb;color:#555}
 
 @media(max-width:760px){
-  .package-security-card>header,
+  .package-security-card:not(.security-report)>header,
   .project-security-panel>header{grid-template-columns:38px minmax(0,1fr);padding:10px}
-  .package-security-card>header>.security-score-badge,
+  .package-security-card:not(.security-report)>header>.security-score-badge,
   .project-security-panel>header>.security-score-badge{grid-column:2}
   .package-security-icon,.project-security-main-icon{width:36px;height:36px}
   .package-security-icon svg,.project-security-main-icon svg{width:18px;height:18px}
