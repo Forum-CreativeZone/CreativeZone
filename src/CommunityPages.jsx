@@ -867,6 +867,8 @@ export function AccountPage({ section = 'perfil', session, profile, setProfile, 
                         referrerPolicy="no-referrer"
                         loading="lazy"
                         scrolling="no"
+                        allowTransparency
+                        style={{ backgroundColor: 'transparent', colorScheme: 'normal' }}
                       />
                     </div>
                   ) : (
