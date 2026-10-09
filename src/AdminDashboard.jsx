@@ -19,6 +19,7 @@ import {
   Users,
   X,
 } from 'lucide-react'
+import { ForumIcon } from './ForumIcon'
 import {
   adminRetryEmailJob,
   adminReviewCategorySuggestion,
@@ -141,7 +142,7 @@ function MembersTab({ data, notify, reload }) {
               </div>
               <div className="admin-member-plan">
                 {member.system_owner
-                  ? <b className="identity-badge architect">🏗️ Arquiteto</b>
+                  ? <b className="identity-badge architect"><ForumIcon name="architect" /> Arquiteto</b>
                   : member.plan_id && member.membership_status==='active'
                     ? <b className={'identity-badge membership-'+member.plan_id}>{member.plan_badge}{member.permanent?' ∞':''}</b>
                     : <b className="identity-badge">FREE</b>}
