@@ -227,15 +227,12 @@ async function main() {
         ),
       ])
 
-      const topicIds = topics.map((topic) => topic.id)
-      if (topicIds.length) {
-        const counts = await fetchAllRest(
-          'posts',
-          'topic_id',
-          'topic_id=in.(' + topicIds.join(',') + ')'
-        )
+      if (topics.length) {
+        const counts = await fetchAllRest('posts', 'topic_id')
+        const topicIds = new Set(topics.map((topic) => topic.id))
         const byTopic = new Map()
         for (const row of counts) {
+          if (!topicIds.has(row.topic_id)) continue
           byTopic.set(row.topic_id, (byTopic.get(row.topic_id) || 0) + 1)
         }
         topics = topics.map((topic) => ({
