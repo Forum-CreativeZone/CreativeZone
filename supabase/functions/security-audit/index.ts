@@ -1124,7 +1124,19 @@ async function projectAction(req: Request, payload: Record<string, unknown>) {
   }
 }
 
-async function batchAction() {
+async function batchAction(req: Request) {
+  const provided = req.headers.get("x-creativezone-scheduler") || ""
+  const { data: credential, error: credentialError } = await admin
+    .from("security_scheduler_credentials")
+    .select("scheduler_secret")
+    .eq("id", true)
+    .maybeSingle()
+
+  if (credentialError) throw credentialError
+  if (!provided || !credential?.scheduler_secret || provided !== credential.scheduler_secret) {
+    return reply({ error: "scheduler_forbidden" }, 403)
+  }
+
   const now = new Date().toISOString()
   const { data: projects, error } = await admin
     .from("projects")
@@ -1176,7 +1188,7 @@ Deno.serve(async (req: Request) => {
   try {
     if (action === "package") return await packageSecurity(req, payload)
     if (action === "project") return await projectAction(req, payload)
-    if (action === "batch") return await batchAction()
+    if (action === "batch") return await batchAction(req)
     return reply({ error: "unsupported_action" }, 400)
   } catch (error) {
     console.error("security-audit:", error)
