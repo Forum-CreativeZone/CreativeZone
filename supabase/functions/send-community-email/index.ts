@@ -5,8 +5,8 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!
 const RESEND_FROM = Deno.env.get("RESEND_FROM") || "CreativeZone <notificacoes@ddsurvival.online>"
-const SITE_URL = "https://assets-forum.gestao-quiroz.workers.dev"
-const LOGO_URL = "https://raw.githubusercontent.com/Inosuke-Company/CreativeZone/main/assets/logo.png"
+const SITE_URL = Deno.env.get("PUBLIC_SITE_URL") || "https://forum.creativezone.pro"
+const LOGO_URL = "https://forum.creativezone.pro/logo.png"
 
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
   auth: { persistSession: false, autoRefreshToken: false },
