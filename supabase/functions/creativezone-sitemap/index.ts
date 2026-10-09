@@ -2,7 +2,7 @@
  * Uses only the public Supabase key and public-read RLS policies.
  */
 
-const DEFAULT_SITE_URL = 'https://assets-forum.gestao-quiroz.workers.dev'
+const DEFAULT_SITE_URL = 'https://forum.creativezone.pro'
 
 function getSiteUrl() {
   return String(Deno.env.get('PUBLIC_SITE_URL') || DEFAULT_SITE_URL)
