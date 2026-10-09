@@ -70,6 +70,21 @@ function storagePathFromPublicUrl(url, bucket) {
   }
 }
 
+async function removeStoragePathsStrict(client, bucket, paths, failureMessage) {
+  const unique = [...new Set((paths || []).filter(Boolean))]
+  if (!unique.length) return
+
+  let lastError = null
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const { error } = await client.storage.from(bucket).remove(unique)
+    if (!error) return
+    lastError = error
+  }
+
+  console.error('Falha ao remover arquivos antigos do Storage.', lastError)
+  throw new Error(failureMessage)
+}
+
 async function replaceProfileStorageImage({
   client,
   userId,
@@ -235,7 +250,7 @@ export async function setProfileSignatureImageUrl(userId, value) {
   const signature = normalizeSignatureImageUrl(value)
 
   const [{ data: currentProfile, error: profileError }, { data: existingFiles, error: listError }] = await Promise.all([
-    client.from('profiles').select('signature').eq('id', userId).single(),
+    client.from('profiles').select('signature,signature_type').eq('id', userId).single(),
     client.storage.from('profile-signatures').list(userId, {
       limit: 1000,
       sortBy: { column: 'created_at', order: 'desc' },
@@ -265,15 +280,22 @@ export async function setProfileSignatureImageUrl(userId, value) {
   )
   if (previousPath?.startsWith(userId + '/')) oldPaths.add(previousPath)
 
-  if (oldPaths.size) {
-    const { error: cleanupError } = await client
-      .storage
-      .from('profile-signatures')
-      .remove([...oldPaths])
-
-    if (cleanupError) {
-      console.warn('Não foi possível limpar uma assinatura antiga do Storage.', cleanupError)
-    }
+  try {
+    await removeStoragePathsStrict(
+      client,
+      'profile-signatures',
+      [...oldPaths],
+      'Não foi possível apagar a assinatura anterior. A alteração foi revertida; tente novamente.'
+    )
+  } catch (error) {
+    await client
+      .from('profiles')
+      .update({
+        signature: currentProfile?.signature || '',
+        signature_type: currentProfile?.signature_type || 'image',
+      })
+      .eq('id', userId)
+    throw error
   }
 
   return nextProfile
@@ -315,7 +337,7 @@ export async function removeProfileSignature(userId) {
   const client = requireSupabase()
 
   const [{ data: currentProfile, error: profileError }, { data: existingFiles, error: listError }] = await Promise.all([
-    client.from('profiles').select('signature').eq('id', userId).single(),
+    client.from('profiles').select('signature,signature_type').eq('id', userId).single(),
     client.storage.from('profile-signatures').list(userId, {
       limit: 1000,
       sortBy: { column: 'created_at', order: 'desc' },
@@ -345,15 +367,22 @@ export async function removeProfileSignature(userId) {
   )
   if (previousPath?.startsWith(userId + '/')) oldPaths.add(previousPath)
 
-  if (oldPaths.size) {
-    const { error: cleanupError } = await client
-      .storage
-      .from('profile-signatures')
-      .remove([...oldPaths])
-
-    if (cleanupError) {
-      console.warn('A assinatura foi removida do perfil, mas um arquivo antigo não pôde ser limpo do Storage.', cleanupError)
-    }
+  try {
+    await removeStoragePathsStrict(
+      client,
+      'profile-signatures',
+      [...oldPaths],
+      'Não foi possível apagar o arquivo antigo da assinatura. A remoção foi revertida; tente novamente.'
+    )
+  } catch (error) {
+    await client
+      .from('profiles')
+      .update({
+        signature: currentProfile?.signature || '',
+        signature_type: currentProfile?.signature_type || 'image',
+      })
+      .eq('id', userId)
+    throw error
   }
 
   const { data: confirmedProfile, error: confirmError } = await client
@@ -407,15 +436,22 @@ export async function setProfileInteractiveSignatureUrl(userId, value) {
   )
   if (previousPath?.startsWith(userId + '/')) oldPaths.add(previousPath)
 
-  if (oldPaths.size) {
-    const { error: cleanupError } = await client
-      .storage
-      .from('profile-signatures')
-      .remove([...oldPaths])
-
-    if (cleanupError) {
-      console.warn('Não foi possível limpar uma assinatura antiga do Storage.', cleanupError)
-    }
+  try {
+    await removeStoragePathsStrict(
+      client,
+      'profile-signatures',
+      [...oldPaths],
+      'Não foi possível apagar a assinatura anterior. A alteração foi revertida; tente novamente.'
+    )
+  } catch (error) {
+    await client
+      .from('profiles')
+      .update({
+        signature: currentProfile?.signature || '',
+        signature_type: currentProfile?.signature_type || 'image',
+      })
+      .eq('id', userId)
+    throw error
   }
 
   return nextProfile
