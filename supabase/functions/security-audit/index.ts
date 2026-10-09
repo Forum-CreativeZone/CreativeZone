@@ -142,7 +142,7 @@ function githubHeaders() {
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": "2026-03-10",
-    "User-Agent": "CreativeZone-Security/1.0",
+    "User-Agent": "CreativeZone-Security/1.0 (+https://forum.creativezone.pro/)",
   }
   if (GITHUB_TOKEN) headers.Authorization = `Bearer ${GITHUB_TOKEN}`
   return headers
@@ -327,7 +327,7 @@ function rawGitHubUrl(ref: RepoRef, branch: string, path: string) {
 
 async function readManifest(ref: RepoRef, branch: string, path: string) {
   const response = await fetch(rawGitHubUrl(ref, branch, path), {
-    headers: { "User-Agent": "CreativeZone-Security/1.0" },
+    headers: { "User-Agent": "CreativeZone-Security/1.0 (+https://forum.creativezone.pro/)" },
   })
   if (!response.ok) return ""
   const length = Number(response.headers.get("content-length") || 0)
@@ -627,7 +627,7 @@ async function osvQueryBatch(dependencies: Dependency[]) {
     ))
     const response = await fetch("https://api.osv.dev/v1/querybatch", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "User-Agent": "CreativeZone-Security/1.0" },
+      headers: { "Content-Type": "application/json", "User-Agent": "CreativeZone-Security/1.0 (+https://forum.creativezone.pro/)" },
       body: JSON.stringify({ queries }),
     })
     if (!response.ok) throw new Error(`osv_querybatch_http_${response.status}`)
@@ -661,7 +661,7 @@ async function osvDetails(ids: string[]) {
   const unique = [...new Set(ids)].slice(0, 1200)
   const rows = await mapLimit(unique, 8, async (id) => {
     const response = await fetch(`https://api.osv.dev/v1/vulns/${encodeURIComponent(id)}`, {
-      headers: { Accept: "application/json", "User-Agent": "CreativeZone-Security/1.0" },
+      headers: { Accept: "application/json", "User-Agent": "CreativeZone-Security/1.0 (+https://forum.creativezone.pro/)" },
     })
     if (!response.ok) return null
     return response.json()
