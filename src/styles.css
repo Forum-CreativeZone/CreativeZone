@@ -6630,24 +6630,6 @@ main{
 .package-security-card.security-report.has-alerts > header.security-report-header{
   background:#101114;
 }
-.package-security-card.security-report > header.security-report-header small{
-  color:inherit;
-  font-size:inherit;
-  font-weight:inherit;
-  letter-spacing:inherit;
-}
-.package-security-card.security-report > header.security-report-header strong{
-  min-width:0;
-  overflow:visible;
-  color:inherit;
-  font-size:inherit;
-  text-overflow:clip;
-  white-space:normal;
-}
-.package-security-card.security-report > header.security-report-header strong code{
-  color:inherit;
-  font-size:inherit;
-}
 .package-security-card.security-report > footer.security-report-footer{
   min-height:50px;
   display:flex;
