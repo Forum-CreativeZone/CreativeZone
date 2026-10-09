@@ -6,6 +6,9 @@ import {
   FolderTree,
   MessageSquare,
   Plus,
+  Pin,
+  LockKeyhole,
+  BarChart3,
 } from 'lucide-react'
 import { getForumNodeSummaries, getTopicsPage } from './services/forumApi'
 import { createCategory } from './services/categoryApi'
@@ -486,9 +489,16 @@ export function ForumNodePage({
                   const latestName = topic.last_actor_display_name || topic.last_actor_username || topic.author_display_name || topic.author_username || 'Membro'
                   const latestAvatar = topic.last_actor_avatar_url || topic.author_avatar_url
                   const hasReplies = Number(topic.reply_count || 0) > 0
+                  const hasPoll = Boolean(topic.has_poll)
                   return (
                     <a
                       key={topic.id}
+                      className={[
+                        'forum-topic-row',
+                        topic.pinned ? 'is-pinned' : '',
+                        topic.locked ? 'is-locked' : '',
+                        hasPoll ? 'has-poll' : '',
+                      ].filter(Boolean).join(' ')}
                       href={buildTopicPath(topic)}
                       onClick={(event) => {
                         event.preventDefault()
@@ -509,14 +519,30 @@ export function ForumNodePage({
                         className="forum-topic-copy"
                         data-profile-username={topic.author_username || undefined}
                       >
-                        <strong>{topic.title}</strong>
+                        <span className="forum-topic-title-line">
+                          <span className="forum-topic-status-icons" aria-label="Status do tópico">
+                            {topic.pinned && <Pin title="Tópico fixado" />}
+                            {topic.locked && <LockKeyhole title="Tópico fechado" />}
+                            {hasPoll && <BarChart3 title="Este tópico contém uma enquete" />}
+                          </span>
+                          <strong>{topic.title}</strong>
+                        </span>
                         <small>
                           {topic.author_display_name || topic.author_username || 'Membro'}
                           {' · '}
-                          {topic.reply_count || 0} respostas
-                          {' · '}
-                          {topic.views || 0} visualizações
+                          {formatActivity(topic.created_at)}
                         </small>
+                      </span>
+
+                      <span className="forum-topic-stats" aria-label="Estatísticas do tópico">
+                        <span>
+                          <b>{topic.reply_count || 0}</b>
+                          <small>Respostas</small>
+                        </span>
+                        <span>
+                          <b>{topic.views || 0}</b>
+                          <small>Visitas</small>
+                        </span>
                       </span>
                       {hasReplies ? (
                         <span
@@ -539,7 +565,6 @@ export function ForumNodePage({
                           </span>
                         </span>
                       )}
-                      {topic.pinned && <span className="forum-topic-pinned">FIXADO</span>}
                     </a>
                   )
                 })}
