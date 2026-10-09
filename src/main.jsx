@@ -1196,6 +1196,12 @@ function App() {
   const { session, user, loading: authLoading } = useAuth()
 
   useEffect(() => {
+    if (!toast) return undefined
+    const timer = window.setTimeout(() => setToast(''), 4200)
+    return () => window.clearTimeout(timer)
+  }, [toast])
+
+  useEffect(() => {
     const ids = [...new Set(members.map((member) => member.id).filter(Boolean))]
     let active = true
 
