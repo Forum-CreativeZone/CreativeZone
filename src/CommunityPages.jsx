@@ -197,7 +197,7 @@ export function UserQuickMenu({ profile, session, onClose, navigate, onSignOut }
                   effect={summary?.cosmetics?.badge_effect || 'architect-forge'}
                   className="identity-badge architect"
                 >
-                  🏗️ Arquiteto
+                  <ForumIcon name="architect" /> Arquiteto
                 </EffectBadge>
               )}
               {summary?.membership?.plan_id && summary.membership.plan_id !== 'free' && (
@@ -371,7 +371,7 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
           <div className="profile-identity-badges">
             {profile.system_owner && (
               <EffectBadge effect={cosmetics?.badge_effect || 'architect-forge'} className="identity-badge architect">
-                🏗️ Arquiteto CreativeZone
+                <ForumIcon name="architect" /> Arquiteto CreativeZone
               </EffectBadge>
             )}
             {profile.role === 'admin' && (
@@ -408,7 +408,7 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
             {profile.occupation && <span><Briefcase /> {profile.occupation}</span>}
             {profile.location && <span><MapPin /> {profile.location}</span>}
             {birthParts.length > 0 && <span><Calendar /> {birthParts.join('/')}</span>}
-            {profile.login_streak > 0 && <span>🔥 Sequência de {profile.login_streak} dia{profile.login_streak === 1 ? '' : 's'}</span>}
+            {profile.login_streak > 0 && <span><ForumIcon icon="tabler:flame" /> Sequência de {profile.login_streak} dia{profile.login_streak === 1 ? '' : 's'}</span>}
             <span><Trophy /> {reputationLevel(stats.reputation)} · {stats.reputation} XP</span>
           </div>
         </div>
