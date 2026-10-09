@@ -7,6 +7,15 @@ function requireSupabase() {
   return supabase
 }
 
+const OFFICIAL_SITE_URL = 'https://forum.creativezone.pro'
+
+function getAuthRedirectOrigin() {
+  if (typeof window === 'undefined') return OFFICIAL_SITE_URL
+  const origin = String(window.location.origin || '').replace(/\/+$/, '')
+  if (/^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/i.test(origin)) return origin
+  return OFFICIAL_SITE_URL
+}
+
 async function sha1Hex(value) {
   if (!globalThis.crypto?.subtle) {
     throw new Error('Seu navegador não oferece suporte à verificação segura de senha.')
@@ -118,10 +127,7 @@ export async function signUp(emailOrOptions, passwordArg, profileArg = {}) {
     password,
     options: {
       data: profile,
-      emailRedirectTo:
-        typeof window !== 'undefined'
-          ? `${window.location.origin}/`
-          : 'https://forum.creativezone.pro/',
+      emailRedirectTo: `${getAuthRedirectOrigin()}/`,
     },
   })
 
@@ -195,10 +201,7 @@ export async function updateAccountPassword(password, nonce) {
 
 export async function requestPasswordReset(email) {
   const client = requireSupabase()
-  const redirectTo =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/redefinir-senha`
-      : undefined
+  const redirectTo = `${getAuthRedirectOrigin()}/redefinir-senha`
 
   const { error } = await client.auth.resetPasswordForEmail(email, {
     redirectTo,
@@ -264,8 +267,7 @@ export async function signInWithOAuthProvider(provider) {
     )
   }
 
-  const redirectTo =
-    typeof window !== 'undefined' ? `${window.location.origin}/` : undefined
+  const redirectTo = `${getAuthRedirectOrigin()}/`
 
   const { data, error } = await client.auth.signInWithOAuth({
     provider,
