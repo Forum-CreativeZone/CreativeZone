@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { ForumIcon } from './ForumIcon'
 import {
   AlignLeft,
   Bold,
@@ -79,6 +80,40 @@ function cleanFont(value) {
   return match || 'Arial'
 }
 
+const STANDARD_FORUM_SYMBOLS = {
+  '🎧': 'headphones',
+  '📌': 'pin',
+  '🚀': 'rocket',
+  '🛠️': 'tools',
+  '🛠': 'tools',
+  '💻': 'laptop',
+  '⭐': 'star',
+  '📦': 'package',
+  '📥': 'download',
+  '🔐': 'lock',
+  '🔒': 'lock',
+  '🎨': 'palette',
+  '✅': 'check',
+  '✔️': 'check',
+  '✔': 'check',
+}
+
+const STANDARD_FORUM_SYMBOL_REGEX = /(🎧|📌|🚀|🛠️|🛠|💻|⭐|📦|📥|🔐|🔒|🎨|✅|✔️|✔)/g
+
+function StandardForumText({ text = '' }) {
+  const parts = String(text).split(STANDARD_FORUM_SYMBOL_REGEX).filter((part) => part !== '')
+  return (
+    <>
+      {parts.map((part,index) => {
+        const icon = STANDARD_FORUM_SYMBOLS[part]
+        return icon
+          ? <ForumIcon key={index} name={icon} className="rich-standard-icon" />
+          : <React.Fragment key={index}>{part}</React.Fragment>
+      })}
+    </>
+  )
+}
+
 function Inline({ text = '' }) {
   const regex = /(\*\*[^*\n]+\*\*|__[^_\n]+__|_[^_\n]+_|\x60[^\x60\n]+\x60|!\[[^\]\n]*\]\(https?:\/\/[^)\s]+\)|\[[^\]\n]+\]\(https?:\/\/[^)\s]+\)|\[color=#[0-9a-fA-F]{3,8}\][\s\S]*?\[\/color\]|\[size=\d{1,2}\][\s\S]*?\[\/size\]|\[font=[^\]\n]+\][\s\S]*?\[\/font\]|https?:\/\/[^\s<]+)/g
   const parts = String(text).split(regex).filter((part) => part !== '')
@@ -115,7 +150,7 @@ function Inline({ text = '' }) {
         if (font) return <span key={index} style={{ fontFamily: cleanFont(font[1]) }}><Inline text={font[2]} /></span>
 
         if (/^https?:\/\//i.test(part)) return <a key={index} href={part} target="_blank" rel="noreferrer noopener">{part}</a>
-        return <React.Fragment key={index}>{part}</React.Fragment>
+        return <StandardForumText key={index} text={part} />
       })}
     </>
   )
