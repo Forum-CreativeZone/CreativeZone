@@ -276,10 +276,6 @@ function ProtectedDownloads({
   preview = false,
 }) {
   const isOwner = Boolean(profile?.system_owner)
-  const hasPaidPlan = isOwner
-    || Boolean(membershipState?.system_owner)
-    || ['pro','elite'].includes(membershipState?.plan_id)
-    || Boolean(membershipState?.entitlements?.full_access)
   const [accessGate, setAccessGate] = useState(null)
 
   if (!items.length) return null
@@ -300,16 +296,15 @@ function ProtectedDownloads({
       return
     }
 
-    if (scope === 'paid' && !hasPaidPlan) {
-      setAccessGate({ type: 'vip', item })
-      return
-    }
-
     try {
       const targetUrl = await resolveTopicDownload(item.id)
       const opened = window.open(targetUrl, '_blank', 'noopener,noreferrer')
       if (!opened) window.location.assign(targetUrl)
     } catch (error) {
+      if (scope === 'paid') {
+        setAccessGate({ type: 'vip', item })
+        return
+      }
       notify?.(error?.message || 'Não foi possível liberar este download.')
     }
   }
