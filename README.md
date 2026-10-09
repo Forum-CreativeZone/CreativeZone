@@ -108,6 +108,18 @@ Os projetos da comunidade também podem ganhar vida na organização **[Creatiiv
 
 ---
 
+## 🔗 CreativeZone Link Preview
+
+A CreativeZone possui um motor próprio de previews de links, sem dependência obrigatória da Microlink Cloud.
+
+URLs externas publicadas em tópicos, respostas, chat e websites de projetos podem ser transformadas em cards ricos usando metadata pública (Open Graph, Twitter Cards, JSON-LD e HTML), com cache no Supabase e proteções SSRF. YouTube, CodePen, imagens diretas e integrações especializadas continuam com renderização própria.
+
+A arquitetura foi inspirada no ecossistema open source da Microlink HQ e já está preparada para, futuramente, usar `metascraper`, `browserless`, Puppeteer/Chromium e uma VPS própria para páginas que dependem de JavaScript e redes sociais.
+
+Documentação completa: [CreativeZone Link Preview](./docs/creativezone-link-preview/README.md).
+
+---
+
 ## ✉️ E-mails com Resend
 
 Os e-mails transacionais da CreativeZone são enviados pelo **Resend** através de Supabase Edge Functions.
