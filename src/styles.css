@@ -4439,3 +4439,143 @@
   .profile-hover-card{display:none!important}
   .download-access-actions{grid-template-columns:1fr}
 }
+
+
+/* Image-only forum signatures */
+.forum-signature-editor{
+  display:grid;
+  gap:10px;
+  padding:14px;
+  border:1px solid #ffffff13;
+  border-radius:8px;
+  background:#111;
+}
+.forum-signature-editor-head{
+  display:grid;
+  gap:3px;
+}
+.forum-signature-editor-head>span{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  color:#fff;
+}
+.forum-signature-editor-head iconify-icon{
+  color:#ff5e54;
+  font-size:18px;
+}
+.forum-signature-editor-head small,
+.forum-signature-help{
+  color:#777;
+  font-size:11px;
+  line-height:1.45;
+}
+.forum-signature-preview{
+  min-height:90px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:10px;
+  overflow:hidden;
+  border:1px solid #ffffff12;
+  border-radius:7px;
+  background:#090909;
+}
+.forum-signature-preview img{
+  display:block;
+  max-width:100%;
+  max-height:220px;
+  object-fit:contain;
+}
+.forum-signature-empty{
+  min-height:84px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  border:1px dashed #ffffff18;
+  border-radius:7px;
+  color:#666;
+  font-size:12px;
+}
+.forum-signature-empty iconify-icon{font-size:23px}
+.forum-signature-url{
+  gap:6px!important;
+}
+.forum-signature-url>div{
+  display:grid;
+  grid-template-columns:20px minmax(0,1fr) auto;
+  align-items:center;
+  gap:7px;
+}
+.forum-signature-url iconify-icon{
+  color:#777;
+  font-size:17px;
+}
+.forum-signature-url input{min-width:0}
+.forum-signature-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.forum-signature-actions .action{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+}
+.forum-signature-actions iconify-icon{font-size:17px}
+.thread-post-content>.post-signature{
+  display:flex;
+  justify-content:flex-start;
+  align-items:center;
+  overflow:hidden;
+  font-style:normal;
+}
+.thread-post-content>.post-signature img{
+  display:block;
+  max-width:100%;
+  max-height:220px;
+  object-fit:contain;
+  border-radius:3px;
+}
+
+/* Standard forum icons from Iconify */
+.rich-standard-icon{
+  display:inline-block;
+  margin:0 .18em;
+  color:currentColor;
+  font-size:1.05em;
+  vertical-align:-.12em;
+}
+.rich-forum-content h2 .rich-standard-icon,
+.rich-forum-content h3 .rich-standard-icon,
+.rich-forum-content h4 .rich-standard-icon{
+  color:#ff5e54;
+  margin-left:0;
+}
+.identity-badge iconify-icon,
+.thread-role-badge iconify-icon,
+.quick-role-effect iconify-icon{
+  font-size:1.05em;
+  flex:none;
+}
+
+/* Hover is informational only and vanishes as soon as the member is left. */
+.profile-hover-card{
+  pointer-events:none!important;
+}
+
+:root[data-theme="light"] .forum-signature-editor{
+  background:#fff;
+  border-color:#ddd;
+}
+:root[data-theme="light"] .forum-signature-editor-head>span{color:#222}
+:root[data-theme="light"] .forum-signature-preview{background:#f7f7f7;border-color:#ddd}
+:root[data-theme="light"] .forum-signature-empty{border-color:#ddd;color:#888}
+
+@media(max-width:640px){
+  .forum-signature-url>div{grid-template-columns:20px minmax(0,1fr)}
+  .forum-signature-url>div>.action{grid-column:1 / -1}
+  .thread-post-content>.post-signature img{max-height:170px}
+}
