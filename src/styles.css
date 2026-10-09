@@ -485,7 +485,7 @@
 .account-update-list>div>span{color:#aaa;font-size:12px}
 .account-update-list>div>small{grid-column:1/-1;color:#888;word-break:break-word}
 .dm-search{width:100%;margin:0 0 10px;background:#292929;color:#fff;border:1px solid #ffffff18;border-radius:6px;padding:10px 11px}
-.forum-rendered-text{display:grid;gap:8px;line-height:1.6;white-space:pre-wrap}
+.forum-rendered-text{min-width:0;width:100%;max-width:100%;display:grid;gap:8px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
 .forum-text-plain{white-space:pre-wrap}
 .forum-quote{display:grid;gap:4px;margin:6px 0;padding:10px 12px;border-left:3px solid var(--red);background:#ffffff08;border-radius:0 6px 6px 0}
 .forum-quote strong{font-size:12px;color:#d6766c}
@@ -908,7 +908,11 @@
 .thread-post-meta a{color:#999;text-decoration:none}
 .thread-post-body{
   flex:1;
+  min-width:0;
+  width:100%;
+  max-width:100%;
   min-height:190px;
+  overflow-x:hidden;
   padding:24px 26px;
   color:#f1f1f1;
   font-size:15px;
@@ -1696,8 +1700,19 @@
 .pro-attachment>button svg{width:10px;height:10px}
 .professional-drop-hint{position:absolute;inset:45px 0 42px;z-index:4;display:grid;place-items:center;background:#180605dd;color:#ffbeb8;font-weight:700;pointer-events:none}
 
-.rich-forum-content{white-space:normal!important;color:#d2d2d2;line-height:1.62}
-.rich-forum-content p{margin:0 0 7px;white-space:pre-wrap;overflow-wrap:anywhere}
+.rich-forum-content{
+  min-width:0;
+  width:100%;
+  max-width:100%;
+  white-space:normal!important;
+  color:#d2d2d2;
+  line-height:1.62;
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+.rich-forum-content>*{min-width:0;max-width:100%;box-sizing:border-box}
+.rich-forum-content p{max-width:100%;margin:0 0 7px;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+.rich-forum-content h2,.rich-forum-content h3,.rich-forum-content h4{max-width:100%;overflow-wrap:anywhere;word-break:break-word}
 .rich-forum-content h2,.rich-forum-content h3,.rich-forum-content h4{margin:15px 0 7px;color:#fff}
 .rich-forum-content h2{font-size:20px}.rich-forum-content h3{font-size:17px}.rich-forum-content h4{font-size:14px}
 .rich-forum-content ul{margin:5px 0 10px 22px;list-style:disc}
@@ -1708,8 +1723,26 @@
 .rich-embed{width:min(100%,760px);margin:12px 0;border:1px solid #ffffff14;border-radius:7px;overflow:hidden;background:#080808}
 .rich-embed iframe{display:block;width:100%;height:410px;border:0}
 .codepen-embed iframe{height:430px}
-.rich-image-link{display:block;width:max-content;max-width:100%;margin:12px 0}
-.rich-image-link img{display:block;max-width:100%;max-height:600px;border-radius:7px;border:1px solid #ffffff12}
+.rich-image-link{
+  display:flex;
+  justify-content:center;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  margin:14px 0;
+  overflow:hidden;
+}
+.rich-image-link img{
+  display:block;
+  width:auto;
+  height:auto;
+  max-width:100%;
+  max-height:min(520px,70vh);
+  object-fit:contain;
+  border-radius:7px;
+  border:1px solid #ffffff12;
+  box-sizing:border-box;
+}
 .rich-github-card{display:flex!important;align-items:center;gap:10px;width:min(100%,560px);padding:12px!important;margin:10px 0;border:1px solid #ffffff18;border-radius:7px;background:#171717;text-decoration:none!important}
 .rich-github-card>svg{width:28px;height:28px;flex:none}
 .rich-github-card>span{display:grid}.rich-github-card strong{color:#ddd}.rich-github-card small{color:#777;font-size:12px}
@@ -3913,6 +3946,8 @@
   background:linear-gradient(90deg,transparent,#ffffff35 8%,#ffffff35 92%,transparent);
 }
 .rich-code-block{
+  width:100%;
+  min-width:0;
   max-width:100%;
   overflow:auto;
   margin:12px 0;
@@ -3924,6 +3959,8 @@
   font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 .rich-table-wrap{
+  width:100%;
+  min-width:0;
   max-width:100%;
   overflow:auto;
   margin:14px 0;
@@ -4029,6 +4066,7 @@
   }
 }
 @media(max-width:760px){
+  .rich-image-link img{max-height:min(360px,55vh)}
   .professional-toolbar-advanced{gap:3px}
   .toolbar-select-group select{max-width:92px}
   .professional-editor-advanced>textarea{min-height:340px;padding:14px}
