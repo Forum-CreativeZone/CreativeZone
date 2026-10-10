@@ -72,6 +72,7 @@ function TopicLink({ topic, navigate, onOpenTopic, showViews = false }) {
     <a
       className="forum-side-topic"
       href={href}
+      data-profile-username={actor.username || undefined}
       onClick={(event) => {
         event.preventDefault()
         if (onOpenTopic) onOpenTopic(topic)
