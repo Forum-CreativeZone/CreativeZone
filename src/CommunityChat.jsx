@@ -32,6 +32,7 @@ import { ReportButton } from './ExtendedCommunityPages'
 import { getMemberDecorations } from './services/membershipApi'
 import { EffectName, EffectRole } from './VisualEffects'
 import { LinkPreviewCard } from './LinkPreview'
+import { trackEvent } from './services/analytics'
 
 const EMOJIS = ['😀','😄','😂','🙂','😉','😍','🤔','😎','🥳','😅','😭','😡','👍','👎','👏','🙌','🔥','❤️','💡','🚀','✅','🎮','💻','🤖']
 
@@ -439,6 +440,7 @@ export function CommunityChat({
     setBusy(true)
     try {
       const messageId = await sendChatMessage(content, replyTo?.id || null)
+      trackEvent('send_chat_message', { is_reply: Boolean(replyTo?.id) })
       try {
         const item = await getChatMessage(messageId)
         if (item) upsertMessage(item)
