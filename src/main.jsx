@@ -262,12 +262,16 @@ function ProtectedDownloads({
   items = [],
   session,
   profile,
+  membershipState,
   navigate,
   notify,
   onRefresh,
   preview = false,
 }) {
-  const isOwner = Boolean(profile?.system_owner)
+  const isSystemOwner = Boolean(profile?.system_owner)
+  const canRestrictDownloadsToVip = Boolean(
+    isSystemOwner || ['pro', 'elite'].includes(membershipState?.plan_id)
+  )
   const [accessGate, setAccessGate] = useState(null)
 
   if (!items.length) return null
@@ -355,6 +359,10 @@ function ProtectedDownloads({
         {items.map((item) => {
           const accessScope = item.access_scope || item.accessScope || 'member'
           const paidOnly = accessScope === 'paid'
+          const canManageItem = Boolean(
+            !preview &&
+            (isSystemOwner || (session?.user?.id && session.user.id === item.created_by))
+          )
           return (
             <article key={item.id} className={paidOnly ? 'paid-only' : 'members-only'}>
               <div className="protected-download-main">
@@ -372,7 +380,7 @@ function ProtectedDownloads({
               </div>
 
               <div className="protected-download-actions">
-                {isOwner && !preview && (
+                {canManageItem && canRestrictDownloadsToVip && (
                   <select
                     value={accessScope}
                     onChange={(event) => changeAccess(item, event.target.value)}
@@ -392,7 +400,7 @@ function ProtectedDownloads({
                   {preview ? 'Testar download' : 'Baixar'}
                 </button>
 
-                {isOwner && !preview && (
+                {canManageItem && (
                   <button
                     type="button"
                     className="action danger-action protected-download-delete"
@@ -662,7 +670,7 @@ function ComposerPage({
   const [tagText, setTagText] = useState((draft.tags || []).join(', '))
   const [attachments, setAttachments] = useState([])
   const [downloads, setDownloads] = useState(
-    profile?.system_owner && Array.isArray(draft.downloads) ? draft.downloads : []
+    Array.isArray(draft.downloads) ? draft.downloads : []
   )
   const [publishing, setPublishing] = useState(false)
   const [watchAfterPublish, setWatchAfterPublish] = useState(draft.watchAfterPublish ?? true)
@@ -677,7 +685,10 @@ function ComposerPage({
   const [pollAllowMultiple, setPollAllowMultiple] = useState(Boolean(draft.poll?.allowMultiple))
   const [pollClosesAt, setPollClosesAt] = useState(draft.poll?.closesAt || '')
   const [draftSavedAt, setDraftSavedAt] = useState(null)
-  const canManageDownloads = Boolean(profile?.system_owner)
+  const canManageDownloads = Boolean(session?.user?.id)
+  const canRestrictDownloadsToVip = Boolean(
+    profile?.system_owner || ['pro', 'elite'].includes(membershipState?.plan_id)
+  )
 
   useEffect(() => {
     if (requestedCategoryId && categoryId !== requestedCategoryId) {
@@ -797,7 +808,10 @@ function ComposerPage({
               .map((item) => ({
                 label: String(item.label || '').trim(),
                 url: String(item.url || '').trim(),
-                accessScope: item.accessScope === 'paid' ? 'paid' : 'member',
+                accessScope:
+                  canRestrictDownloadsToVip && item.accessScope === 'paid'
+                    ? 'paid'
+                    : 'member',
               }))
               .filter((item) => item.label && item.url)
           : [],
@@ -838,9 +852,18 @@ function ComposerPage({
             downloads.some((item) => String(item.label || '').trim() || String(item.url || '').trim())
               ? (
                   <ProtectedDownloads
-                    items={downloads.filter((item) => String(item.label || '').trim() || String(item.url || '').trim())}
+                    items={downloads
+                      .filter((item) => String(item.label || '').trim() || String(item.url || '').trim())
+                      .map((item) => ({
+                        ...item,
+                        accessScope:
+                          canRestrictDownloadsToVip && item.accessScope === 'paid'
+                            ? 'paid'
+                            : 'member',
+                      }))}
                     session={session}
                     profile={profile}
+                    membershipState={membershipState}
                     navigate={navigate}
                     notify={notify}
                     preview
@@ -863,7 +886,7 @@ function ComposerPage({
                 <span>
                   <strong>Downloads protegidos</strong>
                   <small>
-                    O texto do tópico continuará público. O link real só será liberado para quem atender à permissão escolhida.
+                    Todo membro pode adicionar links. PRO e ELITE também podem restringir o download somente para assinantes VIP.
                   </small>
                 </span>
               </div>
@@ -898,16 +921,26 @@ function ComposerPage({
                       />
                     </label>
 
-                    <label>
-                      Quem pode baixar?
-                      <select
-                        value={item.accessScope}
-                        onChange={(event) => updateDownload(item.id, { accessScope: event.target.value })}
-                      >
-                        <option value="member">Qualquer membro registrado</option>
-                        <option value="paid">Somente PRO + ELITE</option>
-                      </select>
-                    </label>
+                    {canRestrictDownloadsToVip ? (
+                      <label>
+                        Quem pode baixar?
+                        <select
+                          value={item.accessScope}
+                          onChange={(event) => updateDownload(item.id, { accessScope: event.target.value })}
+                        >
+                          <option value="member">Qualquer membro registrado</option>
+                          <option value="paid">Somente PRO + ELITE</option>
+                        </select>
+                      </label>
+                    ) : (
+                      <div className="composer-download-access-fixed">
+                        <span>Compartilhamento</span>
+                        <strong>Todos os membros registrados</strong>
+                        <small>
+                          Contas FREE compartilham downloads com membros FREE, PRO e ELITE.
+                        </small>
+                      </div>
+                    )}
 
                     <button
                       type="button"
@@ -3023,6 +3056,7 @@ function App() {
                       items={topicDownloads}
                       session={session}
                       profile={profile}
+                      membershipState={membershipState}
                       navigate={navigate}
                       notify={setToast}
                       onRefresh={refreshTopicDownloads}
