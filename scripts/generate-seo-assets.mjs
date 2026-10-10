@@ -41,6 +41,14 @@ function truncate(value = '', max = 165) {
   return (cut || text.slice(0, max - 1)).trim() + '…'
 }
 
+function seoTitle(value = '', suffix = ' | CreativeZone', max = 60) {
+  const text = plainText(value)
+  if ((text + suffix).length <= max) return text + suffix
+  const available = Math.max(24, max - suffix.length - 1)
+  const cut = text.slice(0, available).replace(/\s+\S*$/, '').trim()
+  return (cut || text.slice(0, available).trim()) + '…' + suffix
+}
+
 function escapeHtml(value = '') {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -243,6 +251,20 @@ async function main() {
       eyebrow: 'Comunidade Creative Lab',
       title: 'CreativeZone',
       description: 'Comunidade para tecnologia, software, hardware, IA, automação, games, projetos e colaboração entre membros.',
+      content: `
+        <p style="max-width:900px;margin-top:18px;line-height:1.7">
+          Explore discussões técnicas, projetos da comunidade, integrações, desenvolvimento, inteligência artificial, hardware, software e outros temas criados pelos membros da CreativeZone.
+          O fórum reúne conteúdo público organizado por categorias para facilitar a descoberta de discussões e a navegação entre assuntos relacionados.
+        </p>
+        <nav aria-label="Navegação principal da CreativeZone" style="margin-top:22px">
+          <ul style="display:grid;gap:8px">
+            <li><a href="/categorias">Explorar categorias do fórum</a></li>
+            <li><a href="/projetos">Ver projetos da comunidade</a></li>
+            <li><a href="/membros">Conhecer membros</a></li>
+            <li><a href="/creativezone">Sobre a CreativeZone</a></li>
+          </ul>
+        </nav>
+      `,
     })
   )
   await writeFile(templatePath, template, 'utf8')
@@ -315,12 +337,18 @@ async function main() {
         profile?.display_name || profile?.username ? 'Por ' + (profile?.display_name || profile?.username) : '',
         published ? 'Publicado em ' + published : '',
       ].filter(Boolean).join(' · '),
-      content: topicText
-        ? `<div style="max-width:900px;margin-top:22px;line-height:1.7"><p>${escapeHtml(topicText)}</p></div>`
-        : '',
+      content: `
+        <nav aria-label="Navegação do tópico" style="margin-top:18px">
+          <a href="/">Início da CreativeZone</a>
+          ${category?.slug ? ` · <a href="/forum/${encodeURIComponent(category.slug)}">${escapeHtml(category.name || 'Fórum')}</a>` : ''}
+        </nav>
+        ${topicText
+          ? `<div style="max-width:900px;margin-top:22px;line-height:1.7"><p>${escapeHtml(topicText)}</p></div>`
+          : ''}
+      `,
     })
     const html = buildSeoHtml(template, {
-      title: topic.title + ' | CreativeZone',
+      title: seoTitle(topic.title),
       description,
       canonicalUrl,
       type: 'article',
@@ -364,9 +392,18 @@ async function main() {
       eyebrow: category.node_type === 'forum' ? 'Fórum' : 'Categoria',
       title: category.name,
       description,
-      content: categoryLinks.length
-        ? `<nav aria-label="Conteúdo desta área" style="margin-top:22px"><ul style="display:grid;gap:8px">${categoryLinks.join('')}</ul></nav>`
-        : '',
+      content: `
+        <p style="max-width:900px;margin-top:18px;line-height:1.7">
+          Esta área reúne discussões, referências e tópicos relacionados a ${escapeHtml(category.name)} dentro da CreativeZone.
+          Use os links abaixo para navegar pelas discussões públicas, descobrir conteúdos relacionados e acompanhar novas publicações da comunidade.
+        </p>
+        <nav aria-label="Navegação da categoria" style="margin-top:18px">
+          <a href="/">Início da CreativeZone</a> · <a href="/categorias">Todas as categorias</a>
+        </nav>
+        ${categoryLinks.length
+          ? `<nav aria-label="Conteúdo desta área" style="margin-top:22px"><ul style="display:grid;gap:8px">${categoryLinks.join('')}</ul></nav>`
+          : ''}
+      `,
     })
     const html = buildSeoHtml(template, {
       title: category.name + ' | Fórum CreativeZone',
@@ -420,6 +457,11 @@ async function main() {
       bodyHtml: seoFallbackShell({
         title: route.title.replace(/\s*\|.*$/, '').replace(/\s*—.*$/, ''),
         description: route.description,
+        content: `
+          <nav aria-label="Navegação da CreativeZone" style="margin-top:20px">
+            <a href="/">Início</a> · <a href="/categorias">Categorias</a> · <a href="/projetos">Projetos</a> · <a href="/membros">Membros</a>
+          </nav>
+        `,
       }),
     })
     await writeRouteHtml(route.path, html)
