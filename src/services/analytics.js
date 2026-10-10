@@ -55,3 +55,30 @@ export function trackPageView() {
     page_path: pagePath,
   })
 }
+
+
+export function trackEvent(eventName, params = {}) {
+  if (typeof window === 'undefined') return
+
+  ensureAnalytics()
+  if (!window.gtag) return
+
+  const name = String(eventName || '').trim()
+  if (!/^[a-z][a-z0-9_]{0,39}$/i.test(name)) return
+
+  const safeParams = Object.fromEntries(
+    Object.entries(params)
+      .filter(([, value]) =>
+        value === null ||
+        typeof value === 'boolean' ||
+        typeof value === 'number' ||
+        typeof value === 'string'
+      )
+      .map(([key, value]) => [
+        String(key).slice(0, 40),
+        typeof value === 'string' ? value.slice(0, 100) : value,
+      ])
+  )
+
+  window.gtag('event', name, safeParams)
+}
