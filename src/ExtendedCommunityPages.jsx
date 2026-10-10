@@ -32,7 +32,8 @@ import {
   updateProjectStatus,
 } from './services/extendedApi'
 import { LinkPreviewCard } from './LinkPreview'
-import { ProjectSecurityPanel, SecurityScoreBadge } from './SecurityAudit'\nimport { trackEvent } from './services/analytics'
+import { ProjectSecurityPanel, SecurityScoreBadge } from './SecurityAudit'
+import { trackEvent } from './services/analytics'
 
 function Shell({ title, onBack, children }) {
   return (
