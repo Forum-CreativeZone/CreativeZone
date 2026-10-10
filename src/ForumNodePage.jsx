@@ -10,13 +10,15 @@ import {
   LockKeyhole,
   BarChart3,
 } from 'lucide-react'
-import { getForumNodeSummaries, getTopicsPage } from './services/forumApi'
+import { getForumNodeSummaries, getTopicsPage, markForumNodeRead } from './services/forumApi'
 import { createCategory } from './services/categoryApi'
 import { buildTopicPath } from './seo'
+import { ForumIcon } from './ForumIcon'
 
-function NodeIcon({ type }) {
-  if (type === 'category') return <FolderTree />
-  if (type === 'section') return <Folder />
+function NodeIcon({ node }) {
+  if (node?.icon) return <ForumIcon icon={node.icon} />
+  if (node?.node_type === 'category') return <FolderTree />
+  if (node?.node_type === 'section') return <Folder />
   return <MessageSquare />
 }
 
@@ -181,7 +183,10 @@ export function ForumNodePage({
 
   useEffect(() => {
     let cancelled = false
-    const ids = children.map((item) => item.id)
+    const ids = children.flatMap((item) => [
+      item.id,
+      ...(childrenByParent.get(item.id) || []).map((descendant) => descendant.id),
+    ])
     if (!ids.length) {
       setSummaries({})
       return undefined
@@ -198,7 +203,12 @@ export function ForumNodePage({
     return () => {
       cancelled = true
     }
-  }, [children])
+  }, [children, childrenByParent])
+
+  useEffect(() => {
+    if (!session?.user?.id || !node?.id) return
+    markForumNodeRead(node.id).catch(() => {})
+  }, [node?.id, session?.user?.id])
 
   useEffect(() => {
     let cancelled = false
@@ -366,7 +376,10 @@ export function ForumNodePage({
                   const summary = summaries[child.id] || {}
                   const descendants = childrenByParent.get(child.id) || []
                   return (
-                    <article className="forum-child-row" key={child.id}>
+                    <article
+                      className={'forum-child-row ' + (summary.has_unread ? 'has-unread' : 'is-read')}
+                      key={child.id}
+                    >
                       <div className="forum-child-primary">
                         <a
                           className="forum-child-open"
@@ -376,8 +389,8 @@ export function ForumNodePage({
                             navigate('/forum/' + encodeURIComponent(child.slug))
                           }}
                         >
-                          <span className={'forum-child-icon type-' + child.node_type}>
-                            <NodeIcon type={child.node_type} />
+                          <span className={'forum-child-icon type-' + child.node_type + (summary.has_unread ? ' has-unread' : '')}>
+                            <NodeIcon node={child} />
                           </span>
                           <span className="forum-child-copy">
                             <small>{nodeLabel(child.node_type)}</small>
@@ -389,19 +402,23 @@ export function ForumNodePage({
 
                         {descendants.length > 0 && (
                           <div className="forum-child-sublinks">
-                            {descendants.map((descendant) => (
-                              <a
-                                key={descendant.id}
-                                href={'/forum/' + encodeURIComponent(descendant.slug)}
-                                onClick={(event) => {
-                                  event.preventDefault()
-                                  navigate('/forum/' + encodeURIComponent(descendant.slug))
-                                }}
-                              >
-                                <MessageSquare />
-                                {descendant.name}
-                              </a>
-                            ))}
+                            {descendants.map((descendant) => {
+                              const descendantSummary = summaries[descendant.id] || {}
+                              return (
+                                <a
+                                  key={descendant.id}
+                                  className={descendantSummary.has_unread ? 'has-unread' : 'is-read'}
+                                  href={'/forum/' + encodeURIComponent(descendant.slug)}
+                                  onClick={(event) => {
+                                    event.preventDefault()
+                                    navigate('/forum/' + encodeURIComponent(descendant.slug))
+                                  }}
+                                >
+                                  <NodeIcon node={descendant} />
+                                  {descendant.name}
+                                </a>
+                              )
+                            })}
                           </div>
                         )}
 
