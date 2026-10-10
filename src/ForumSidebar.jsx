@@ -63,6 +63,11 @@ function MemberAvatar({ member, size = 34 }) {
 function TopicLink({ topic, navigate, onOpenTopic, showViews = false }) {
   if (!topic?.id) return null
   const href = buildTopicPath(topic)
+  const actor = {
+    avatar_url: topic.lastActorAvatarUrl || topic.avatarUrl || topic.author_avatar_url || '',
+    display_name: topic.lastActorName || topic.user || topic.author_display_name || '',
+    username: topic.lastActorUsername || topic.authorUsername || topic.author_username || '',
+  }
   return (
     <a
       className="forum-side-topic"
@@ -73,9 +78,7 @@ function TopicLink({ topic, navigate, onOpenTopic, showViews = false }) {
         else navigate(href)
       }}
     >
-      <span className="forum-side-topic-icon">
-        {showViews ? <Flame /> : <MessageSquareText />}
-      </span>
+      <MemberAvatar member={actor} size={32} />
       <span>
         <strong>{topic.title}</strong>
         <small>
