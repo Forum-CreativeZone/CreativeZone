@@ -65,6 +65,7 @@ import {
   saveFeaturedProjects,
 } from './services/communityFeaturesApi'
 import { supabase } from './services/supabaseClient'
+import { trackEvent } from './services/analytics'
 import {
   AccountUpdatesSection,
   AppearanceSection,
@@ -210,6 +211,10 @@ export function ReactionButton({ session, topicId, postId, notify }) {
     }
     try {
       const next = await toggleReaction(userId, { topicId, postId })
+      trackEvent('react_content', {
+        action: next ? 'add' : 'remove',
+        content_type: postId ? 'reply' : 'topic',
+      })
       setActive(next)
       setCount((value) => Math.max(0, value + (next ? 1 : -1)))
     } catch (error) {
@@ -379,6 +384,7 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
   async function follow() {
     try {
       const next = await toggleFollow(currentId, profile.id)
+      trackEvent('follow_member', { action: next ? 'add' : 'remove' })
       setFollowing(next)
       await load()
     } catch (error) { notify(error?.message || 'Não foi possível seguir este membro.') }
@@ -1337,6 +1343,7 @@ export function MessagesPage({ username, session, members, navigate, notify }) {
     if (!partner || !text.trim()) return
     try {
       await sendDirectMessage(userId, partner.id, text.trim())
+      trackEvent('send_direct_message')
       setText('')
       setMessages(await getConversation(userId, partner.id))
       loadInbox()
