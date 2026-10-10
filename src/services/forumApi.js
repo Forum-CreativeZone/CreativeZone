@@ -266,7 +266,17 @@ export async function getForumNodeSummaries(nodeIds = []) {
     last_actor_username: item.last_actor_username || '',
     last_actor_display_name: item.last_actor_display_name || '',
     last_actor_avatar_url: item.last_actor_avatar_url || '',
+    has_unread: Boolean(item.has_unread),
   }]))
+}
+
+export async function markForumNodeRead(nodeId) {
+  const client = requireSupabase()
+  if (!nodeId) return
+  const { error } = await client.rpc('mark_forum_node_read', {
+    p_node_id: nodeId,
+  })
+  if (error) throw error
 }
 
 export async function isWatchingTopic(userId, topicId) {
