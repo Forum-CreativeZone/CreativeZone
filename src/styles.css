@@ -829,7 +829,7 @@
 .thread-board{display:grid;gap:14px;padding:18px;background:#141414}
 .thread-post-card{
   display:grid;
-  grid-template-columns:220px minmax(0,1fr);
+  grid-template-columns:260px minmax(0,1fr);
   align-items:stretch;
   overflow:hidden;
   border:1px solid #ffffff12;
@@ -855,8 +855,8 @@
 .thread-profile-identity:disabled{cursor:default}
 .thread-profile-identity img,
 .thread-profile-fallback{
-  width:104px;
-  height:104px;
+  width:148px;
+  height:148px;
   border-radius:10px;
   object-fit:cover;
   border:2px solid #3c1714;
@@ -1850,8 +1850,8 @@
 .public-avatar-frame,.thread-avatar-frame{position:relative;display:inline-grid;place-items:center;border-radius:12px;flex:none}
 .public-avatar-frame{width:136px;height:136px}
 .public-avatar-frame>.community-avatar{width:128px!important;height:128px!important}
-.thread-avatar-frame{width:62px;height:62px;border-radius:10px}
-.thread-avatar-frame>img,.thread-avatar-frame>.thread-profile-fallback{width:56px!important;height:56px!important;border-radius:7px!important}
+.thread-avatar-frame{width:156px;height:156px;border-radius:14px}
+.thread-avatar-frame>img,.thread-avatar-frame>.thread-profile-fallback{width:148px!important;height:148px!important;border-radius:11px!important}
 .frame-pro{padding:3px;background:linear-gradient(135deg,#7b55d6,#3c2a78,#9a72ed)}
 .frame-elite{padding:3px;background:linear-gradient(135deg,#ffd56c,#a66217,#fff0a1,#7d490e);background-size:220% 220%;animation:eliteFrameShift 4s ease infinite}
 .frame-architect{
@@ -4924,7 +4924,7 @@ main{
 .forum-side-topic{
   min-width:0;
   display:grid;
-  grid-template-columns:30px minmax(0,1fr) 13px;
+  grid-template-columns:36px minmax(0,1fr) 13px;
   align-items:center;
   gap:8px;
   padding:9px 10px;
@@ -6725,5 +6725,41 @@ main{
     align-items:flex-start;
     flex-direction:column;
     padding:10px 15px;
+  }
+}
+
+
+/* Large desktop author portraits */
+@media(min-width:761px){
+  .thread-profile-card .thread-avatar-frame{
+    width:156px;
+    height:156px;
+  }
+  .thread-profile-card .thread-avatar-frame>img,
+  .thread-profile-card .thread-avatar-frame>.thread-profile-fallback{
+    width:148px!important;
+    height:148px!important;
+    border-radius:11px!important;
+  }
+}
+
+@media(max-width:760px){
+  .thread-profile-card .thread-avatar-frame{
+    width:58px;
+    height:58px;
+    margin:0!important;
+  }
+  .thread-profile-card .thread-avatar-frame>img,
+  .thread-profile-card .thread-avatar-frame>.thread-profile-fallback{
+    width:52px!important;
+    height:52px!important;
+    border-radius:50%!important;
+  }
+  .forum-side-topic{
+    grid-template-columns:32px minmax(0,1fr) 13px;
+  }
+  .forum-side-topic>.forum-side-avatar{
+    width:30px;
+    height:30px;
   }
 }
