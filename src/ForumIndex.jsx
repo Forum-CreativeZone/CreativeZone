@@ -5,6 +5,7 @@ import {
   FolderTree,
   MessageSquare,
 } from 'lucide-react'
+import { ForumIcon } from './ForumIcon'
 import { getForumNodeSummaries } from './services/forumApi'
 import { buildTopicPath } from './seo'
 import './forum-hierarchy.css'
@@ -17,9 +18,10 @@ function formatActivity(value) {
   }).format(new Date(value))
 }
 
-function NodeIcon({ type }) {
-  if (type === 'category') return <FolderTree />
-  if (type === 'section') return <Folder />
+function NodeIcon({ node }) {
+  if (node?.icon) return <ForumIcon icon={node.icon} />
+  if (node?.node_type === 'category') return <FolderTree />
+  if (node?.node_type === 'section') return <Folder />
   return <MessageSquare />
 }
 
@@ -106,7 +108,12 @@ export function ForumIndex({ categories, navigate, notify, onOpenTopic }) {
   }, [categories])
 
   const visibleNodeIds = useMemo(
-    () => roots.flatMap((root) => (childrenByParent.get(root.id) || []).map((child) => child.id)),
+    () => roots.flatMap((root) =>
+      (childrenByParent.get(root.id) || []).flatMap((child) => [
+        child.id,
+        ...(childrenByParent.get(child.id) || []).map((descendant) => descendant.id),
+      ])
+    ),
     [roots, childrenByParent]
   )
 
@@ -169,7 +176,10 @@ export function ForumIndex({ categories, navigate, notify, onOpenTopic }) {
                 const summary = summaries[child.id] || {}
 
                 return (
-                  <article className="forum-index-row" key={child.id}>
+                  <article
+                    className={'forum-index-row ' + (summary.has_unread ? 'has-unread' : 'is-read')}
+                    key={child.id}
+                  >
                     <div className="forum-index-node">
                       <a
                         className="forum-index-node-open"
@@ -179,8 +189,8 @@ export function ForumIndex({ categories, navigate, notify, onOpenTopic }) {
                           navigate('/forum/' + encodeURIComponent(child.slug))
                         }}
                       >
-                        <span className={'forum-index-icon type-' + child.node_type}>
-                          <NodeIcon type={child.node_type} />
+                        <span className={'forum-index-icon type-' + child.node_type + (summary.has_unread ? ' has-unread' : '')}>
+                          <NodeIcon node={child} />
                         </span>
                         <span className="forum-index-copy">
                           <small>{nodeLabel(child.node_type)}</small>
@@ -191,19 +201,23 @@ export function ForumIndex({ categories, navigate, notify, onOpenTopic }) {
 
                       {descendants.length > 0 && (
                         <div className="forum-index-sublinks">
-                          {descendants.map((descendant) => (
-                            <a
-                              key={descendant.id}
-                              href={'/forum/' + encodeURIComponent(descendant.slug)}
-                              onClick={(event) => {
-                                event.preventDefault()
-                                navigate('/forum/' + encodeURIComponent(descendant.slug))
-                              }}
-                            >
-                              <MessageSquare />
-                              {descendant.name}
-                            </a>
-                          ))}
+                          {descendants.map((descendant) => {
+                            const descendantSummary = summaries[descendant.id] || {}
+                            return (
+                              <a
+                                key={descendant.id}
+                                className={descendantSummary.has_unread ? 'has-unread' : 'is-read'}
+                                href={'/forum/' + encodeURIComponent(descendant.slug)}
+                                onClick={(event) => {
+                                  event.preventDefault()
+                                  navigate('/forum/' + encodeURIComponent(descendant.slug))
+                                }}
+                              >
+                                <NodeIcon node={descendant} />
+                                {descendant.name}
+                              </a>
+                            )
+                          })}
                         </div>
                       )}
                     </div>
