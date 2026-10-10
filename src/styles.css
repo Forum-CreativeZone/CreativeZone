@@ -3448,6 +3448,29 @@
   place-items:center;
   padding:0!important;
 }
+.composer-download-access-fixed{
+  min-height:64px;
+  display:grid;
+  align-content:center;
+  gap:3px;
+  padding:8px 10px;
+  border:1px solid #3d3d3d;
+  border-radius:6px;
+  background:#1b1b1b;
+}
+.composer-download-access-fixed>span{
+  color:#969696;
+  font-size:11px;
+}
+.composer-download-access-fixed>strong{
+  color:#f1f1f1;
+  font-size:12px;
+}
+.composer-download-access-fixed>small{
+  color:#777;
+  font-size:11px;
+  line-height:1.35;
+}
 .composer-download-remove svg{width:16px;height:16px}
 .composer-download-empty{
   padding:14px;
@@ -3617,6 +3640,7 @@
 }
 :root[data-theme="light"] .composer-download-list input,
 :root[data-theme="light"] .composer-download-list select,
+:root[data-theme="light"] .composer-download-access-fixed,
 :root[data-theme="light"] .protected-download-actions select{
   background:#f2efee;
   color:#191919;
@@ -3633,6 +3657,8 @@
 :root[data-theme="light"] .protected-download-list>article.paid-only{
   background:linear-gradient(90deg,#fff8e7,#fff);
 }
+:root[data-theme="light"] .composer-download-access-fixed>strong{color:#191919}
+:root[data-theme="light"] .composer-download-access-fixed>small{color:#756f6d}
 
 @media(max-width:980px){
   .composer-download-list>article{
@@ -3653,7 +3679,8 @@
     grid-template-columns:30px minmax(0,1fr);
   }
   .composer-download-url{grid-column:1 / -1}
-  .composer-download-list>article label{grid-column:1 / -1}
+  .composer-download-list>article label,
+  .composer-download-access-fixed{grid-column:1 / -1}
   .composer-download-number{grid-column:1}
   .composer-download-remove{grid-column:2;grid-row:1;justify-self:end}
   .protected-download-list>article{
