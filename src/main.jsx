@@ -55,6 +55,7 @@ import {
   deletePost,
   getForumAuthorStats,
   getForumHomeStats,
+  markForumNodeRead,
   isWatchingTopic,
   watchTopic,
   unwatchTopic,
@@ -163,6 +164,10 @@ function mapTopic(topic) {
     categoryId: topic.category_id,
     categorySlug: topic.category_slug || topic.categories?.slug || '',
     avatarUrl: topic.author_avatar_url || topic.profiles?.avatar_url || '',
+    lastActorName: topic.last_actor_display_name || topic.last_actor_username || '',
+    lastActorUsername: topic.last_actor_username || '',
+    lastActorAvatarUrl: topic.last_actor_avatar_url || '',
+    lastActivityAt: topic.last_activity_at || null,
     views: topic.views || 0,
     stars: topic.views || 0,
     replies: Number(topic.reply_count || 0),
@@ -1901,6 +1906,11 @@ function App() {
     recordTopicView(routeTopicId, user?.id || null).catch(() => {})
     return undefined
   }, [routeTopicId, user?.id])
+
+  useEffect(() => {
+    if (!user?.id || !routeTopic?.categoryId) return
+    markForumNodeRead(routeTopic.categoryId).catch(() => {})
+  }, [routeTopic?.categoryId, user?.id])
 
   useEffect(() => {
     if (!supabase || !routeTopicId) {
