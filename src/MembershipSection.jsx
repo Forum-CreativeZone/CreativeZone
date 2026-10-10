@@ -23,7 +23,7 @@ import {
   requestMembershipUpgrade,
   saveProfileCosmetics,
 } from './services/membershipApi'
-import { EffectPreview } from './VisualEffects'
+import { EffectPreview } from './VisualEffects'\nimport { trackEvent } from './services/analytics'
 
 function formatDate(value) {
   if (!value) return '—'
@@ -520,6 +520,14 @@ export function MembershipSection({ session, profile, state, setState, notify })
         '',
         'Vou enviar por aqui o comprovante do pagamento.',
       ].join('\n')
+
+      trackEvent('generate_lead', {
+        lead_source: 'membership',
+        plan_id: planId,
+        months: Number(months || 1),
+        value: Number(purchase.total_price_cents || 0) / 100,
+        currency: purchase.currency || 'BRL',
+      })
 
       const whatsappUrl = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(message)
       if (whatsappWindow) {
