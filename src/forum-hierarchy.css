@@ -20,7 +20,7 @@
 .forum-index-copy>strong{display:block;color:#fff;font-size:17px}
 .forum-index-copy>p{margin-top:3px;color:#929292;font-size:12px;line-height:1.45}
 .forum-index-sublinks{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0 0 58px}
-.forum-index-sublinks button,.forum-index-sublinks a{display:inline-flex;align-items:center;gap:5px;color:#ff7068;font-size:12px}
+.forum-index-sublinks button,.forum-index-sublinks a{display:inline-flex;align-items:center;gap:5px;color:#858585;font-size:12px;transition:color .18s ease,transform .18s ease}
 .forum-index-sublinks button:hover,.forum-index-sublinks a:hover{text-decoration:underline}
 .forum-index-sublinks svg{width:13px;height:13px}
 .forum-index-counts{display:grid;align-content:center;justify-items:center;gap:4px;padding:12px;border-left:1px solid #ffffff0d;color:#777;font-size:12px;text-transform:uppercase}
@@ -49,7 +49,7 @@
 .forum-child-copy strong{display:block;color:#fff;font-size:15px}
 .forum-child-copy p{margin-top:3px;color:#888;font-size:12px;line-height:1.45}
 .forum-child-sublinks{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 0 55px}
-.forum-child-sublinks button,.forum-child-sublinks a{display:inline-flex;align-items:center;gap:4px;color:#ff6b62;font-size:12px}
+.forum-child-sublinks button,.forum-child-sublinks a{display:inline-flex;align-items:center;gap:4px;color:#858585;font-size:12px;transition:color .18s ease,transform .18s ease}
 .forum-child-sublinks button:hover,.forum-child-sublinks a:hover{text-decoration:underline}
 .forum-child-sublinks svg{width:12px;height:12px}
 .forum-child-counts{display:grid;align-content:center;justify-items:center;gap:4px;padding:12px;border-left:1px solid #ffffff0d;color:#777;font-size:12px}
@@ -287,4 +287,92 @@
   .forum-topic-row .forum-topic-latest{
     grid-column:2;
   }
+}
+
+
+/* Activity/read state inspired by classic forums */
+.forum-index-icon,
+.forum-child-icon{
+  position:relative;
+  transition:color .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.forum-child-icon{
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  border:1px solid #303030;
+  border-radius:9px;
+  background:#151515;
+  color:#8b8b8b;
+}
+.forum-index-icon iconify-icon,
+.forum-child-icon iconify-icon{
+  font-size:23px;
+}
+.forum-index-sublinks iconify-icon,
+.forum-child-sublinks iconify-icon{
+  font-size:14px;
+}
+.forum-index-row.has-unread .forum-index-copy>strong,
+.forum-child-row.has-unread .forum-child-copy>strong{
+  color:#ff675e;
+}
+.forum-index-icon.has-unread,
+.forum-child-icon.has-unread{
+  border-color:#8b3029;
+  background:
+    radial-gradient(circle at 35% 25%,#ff74652b,transparent 48%),
+    linear-gradient(145deg,#351411,#1a0d0c);
+  color:#ff675e;
+  box-shadow:0 0 0 1px #ff5f5220,0 0 18px #ff4e4221;
+}
+.forum-index-icon.has-unread::after,
+.forum-child-icon.has-unread::after{
+  content:"";
+  position:absolute;
+  top:4px;
+  right:4px;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#ff5147;
+  box-shadow:0 0 0 3px #ff514720,0 0 10px #ff5147aa;
+}
+.forum-index-sublinks a.has-unread,
+.forum-child-sublinks a.has-unread{
+  color:#ff675e;
+  font-weight:750;
+}
+.forum-index-sublinks a.has-unread:hover,
+.forum-child-sublinks a.has-unread:hover{
+  color:#ff8b84;
+}
+.forum-index-sublinks a.is-read,
+.forum-child-sublinks a.is-read{
+  color:#777;
+}
+.forum-index-row.has-unread{
+  background:linear-gradient(90deg,#ff4f4510,transparent 28%);
+}
+.forum-child-row.has-unread{
+  background:linear-gradient(90deg,#ff4f450d,#0e0e0e 34%);
+}
+
+:root[data-theme="light"] .forum-index-icon.has-unread,
+:root[data-theme="light"] .forum-child-icon.has-unread{
+  border-color:#df9e98;
+  background:linear-gradient(145deg,#fff0ed,#fff8f7);
+  color:#d43d34;
+  box-shadow:0 0 0 1px #d43d3412,0 4px 14px #9b342318;
+}
+:root[data-theme="light"] .forum-index-row.has-unread,
+:root[data-theme="light"] .forum-child-row.has-unread{
+  background:linear-gradient(90deg,#fff0ed,#fff 34%);
+}
+:root[data-theme="light"] .forum-index-row.has-unread .forum-index-copy>strong,
+:root[data-theme="light"] .forum-child-row.has-unread .forum-child-copy>strong,
+:root[data-theme="light"] .forum-index-sublinks a.has-unread,
+:root[data-theme="light"] .forum-child-sublinks a.has-unread{
+  color:#c83c33;
 }
