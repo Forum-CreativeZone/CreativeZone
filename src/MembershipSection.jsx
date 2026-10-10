@@ -23,7 +23,8 @@ import {
   requestMembershipUpgrade,
   saveProfileCosmetics,
 } from './services/membershipApi'
-import { EffectPreview } from './VisualEffects'\nimport { trackEvent } from './services/analytics'
+import { EffectPreview } from './VisualEffects'
+import { trackEvent } from './services/analytics'
 
 function formatDate(value) {
   if (!value) return '—'
