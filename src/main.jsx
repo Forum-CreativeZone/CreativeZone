@@ -38,7 +38,7 @@ import githubIcon from '../assets/github.png'
 import { hasSupabaseConfig, supabase } from './services/supabaseClient'
 import { getAuthErrorMessage, signIn, signInWithOAuthProvider, signOut, signUp } from './services/authApi'
 import { getProfile } from './services/profileApi'
-import { trackPageView } from './services/analytics'
+import { trackEvent, trackPageView } from './services/analytics'
 import {
   createPost,
   createTopic,
@@ -293,6 +293,7 @@ function ProtectedDownloads({
       if (popup) popup.opener = null
 
       const targetUrl = await resolveTopicDownload(item.id)
+      trackEvent('file_download', { access_scope: scope })
 
       if (popup) {
         popup.location.replace(targetUrl)
@@ -1136,9 +1137,11 @@ function AuthPage({ mode, navigate, notify }) {
           username,
           displayName,
         })
+        trackEvent('sign_up', { method: 'password' })
         notify('Conta criada. Sua sessão será iniciada automaticamente quando permitido pelo provedor.')
       } else {
         await signIn({ email, password })
+        trackEvent('login', { method: 'password' })
         notify('Login realizado com sucesso.')
       }
       navigate('/')
@@ -2003,10 +2006,12 @@ function App() {
     try {
       if (watchingTopic) {
         await unwatchTopic(user.id, routeTopicId)
+        trackEvent('follow_topic', { action: 'remove' })
         setWatchingTopic(false)
         setToast('Você deixou de assistir este tópico.')
       } else {
         await watchTopic(user.id, routeTopicId)
+        trackEvent('follow_topic', { action: 'add' })
         setWatchingTopic(true)
         setToast('Agora você receberá notificações sobre novas atividades neste tópico.')
       }
@@ -2049,6 +2054,7 @@ function App() {
     }
     try {
       const saved = await toggleBookmark(user.id, id)
+      trackEvent('bookmark_topic', { action: saved ? 'add' : 'remove' })
       setFavorites((items) =>
         saved ? [...new Set([...items, id])] : items.filter((item) => item !== id)
       )
@@ -2173,6 +2179,12 @@ function App() {
       setQuery('')
       setPage(1)
       await refreshForum()
+      trackEvent('create_topic', {
+        has_poll: Boolean(topic.poll?.question),
+        attachment_count: Number(topic.attachments?.length || 0),
+        download_count: Number(topic.downloads?.length || 0),
+        watch_enabled: Boolean(topic.watchAfterPublish),
+      })
       setToast('Tópico publicado na CreativeZone.')
       navigate(buildTopicPath(created))
     } catch (error) {
@@ -2215,6 +2227,9 @@ function App() {
       )
       setPostMedia(Object.fromEntries(mediaPairs))
       await refreshForum()
+      trackEvent('create_reply', {
+        attachment_count: Number(replyFiles.length || 0),
+      })
       setToast('Resposta publicada.')
     } catch (error) {
       setToast(error?.message || 'Não foi possível publicar a resposta.')
