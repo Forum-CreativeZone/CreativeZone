@@ -38,6 +38,7 @@ import githubIcon from '../assets/github.png'
 import { hasSupabaseConfig, supabase } from './services/supabaseClient'
 import { getAuthErrorMessage, signIn, signInWithOAuthProvider, signOut, signUp } from './services/authApi'
 import { getProfile } from './services/profileApi'
+import { trackPageView } from './services/analytics'
 import {
   createPost,
   createTopic,
@@ -1773,6 +1774,12 @@ function App() {
     routeTagSlug,
     routeMemberUsername,
   ])
+
+  useEffect(() => {
+    if (routeTopicId && !routeTopic) return
+    if (routeForumSlug && !routeForumNode) return
+    trackPageView()
+  }, [path, routeTopicId, routeTopic?.id, routeForumSlug, routeForumNode?.id])
 
   useEffect(() => {
     let cancelled = false
