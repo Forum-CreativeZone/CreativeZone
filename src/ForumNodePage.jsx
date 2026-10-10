@@ -206,9 +206,9 @@ export function ForumNodePage({
   }, [children, childrenByParent])
 
   useEffect(() => {
-    if (!session?.user?.id || !node?.id) return
+    if (!session?.user?.id || !node?.id || node.node_type !== 'forum') return
     markForumNodeRead(node.id).catch(() => {})
-  }, [node?.id, session?.user?.id])
+  }, [node?.id, node?.node_type, session?.user?.id])
 
   useEffect(() => {
     let cancelled = false
