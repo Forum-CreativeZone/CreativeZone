@@ -32,7 +32,7 @@ import {
   updateProjectStatus,
 } from './services/extendedApi'
 import { LinkPreviewCard } from './LinkPreview'
-import { ProjectSecurityPanel, SecurityScoreBadge } from './SecurityAudit'
+import { ProjectSecurityPanel, SecurityScoreBadge } from './SecurityAudit'\nimport { trackEvent } from './services/analytics'
 
 function Shell({ title, onBack, children }) {
   return (
@@ -400,6 +400,7 @@ export function ProjectPage({ slug, session, navigate, notify }) {
     if (!session) return navigate('/entrar')
     try {
       await requestProjectParticipation(project.id,userId,message)
+      trackEvent('join_project')
       notify?.('Pedido para participar enviado.')
       setMessage('')
       load()
