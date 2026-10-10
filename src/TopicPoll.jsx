@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { BarChart3, Check, Clock3, Vote } from 'lucide-react'
 import { getTopicPoll, voteTopicPoll } from './services/pollApi'
+import { trackEvent } from './services/analytics'
 
 function formatClose(value) {
   if (!value) return ''
@@ -68,6 +69,10 @@ export function TopicPoll({ topicId, session, notify }) {
     setBusy(true)
     try {
       await voteTopicPoll(topicId, selected)
+      trackEvent('poll_vote', {
+        choice_count: selected.length,
+        multiple_choice: Boolean(poll.allow_multiple),
+      })
       await refresh()
       notify?.('Seu voto foi registrado.')
     } catch (error) {
