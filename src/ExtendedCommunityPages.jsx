@@ -33,7 +33,7 @@ import {
 } from './services/extendedApi'
 import { LinkPreviewCard } from './LinkPreview'
 import { ProjectSecurityPanel, SecurityScoreBadge } from './SecurityAudit'
-import { GitHubRepositoryPanel } from './GitHubDevHub'
+import { GitHubRepositoryPanel, GitHubCommunityOrganization } from './GitHubDevHub'
 import { ProjectStudio } from './ProjectStudio'
 import { trackEvent } from './services/analytics'
 
@@ -330,9 +330,11 @@ export function ProjectsPage({ session, navigate, notify }) {
         </div>
         <div className="projects-hero-actions">
           {session && <button className="action primary-action" onClick={()=>setOpen(v=>!v)}><Plus/>Novo projeto</button>}
-          <a className="action" href="https://github.com/Creatiive-Lab" target="_blank" rel="noreferrer"><GitBranch/>Creatiive-Lab <ExternalLink/></a>
+          <a className="action" href="https://github.com/Creatiive-Zone" target="_blank" rel="noreferrer"><GitBranch/>Creatiive-Zone <ExternalLink/></a>
         </div>
       </div>
+
+      <GitHubCommunityOrganization session={session} navigate={navigate} notify={notify} />
 
       {open && (
         <form className="project-form" onSubmit={submit}>
@@ -340,7 +342,7 @@ export function ProjectsPage({ session, navigate, notify }) {
           <label>Resumo<input required minLength={10} maxLength={280} value={form.summary} onChange={e=>setForm({...form,summary:e.target.value})}/></label>
           <label>Descrição<textarea maxLength={12000} value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></label>
           <div className="project-form-grid">
-            <label>Repositório GitHub<input type="url" value={form.repo_url} onChange={e=>setForm({...form,repo_url:e.target.value})} placeholder="https://github.com/Creatiive-Lab/..."/></label>
+            <label>Repositório GitHub<input type="url" value={form.repo_url} onChange={e=>setForm({...form,repo_url:e.target.value})} placeholder="https://github.com/Creatiive-Zone/..."/></label>
             <label>Site do projeto<input type="url" value={form.website_url} onChange={e=>setForm({...form,website_url:e.target.value})}/></label>
           </div>
           <div className="project-form-grid">
