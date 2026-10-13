@@ -20,7 +20,7 @@ test('exposes password recovery from login', async ({ page }) => {
 test('projects module is routable', async ({ page }) => {
   await page.goto('/projetos')
   await expect(page.getByRole('heading', { name: 'Projetos Creative Lab' })).toBeVisible()
-  await expect(page.getByRole('link', { name: /Creatiive-Lab/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Creatiive-Zone/ })).toBeVisible()
 })
 
 
