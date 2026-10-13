@@ -109,6 +109,14 @@ function copyFor(job: any) {
       excerpt,
       cta: "Abrir CreativeZone",
     },
+    github_org_join_request: {
+      subject: `Novo pedido para entrar na organização ${job.notification_data?.organization || "CreativeZone"} — CreativeZone`,
+      eyebrow: "GITHUB • NOVO PEDIDO",
+      title: "Um membro quer participar da organização no GitHub",
+      message: `${actor} solicitou entrada na organização ${job.notification_data?.organization || "CreativeZone"} usando o GitHub @${job.notification_data?.github_username || "usuário"}.`,
+      excerpt: compact(job.notification_data?.message || "Sem mensagem adicional.", 240),
+      cta: "Revisar pedido",
+    },
     membership_granted: {
       subject: `${job.notification_data?.plan_name || "Seu VIP"} foi ativado — CreativeZone`,
       eyebrow: "ASSINATURA ATIVADA",
