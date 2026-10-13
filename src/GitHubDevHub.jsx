@@ -15,8 +15,19 @@ import {
   Rocket,
   Star,
   Workflow,
+  Users,
+  UserPlus,
+  Clock3,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react'
-import { getGitHubRepositoryCard, syncGitHubProject } from './services/githubApi'
+import {
+  getGitHubRepositoryCard,
+  syncGitHubProject,
+  getGitHubCommunityOrganization,
+  requestGitHubOrganizationMembership,
+  reviewGitHubOrganizationMembership,
+} from './services/githubApi'
 
 function formatRelative(value) {
   if (!value) return '—'
@@ -140,4 +151,158 @@ export function GitHubRepositoryPanel({ project, canManage = false, notify, onCh
       {String(plan.plan_id || '').toLowerCase() === 'pro' && <small>ELITE libera repositórios privados, scans push/PR, Security Gate, AutoFix e Project Studio.</small>}
     </footer>
   </section>
+}
+
+
+export function GitHubCommunityOrganization({ session, navigate, notify }) {
+  const [data,setData] = useState(null)
+  const [loading,setLoading] = useState(true)
+  const [busy,setBusy] = useState(false)
+  const [githubUsername,setGithubUsername] = useState('')
+  const [message,setMessage] = useState('')
+
+  async function load() {
+    setLoading(true)
+    try {
+      setData(await getGitHubCommunityOrganization())
+    } catch (error) {
+      notify?.(error?.message || 'Não foi possível carregar a organização CreativeZone no GitHub.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(()=>{ load() },[session?.user?.id])
+
+  async function submit(event) {
+    event.preventDefault()
+    if (!session?.user) return navigate?.('/entrar')
+    if (!githubUsername.trim()) return notify?.('Informe seu usuário do GitHub.')
+    setBusy(true)
+    try {
+      await requestGitHubOrganizationMembership(githubUsername.trim(),message.trim())
+      notify?.('Pedido enviado para a organização CreativeZone.')
+      setMessage('')
+      await load()
+    } catch (error) {
+      notify?.(error?.message || 'Não foi possível enviar o pedido.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function review(requestId,status) {
+    setBusy(true)
+    try {
+      await reviewGitHubOrganizationMembership(requestId,status)
+      notify?.(status === 'invited'
+        ? 'Pedido marcado como convite enviado.'
+        : 'Pedido recusado.')
+      await load()
+    } catch (error) {
+      notify?.(error?.message || 'Não foi possível revisar o pedido.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (loading) {
+    return <section className="github-community-hub is-loading"><RefreshCw className="security-spin"/><span>Carregando organização CreativeZone...</span></section>
+  }
+
+  const org=data?.organization
+  if (!org) return null
+  const repos=data?.repositories || []
+  const request=data?.request
+  const pending=data?.staff_requests || []
+
+  return (
+    <section className="github-community-hub">
+      <header className="github-community-head">
+        <span className="github-community-avatar">
+          {org.avatar_url ? <img src={org.avatar_url} alt="" /> : <Code2 />}
+        </span>
+        <div>
+          <small>ORGANIZAÇÃO OFICIAL NO GITHUB</small>
+          <h2>{org.name || 'CreativeZone'}</h2>
+          <strong>@{org.login}</strong>
+          <p>{org.description || 'Projetos abertos, colaboração técnica e código criado pela comunidade CreativeZone.'}</p>
+        </div>
+        <a className="action" href={org.html_url} target="_blank" rel="noreferrer">
+          <Code2/> Abrir organização <ExternalLink/>
+        </a>
+      </header>
+
+      <div className="github-community-metrics">
+        <span><Code2/><b>{org.public_repos || repos.length}</b><small>repositórios públicos</small></span>
+        <span><Users/><b>{org.followers || 0}</b><small>seguidores</small></span>
+        <span><GitBranch/><b>{repos.length}</b><small>projetos em destaque</small></span>
+      </div>
+
+      <div className="github-community-purpose">
+        <article><strong>Crie projetos reais</strong><p>Comece o projeto no fórum, reúna colaboradores e conecte o repositório ao CreativeZone DevHub.</p></article>
+        <article><strong>Trabalhe em equipe</strong><p>Use Issues, Pull Requests, branches, revisões, releases e o Project Studio conforme o plano.</p></article>
+        <article><strong>Segurança integrada</strong><p>Dependências e vulnerabilidades podem ser analisadas por OSV, com histórico e automações nos planos compatíveis.</p></article>
+      </div>
+
+      {repos.length > 0 && (
+        <div className="github-community-repos">
+          <div className="github-community-section-title"><strong>Repositórios públicos da organização</strong><small>Visíveis para toda a comunidade</small></div>
+          <div>
+            {repos.slice(0,6).map(repo=>(
+              <a key={repo.id || repo.full_name} href={repo.html_url} target="_blank" rel="noreferrer">
+                <Code2/>
+                <span><strong>{repo.name}</strong><small>{repo.description || 'Projeto CreativeZone no GitHub'}</small></span>
+                {repo.language && <em>{repo.language}</em>}
+                <ExternalLink/>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <section className="github-community-join">
+        <div>
+          <small>PARTICIPE DA ORGANIZAÇÃO</small>
+          <h3>Quer colaborar diretamente no GitHub?</h3>
+          <p>Envie seu pedido pelo próprio fórum. A equipe recebe a solicitação dentro da CreativeZone e também por e-mail.</p>
+        </div>
+
+        {!session?.user ? (
+          <button className="action primary-action" onClick={()=>navigate?.('/entrar')}><UserPlus/> Entrar para solicitar participação</button>
+        ) : request?.status === 'pending' ? (
+          <div className="github-community-request-state pending"><Clock3/><span><strong>Pedido em análise</strong><small>@{request.github_username} · enviado {formatRelative(request.created_at)}</small></span></div>
+        ) : request?.status === 'invited' ? (
+          <div className="github-community-request-state invited"><CheckCircle2/><span><strong>Convite sinalizado como enviado</strong><small>Verifique as notificações da sua conta GitHub e aceite o convite da organização.</small></span></div>
+        ) : (
+          <form onSubmit={submit}>
+            {request?.status === 'declined' && <p className="github-community-request-state declined"><XCircle/> Seu pedido anterior foi recusado. Você pode enviar um novo pedido com mais contexto.</p>}
+            <label>Seu usuário no GitHub
+              <input value={githubUsername} onChange={e=>setGithubUsername(e.target.value)} placeholder="seu-usuario" maxLength={39} required />
+            </label>
+            <label>Como você pretende contribuir?
+              <textarea value={message} onChange={e=>setMessage(e.target.value)} placeholder="Ex.: frontend, backend, design, documentação, testes..." maxLength={1000}/>
+            </label>
+            <button className="action primary-action" disabled={busy}><UserPlus/>{busy?'Enviando...':'Solicitar participação'}</button>
+          </form>
+        )}
+      </section>
+
+      {data?.is_staff && pending.length > 0 && (
+        <section className="github-community-admin">
+          <div className="github-community-section-title"><strong>Pedidos pendentes</strong><small>{pending.length} aguardando revisão</small></div>
+          {pending.map(item=>(
+            <article key={item.id}>
+              <span><strong>{item.profile?.display_name || item.profile?.username || 'Membro'}</strong><a href={'https://github.com/'+encodeURIComponent(item.github_username)} target="_blank" rel="noreferrer">@{item.github_username} <ExternalLink/></a><small>{item.message || 'Sem mensagem adicional.'}</small></span>
+              <div>
+                <button className="action" disabled={busy} onClick={()=>review(item.id,'invited')}><CheckCircle2/> Marcar convite enviado</button>
+                <button className="action danger-action" disabled={busy} onClick={()=>review(item.id,'declined')}><XCircle/> Recusar</button>
+              </div>
+            </article>
+          ))}
+          <p className="github-community-admin-note">O botão “Marcar convite enviado” registra a revisão no fórum. O convite de membro continua sendo enviado pela organização no GitHub.</p>
+        </section>
+      )}
+    </section>
+  )
 }
