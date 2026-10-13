@@ -34,6 +34,7 @@ import {
 import { LinkPreviewCard } from './LinkPreview'
 import { ProjectSecurityPanel, SecurityScoreBadge } from './SecurityAudit'
 import { GitHubRepositoryPanel } from './GitHubDevHub'
+import { ProjectStudio } from './ProjectStudio'
 import { trackEvent } from './services/analytics'
 
 function Shell({ title, onBack, children }) {
@@ -462,6 +463,12 @@ export function ProjectPage({ slug, session, navigate, notify }) {
             canManage={canManage}
             notify={notify}
             onChanged={load}
+          />
+
+          <ProjectStudio
+            project={project}
+            canManage={canManage}
+            notify={notify}
           />
 
           <ProjectSecurityPanel
