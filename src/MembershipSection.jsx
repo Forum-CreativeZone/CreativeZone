@@ -119,9 +119,6 @@ function PlanCard({ plan, current, onRequest, busy, months, setMonths }) {
         ))}
         <div className="membership-devhub-benefits">
           <strong>GitHub DevHub</strong>
-          <span><Check /> {Number(e.github_devhub?.repository_limit ?? 1) < 0
-            ? 'Repositórios ilimitados por projeto'
-            : 'Até ' + Number(e.github_devhub?.repository_limit ?? 1) + ' repositório(s) por projeto'}</span>
           {devHubBenefits.filter(([key]) => Boolean(e.github_devhub?.[key])).map(([key,label]) => (
             <span key={key}><Check /> {label}</span>
           ))}

@@ -1418,6 +1418,27 @@ async function internalGithubAction(req: Request, payload: Record<string, unknow
   }
 }
 
+async function repoConnectedAction(req: Request, payload: Record<string, unknown>) {
+  const provided = req.headers.get("x-creativezone-scheduler") || ""
+  const { data: credential, error: credentialError } = await admin
+    .from("security_scheduler_credentials")
+    .select("scheduler_secret")
+    .eq("id", true)
+    .maybeSingle()
+  if (credentialError) throw credentialError
+  if (!provided || !credential?.scheduler_secret || provided !== credential.scheduler_secret) {
+    return reply({ error: "repo_connect_forbidden" }, 403)
+  }
+  const projectId = String(payload.project_id || "")
+  if (!projectId) return reply({ error: "Projeto não informado." }, 400)
+  try {
+    const result = await auditProject(projectId, { triggerType: "automatic", force: true })
+    return reply({ ok: true, ...result })
+  } catch (error) {
+    return reply({ error: error instanceof Error ? error.message : "Falha no scan ao conectar repositório." }, 400)
+  }
+}
+
 async function batchAction(req: Request) {
   const provided = req.headers.get("x-creativezone-scheduler") || ""
   const { data: credential, error: credentialError } = await admin
@@ -1463,6 +1484,7 @@ Deno.serve(async (req: Request) => {
   try {
     if (action === "project") return await projectAction(req, payload)
     if (action === "github_internal") return await internalGithubAction(req, payload)
+    if (action === "repo_connected") return await repoConnectedAction(req, payload)
     if (action === "batch") return await batchAction(req)
     return reply({ error: "unsupported_action" }, 400)
   } catch (error) {
