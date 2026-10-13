@@ -30,3 +30,32 @@ export function getDependencyIntelligence(projectId, ecosystem, packageName, ver
     version,
   })
 }
+
+
+async function invokeGithubCommunity(body) {
+  const client = requireSupabase()
+  const { data, error } = await client.functions.invoke('github-community', { body })
+  if (error) throw error
+  if (data?.error) throw new Error(data.error)
+  return data
+}
+
+export function getGitHubCommunityOrganization() {
+  return invokeGithubCommunity({ action: 'organization' })
+}
+
+export function requestGitHubOrganizationMembership(githubUsername, message = '') {
+  return invokeGithubCommunity({
+    action: 'request_membership',
+    github_username: githubUsername,
+    message,
+  })
+}
+
+export function reviewGitHubOrganizationMembership(requestId, status) {
+  return invokeGithubCommunity({
+    action: 'review_membership',
+    request_id: requestId,
+    status,
+  })
+}
