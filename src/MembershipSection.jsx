@@ -82,12 +82,18 @@ const benefits = [
 ]
 
 function PlanCard({ plan, current, onRequest, busy, months, setMonths }) {
+  const [detailsOpen,setDetailsOpen] = useState(false)
   const active = current?.plan_id === plan.id
   const e = plan.entitlements || {}
   const paid = plan.id !== 'free'
   const permanentCurrent = active && current?.permanent
   const lowerThanCurrent = paid && current?.plan_id && current.plan_id !== 'free' && plan.rank < (current?.rank ?? 0)
   const total = (plan.price_cents || 0) * (Number(months) || 1)
+  const highlights = {
+    free: ['Comunidade completa', 'GitHub Card + OSV básico', '1 repositório por projeto'],
+    pro: ['Tudo do FREE', 'SBOM + dependências + OSV completo', 'Até 5 repositórios'],
+    elite: ['Tudo do PRO', 'Privados + scans em push/PR', 'Project Studio + commits pelo fórum'],
+  }[plan.id] || []
 
   return (
     <article className={'membership-plan-card plan-' + plan.id + (active ? ' active' : '')}>
@@ -105,25 +111,40 @@ function PlanCard({ plan, current, onRequest, busy, months, setMonths }) {
         <b>{plan.badge}</b>
       </header>
 
-      <div className="membership-plan-benefits">
-        <span><Check /> {e.featured_projects ?? 3} projetos destacados</span>
-        <span><Check /> Anexos de até {e.forum_upload_mb ?? 10} MB</span>
-        <span><Check /> Até {e.forum_upload_count ?? 4} anexos por publicação</span>
-        <span className={plan.rank >= 1 ? '' : 'muted'}>
-          {plan.rank >= 1 ? <Check /> : <X />} {plan.rank >= 2 ? 'Efeitos de nome PRO + ELITE' : 'Efeitos de nome PRO'}
-        </span>
-        {benefits.map(([key,label]) => (
-          <span className={e[key] ? '' : 'muted'} key={key}>
-            {e[key] ? <Check /> : <X />} {label}
-          </span>
-        ))}
-        <div className="membership-devhub-benefits">
-          <strong>GitHub DevHub</strong>
-          {devHubBenefits.filter(([key]) => Boolean(e.github_devhub?.[key])).map(([key,label]) => (
-            <span key={key}><Check /> {label}</span>
-          ))}
-        </div>
+      <div className="membership-plan-highlights">
+        {highlights.map(item=><span key={item}><Check/>{item}</span>)}
       </div>
+
+      <button
+        className="membership-details-toggle"
+        type="button"
+        aria-expanded={detailsOpen}
+        onClick={()=>setDetailsOpen(value=>!value)}
+      >
+        {detailsOpen ? 'Ocultar detalhes' : 'Ver detalhes do plano'}
+      </button>
+
+      {detailsOpen && (
+        <div className="membership-plan-benefits">
+          <span><Check /> {e.featured_projects ?? 3} projetos destacados</span>
+          <span><Check /> Anexos de até {e.forum_upload_mb ?? 10} MB</span>
+          <span><Check /> Até {e.forum_upload_count ?? 4} anexos por publicação</span>
+          <span className={plan.rank >= 1 ? '' : 'muted'}>
+            {plan.rank >= 1 ? <Check /> : <X />} {plan.rank >= 2 ? 'Efeitos de nome PRO + ELITE' : 'Efeitos de nome PRO'}
+          </span>
+          {benefits.map(([key,label]) => (
+            <span className={e[key] ? '' : 'muted'} key={key}>
+              {e[key] ? <Check /> : <X />} {label}
+            </span>
+          ))}
+          <div className="membership-devhub-benefits">
+            <strong>GitHub DevHub</strong>
+            {devHubBenefits.filter(([key]) => Boolean(e.github_devhub?.[key])).map(([key,label]) => (
+              <span key={key}><Check /> {label}</span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {paid && !permanentCurrent && !lowerThanCurrent && (
         <div className="membership-buy-box">
