@@ -7,7 +7,7 @@ import {
   GitCommitHorizontal,
   GitFork,
   GitPullRequest,
-  Github,
+  Code2,
   Languages,
   LockKeyhole,
   Package,
@@ -74,16 +74,16 @@ export function GitHubRepositoryPanel({ project, canManage = false, notify, onCh
   }
 
   if (!project?.repo_url) {
-    return <section className="devhub-repository-panel is-empty"><header><Github /><span><small>CREATIVEZONE DEVHUB</small><strong>GitHub Repository Connect</strong></span></header><p>Adicione um repositório GitHub ao projeto para ativar cards, releases, segurança OSV e recursos DevHub.</p></section>
+    return <section className="devhub-repository-panel is-empty"><header><Code2 /><span><small>CREATIVEZONE DEVHUB</small><strong>GitHub Repository Connect</strong></span></header><p>Adicione um repositório GitHub ao projeto para ativar cards, releases, segurança OSV e recursos DevHub.</p></section>
   }
-  if (loading) return <section className="devhub-repository-panel is-loading"><Github/><span>Conectando ao GitHub DevHub...</span></section>
+  if (loading) return <section className="devhub-repository-panel is-loading"><Code2/><span>Conectando ao GitHub DevHub...</span></section>
 
   const repository = data?.repository
   const plan = data?.plan || {}
   const capabilities = plan.capabilities || {}
   if (!repository) {
     return <section className="devhub-repository-panel is-empty">
-      <header><Github /><span><small>CREATIVEZONE DEVHUB</small><strong>Repositório aguardando sincronização</strong></span></header>
+      <header><Code2 /><span><small>CREATIVEZONE DEVHUB</small><strong>Repositório aguardando sincronização</strong></span></header>
       {error && <p className="devhub-error">{error}</p>}
       {canManage && <button className="action primary-action" type="button" onClick={sync} disabled={busy}><RefreshCw/>{busy?'Sincronizando...':'Sincronizar GitHub'}</button>}
     </section>
@@ -99,7 +99,7 @@ export function GitHubRepositoryPanel({ project, canManage = false, notify, onCh
 
   return <section className={'devhub-repository-panel ' + (repository.is_private ? 'is-private' : '')}>
     <header className="devhub-repo-head">
-      <span className="devhub-repo-avatar">{repository.owner_avatar_url ? <img src={repository.owner_avatar_url} alt="" /> : <Github />}</span>
+      <span className="devhub-repo-avatar">{repository.owner_avatar_url ? <img src={repository.owner_avatar_url} alt="" /> : <Code2 />}</span>
       <span className="devhub-repo-title"><small>CREATIVEZONE DEVHUB</small><strong>{repository.repo_owner}/{repository.repo_name}</strong><em>{repository.description || 'Repositório GitHub conectado ao projeto.'}</em></span>
       <PlanChip plan={plan}/>
       {repository.is_private && <span className="devhub-private"><LockKeyhole/> Privado</span>}
@@ -134,7 +134,7 @@ export function GitHubRepositoryPanel({ project, canManage = false, notify, onCh
 
     {error && <p className="devhub-error">{error}</p>}
     <footer>
-      <a className="action" href={repository.repo_url} target="_blank" rel="noreferrer"><Github/> Abrir no GitHub <ExternalLink/></a>
+      <a className="action" href={repository.repo_url} target="_blank" rel="noreferrer"><Code2/> Abrir no GitHub <ExternalLink/></a>
       {canManage && <button className="action" type="button" onClick={sync} disabled={busy}><RefreshCw className={busy?'security-spin':''}/>{busy?'Sincronizando...':'Atualizar DevHub'}</button>}
       {String(plan.plan_id || '').toLowerCase() === 'free' && <small>PRO libera SBOM, deps.dev, commits, issues, PRs, Actions e histórico.</small>}
       {String(plan.plan_id || '').toLowerCase() === 'pro' && <small>ELITE libera repositórios privados, scans push/PR, Security Gate, AutoFix e Project Studio.</small>}
