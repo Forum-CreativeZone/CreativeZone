@@ -447,16 +447,14 @@ async function syncProject(projectId: string, actorId: string | null, internal =
     updated_at: new Date().toISOString(),
   }
 
-  let row
-  if (existing?.id) {
-    const { data, error } = await admin.from("project_repositories").update(payload).eq("id", existing.id).select("*").single()
-    if (error) throw error
-    row = data
-  } else {
-    const { data, error } = await admin.from("project_repositories").insert(payload).select("*").single()
-    if (error) throw error
-    row = data
-  }
+  const { data: row, error: rowError } = await admin
+    .from("project_repositories")
+    .upsert(payload, {
+      onConflict: "project_id,repository_provider,repo_owner,repo_name",
+    })
+    .select("*")
+    .single()
+  if (rowError) throw rowError
 
   if (installation) {
     await admin.from("github_installations").upsert({
