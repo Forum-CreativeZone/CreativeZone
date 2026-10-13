@@ -7,7 +7,6 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || ""
 const APP_ID = Deno.env.get("GITHUB_APP_ID") || ""
 const PRIVATE_KEY = Deno.env.get("GITHUB_PRIVATE_KEY") || ""
 const WEBHOOK_SECRET = Deno.env.get("GITHUB_WEBHOOK_SECRET") || ""
-const COMMUNITY_ORG = "Creatiive-Zone"
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
