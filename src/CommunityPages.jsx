@@ -1227,6 +1227,8 @@ function notificationTitle(item) {
     membership_granted: 'Seu VIP foi ativado',
     membership_expiring: 'Seu VIP está perto de vencer',
     membership_expired: 'Seu VIP expirou',
+    github_org_join_request: 'Novo pedido para entrar na organização GitHub',
+    github_org_join_request_updated: 'Seu pedido da organização GitHub foi atualizado',
   }[item.type] || 'Nova notificação'
 }
 
