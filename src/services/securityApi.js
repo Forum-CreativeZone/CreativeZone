@@ -22,7 +22,7 @@ export async function checkPackageSecurity({ ecosystem, packageName, version }) 
 
 export async function requestProjectSecurityAudit(projectId, { force = false, triggerType = 'manual' } = {}) {
   const client = requireSupabase()
-  const { data, error } = await client.functions.invoke('security-audit', {
+  const { data, error } = await client.functions.invoke('github-security-scan', {
     body: {
       action: 'project',
       project_id: projectId,

@@ -1,46 +1,26 @@
-# CreativeZone DevHub Architecture
+# CreativeZone DevHub
 
-## Overview
+O DevHub conecta Projetos CreativeZone ao GitHub por GitHub App, GitHub REST/GraphQL, webhooks assinados, Supabase e CreativeZone Security/OSV.
 
-CreativeZone DevHub connects community projects with repository intelligence, security analysis and future development workflows.
+## Fluxo
+Projeto -> GitHub App -> REST/GraphQL -> card/repository intelligence -> SBOM/manifests -> OSV.dev -> histórico e segurança.
 
-## Initial foundation
+## Edge Functions
+- `github-api`: REST/GraphQL, repository card, deps.dev e OpenSSF Scorecard.
+- `github-webhook`: HMAC SHA-256, eventos e sincronização em background.
+- `github-security-scan`: SBOM, manifests, OSV e regras FREE/PRO/ELITE.
+- `security-audit`: consulta OSV pública por pacote usada pelos embeds existentes.
 
-Implemented database foundation:
+## FREE
+- 1 repositório público por projeto
+- reconhecimento e GitHub Card
+- linguagem, stars, forks, README e última release
+- OSV básico e status público de vulnerabilidades
 
-- GitHub repository connections
-- Project repository mapping
-- Security report history
-- GitHub event storage
+## PRO
+Tudo do FREE + até 5 repositórios, scan completo ao conectar, SBOM, dependências diretas/transitivas, OSV completo, deps.dev, histórico, reanálise periódica, commits, issues, PRs, Actions, linguagens/release history e Project Health/OpenSSF.
 
-## Planned integrations
+## ELITE
+Tudo do PRO + repositórios privados/ilimitados, scans em push e PR, alertas em tempo real, Security Gate, AutoFix assistido, Project Studio, commits pelo fórum, branch/PR workflow e cockpit CI/CD.
 
-- GitHub REST API
-- GitHub GraphQL API
-- GitHub App authentication
-- GitHub SBOM
-- OSV.dev vulnerability analysis
-- deps.dev dependency intelligence
-- OpenSSF Scorecard
-- GitHub Actions monitoring
-- Pull Request security gates
-
-## Plan model
-
-FREE:
-- Public repository recognition
-- GitHub cards
-- Basic OSV visibility
-
-PRO:
-- Automated scans
-- SBOM
-- Dependency intelligence
-- Security history
-
-ELITE:
-- Private repositories
-- Push/PR scans
-- Real-time alerts
-- Security gates
-- Automated remediation workflows
+Credenciais do GitHub App permanecem em Supabase Secrets; private key e installation tokens nunca são enviados ao frontend.

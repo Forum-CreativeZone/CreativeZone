@@ -33,6 +33,7 @@ import {
 } from './services/extendedApi'
 import { LinkPreviewCard } from './LinkPreview'
 import { ProjectSecurityPanel, SecurityScoreBadge } from './SecurityAudit'
+import { GitHubRepositoryPanel } from './GitHubDevHub'
 import { trackEvent } from './services/analytics'
 
 function Shell({ title, onBack, children }) {
@@ -455,6 +456,13 @@ export function ProjectPage({ slug, session, navigate, notify }) {
               <LinkPreviewCard url={project.website_url} variant="project" eager />
             </div>
           )}
+
+          <GitHubRepositoryPanel
+            project={project}
+            canManage={canManage}
+            notify={notify}
+            onChanged={load}
+          />
 
           <ProjectSecurityPanel
             project={{ ...project, project_security_state: projectSecurityState(project) }}

@@ -380,7 +380,9 @@ export function ProjectSecurityPanel({ project, canManage = false, notify, onCha
   }
 
   const manifests = audit?.manifest_files || state?.summary?.manifest_files || []
-  const findings = audit?.findings || []
+  const securityTier = audit?.summary?.security_tier || state?.summary?.security_tier || 'basic'
+  const detailedSecurity = securityTier !== 'basic'
+  const findings = detailedSecurity ? (audit?.findings || []) : []
   const statusText = state?.status === 'secure'
     ? 'Sem vulnerabilidades conhecidas'
     : state?.status === 'danger'
@@ -435,14 +437,14 @@ export function ProjectSecurityPanel({ project, canManage = false, notify, onCha
         </div>
       )}
 
-      {Array.isArray(manifests) && manifests.length > 0 && (
+      {detailedSecurity && Array.isArray(manifests) && manifests.length > 0 && (
         <details className="project-security-manifests">
           <summary>Manifests detectados ({manifests.length})</summary>
           <div>{manifests.map((path) => <code key={path}>{path}</code>)}</div>
         </details>
       )}
 
-      <FindingList findings={findings} />
+      {detailedSecurity ? <FindingList findings={findings} /> : <div className="security-basic-plan-note"><ShieldCheck /><span><strong>OSV básico ativo</strong><small>Detalhes completos, SBOM e grafo de dependências ficam no PRO e ELITE.</small></span></div>}
 
       <footer>
         <span>Última auditoria: {formatDate(state?.last_audited_at)}</span>

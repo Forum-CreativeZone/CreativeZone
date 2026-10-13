@@ -40,6 +40,40 @@ function formatMoney(cents = 0, currency = 'BRL') {
 
 const WHATSAPP_NUMBER = '5511932212697'
 
+const devHubBenefits = [
+  ['repository_recognition','Reconhecimento de repositórios GitHub'],
+  ['github_card','Card GitHub inteligente'],
+  ['basic_repository_data','Linguagem, stars, forks e dados essenciais'],
+  ['readme_summary','README resumido no projeto'],
+  ['latest_release','Última release do repositório'],
+  ['osv_basic_check','Verificação OSV de vulnerabilidades'],
+  ['public_security_status','Status público 0 / X vulnerabilidades'],
+  ['scan_on_connect','Scan completo automático ao conectar'],
+  ['sbom','SBOM completo'],
+  ['dependency_graph','Dependências diretas e transitivas'],
+  ['osv_full','Detalhes completos do OSV'],
+  ['deps_dev','Inteligência de dependências com deps.dev'],
+  ['history','Histórico de análises de segurança'],
+  ['scheduled_rescan','Reanálise automática periódica'],
+  ['commits_recent','Commits recentes'],
+  ['issues','Issues abertas'],
+  ['pull_requests','Pull Requests'],
+  ['actions_status','Status do GitHub Actions'],
+  ['languages_detailed','Linguagens detalhadas'],
+  ['release_history','Histórico de releases'],
+  ['project_health','Project Health / OpenSSF Scorecard'],
+  ['private_repository','Repositórios privados'],
+  ['push_scan','Scan automático a cada push'],
+  ['pull_request_scan','Scan automático em Pull Requests'],
+  ['real_time_alerts','Alertas em tempo real'],
+  ['security_gate','Security Gate antes do merge'],
+  ['auto_fix','AutoFix assistido por Pull Request'],
+  ['project_studio','Project Studio dentro do CreativeZone'],
+  ['forum_commits','Commits diretamente pelo fórum'],
+  ['branch_pr_workflow','Fluxo branch → PR → merge'],
+  ['ci_cockpit','Cockpit CI/CD no projeto'],
+]
+
 const benefits = [
   ['early_access','Acesso antecipado a recursos'],
   ['elite_area','Área Elite'],
@@ -83,6 +117,15 @@ function PlanCard({ plan, current, onRequest, busy, months, setMonths }) {
             {e[key] ? <Check /> : <X />} {label}
           </span>
         ))}
+        <div className="membership-devhub-benefits">
+          <strong>GitHub DevHub</strong>
+          <span><Check /> {Number(e.github_devhub?.repository_limit ?? 1) < 0
+            ? 'Repositórios ilimitados por projeto'
+            : 'Até ' + Number(e.github_devhub?.repository_limit ?? 1) + ' repositório(s) por projeto'}</span>
+          {devHubBenefits.filter(([key]) => Boolean(e.github_devhub?.[key])).map(([key,label]) => (
+            <span key={key}><Check /> {label}</span>
+          ))}
+        </div>
       </div>
 
       {paid && !permanentCurrent && !lowerThanCurrent && (
