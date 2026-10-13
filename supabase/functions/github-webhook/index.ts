@@ -87,7 +87,7 @@ async function projectIdsForRepo(ref: { owner: string; name: string; fullName: s
   return [...ids]
 }
 
-async function processProject(projectId: string, event: string) {
+async function processProject(projectId: string, event: string, pullRequestNumber: number | null = null) {
   const headers = { "Content-Type": "application/json", "x-creativezone-github": WEBHOOK_SECRET }
   const sync = fetch(`${SUPABASE_URL}/functions/v1/github-api`, {
     method: "POST",
@@ -108,6 +108,7 @@ async function processProject(projectId: string, event: string) {
       action: "github_internal",
       project_id: projectId,
       trigger_type: event === "pull_request" ? "pull_request" : "push",
+      pull_request_number: pullRequestNumber,
       force: true,
     }),
   }).catch((error) => console.error("github webhook scan:", error))
@@ -169,9 +170,14 @@ Deno.serve(async (req: Request) => {
     "dependabot_alert", "code_scanning_alert", "security_advisory",
   ])
 
-  if (ref && projectIds.length && relevant.has(event)) {
+  const pullRequestNumber = event === "pull_request"
+    ? Number((payload.pull_request as Record<string, unknown> | undefined)?.number || 0) || null
+    : null
+  const actionablePullRequest = event !== "pull_request" || ["opened", "reopened", "synchronize", "ready_for_review"].includes(action)
+
+  if (ref && projectIds.length && relevant.has(event) && actionablePullRequest) {
     // @ts-ignore Supabase Edge Runtime global
-    EdgeRuntime.waitUntil(Promise.all(projectIds.map((projectId) => processProject(projectId, event))))
+    EdgeRuntime.waitUntil(Promise.all(projectIds.map((projectId) => processProject(projectId, event, pullRequestNumber))))
   }
 
   console.log("GitHub webhook validado", {

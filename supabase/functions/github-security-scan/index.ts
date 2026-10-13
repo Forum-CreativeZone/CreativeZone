@@ -1145,6 +1145,7 @@ async function auditProject(projectId: string, options: {
   triggerType: "automatic" | "manual" | "scheduled" | "push" | "pull_request"
   requestedBy?: string | null
   force?: boolean
+  pullRequestNumber?: number | null
 }): Promise<Record<string, unknown>> {
   const { data: project, error } = await admin
     .from("projects")
@@ -1238,6 +1239,30 @@ async function auditProject(projectId: string, options: {
       .limit(1)
       .maybeSingle()
 
+    let securityGate: Record<string, unknown> | null = null
+    if (options.triggerType === "pull_request" && caps.security_gate && options.pullRequestNumber && auth.token) {
+      const blocked = analysis.critical > 0 || analysis.high > 0
+      try {
+        await githubJson(
+          `/repos/${encodeURIComponent(ref.owner)}/${encodeURIComponent(ref.repo)}/pulls/${options.pullRequestNumber}/reviews`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              event: blocked ? "REQUEST_CHANGES" : "APPROVE",
+              body: blocked
+                ? `CreativeZone Security Gate: merge bloqueado — ${analysis.critical} crítica(s) e ${analysis.high} alta(s) detectadas.`
+                : "CreativeZone Security Gate: análise OSV aprovada, sem vulnerabilidades críticas/altas.",
+            }),
+          },
+          auth.token,
+        )
+        securityGate = { status: blocked ? "blocked" : "approved", pull_request: options.pullRequestNumber }
+      } catch (gateError) {
+        securityGate = { status: "review_unavailable", pull_request: options.pullRequestNumber, error: compact(gateError instanceof Error ? gateError.message : gateError, 260) }
+      }
+    }
+
     const summary = {
       project_title: project.title,
       repository: ref.url,
@@ -1253,6 +1278,7 @@ async function auditProject(projectId: string, options: {
       findings_truncated: analysis.findingsTruncated,
       osv_basic_check: true,
       osv_full: Boolean(caps.osv_full),
+      security_gate: securityGate,
     }
 
     await admin.from("project_security_audits").update({
@@ -1317,7 +1343,25 @@ async function auditProject(projectId: string, options: {
       updated_at: completedAt,
     }
     await admin.from("project_security_state").upsert(state, { onConflict: "project_id" })
-    return { skipped: false, state, findings: fullFindings, plan_id: plan.plan_id }
+
+    if (caps.real_time_alerts && ["push", "pull_request"].includes(options.triggerType) && analysis.vulnerabilityCount > 0) {
+      await admin.from("notifications").insert({
+        user_id: project.owner_id,
+        type: "github_security_alert",
+        data: {
+          project_id: projectId,
+          project_title: project.title,
+          repository: ref.url,
+          trigger_type: options.triggerType,
+          vulnerability_count: analysis.vulnerabilityCount,
+          critical_count: analysis.critical,
+          high_count: analysis.high,
+          highest_severity: analysis.highest,
+        },
+      }).then(()=>null).catch(()=>null)
+    }
+
+    return { skipped: false, state, findings: fullFindings, plan_id: plan.plan_id, security_gate: securityGate }
   } catch (error) {
     const message = compact(error instanceof Error ? error.message : "Falha na auditoria.", 1000)
     const completedAt = new Date().toISOString()
@@ -1363,7 +1407,11 @@ async function internalGithubAction(req: Request, payload: Record<string, unknow
     : requested === "pull_request" ? "pull_request"
       : "automatic"
   try {
-    const result = await auditProject(projectId, { triggerType, force: Boolean(payload.force) })
+    const result = await auditProject(projectId, {
+      triggerType,
+      force: Boolean(payload.force),
+      pullRequestNumber: Number(payload.pull_request_number || 0) || null,
+    })
     return reply({ ok: true, ...result })
   } catch (error) {
     return reply({ error: error instanceof Error ? error.message : "Falha na auditoria GitHub." }, 400)
