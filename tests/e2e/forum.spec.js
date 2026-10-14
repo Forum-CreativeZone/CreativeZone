@@ -19,7 +19,7 @@ test('exposes password recovery from login', async ({ page }) => {
 
 test('projects module is routable', async ({ page }) => {
   await page.goto('/projetos')
-  await expect(page.getByRole('heading', { name: 'Projetos Creative Lab' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'CreativeZone DevHub' })).toBeVisible()
   await expect(page.locator('.github-community-hub')).toBeVisible()
   await expect(page.getByText('@Creatiive-Zone', { exact: true })).toBeVisible()
 })
