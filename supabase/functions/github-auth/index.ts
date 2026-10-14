@@ -198,6 +198,10 @@ async function connectionStatus(user: any) {
   return {
     connected: Boolean(connection?.github_username),
     connection: connection || null,
+    organization_access:{
+      scope_authorized:Boolean(connection?.scopes?.includes?.("read:org")||connection?.scopes?.includes?.("admin:org")),
+      required_scope:"read:org",
+    },
     plan,
     repository_usage: Number(usage.count || 0),
     identity_linked: Boolean(githubIdentity),
@@ -216,9 +220,20 @@ async function capture(req: Request, payload: Record<string, unknown>) {
   const accessToken = String(payload.access_token || "").trim()
   if (!accessToken) throw new Error("O GitHub não retornou um token para esta sessão.")
 
-  const profile = await github("/user", accessToken)
-  const scopeHeader = String(payload.scopes || "")
-  const scopes = scopeHeader.split(/[ ,]+/).map((value) => value.trim()).filter(Boolean)
+  const profileResponse=await fetch("https://api.github.com/user",{
+    headers:{
+      Accept:"application/vnd.github+json",
+      "X-GitHub-Api-Version":"2026-03-10",
+      "User-Agent":"CreativeZone-DevHub/2.0 (+https://forum.creativezone.pro/)",
+      Authorization:"Bearer "+accessToken,
+    },
+  })
+  const profile=await profileResponse.json().catch(()=>({}))
+  if(!profileResponse.ok) throw new Error(compact(profile?.message || ("GitHub HTTP "+profileResponse.status),400))
+  const actualScopeHeader=String(profileResponse.headers.get("x-oauth-scopes")||"")
+  const requestedScopeHeader=String(payload.scopes||"")
+  const scopeHeader=actualScopeHeader || requestedScopeHeader
+  const scopes=scopeHeader.split(/[ ,]+/).map((value)=>value.trim()).filter(Boolean)
 
   const { error: tokenError } = await admin.rpc("store_github_user_credential", {
     p_user_id: user.id,
@@ -244,15 +259,21 @@ async function capture(req: Request, payload: Record<string, unknown>) {
   const { error } = await admin.from("github_connections").upsert(connection, { onConflict: "user_id" })
   if (error) throw error
 
-  let orgMembership: any = null
-  try {
-    orgMembership = await github("/user/memberships/orgs/" + encodeURIComponent(COMMUNITY_ORG), accessToken)
-  } catch (error) {
-    if ((error as any)?.status !== 404) console.warn("membership_check_failed", (error as Error).message)
+  let orgMembership:any=null
+  let orgMembershipError:string|null=null
+  try{
+    orgMembership=await github("/user/memberships/orgs/"+encodeURIComponent(COMMUNITY_ORG),accessToken)
+  }catch(error){
+    const status=(error as any)?.status
+    if(status!==404){
+      orgMembershipError=(error as Error).message
+      console.warn("membership_check_failed",orgMembershipError)
+    }
   }
+  const orgScopeAuthorized=scopes.includes("read:org")||scopes.includes("admin:org")
 
   return {
-    connected: true,
+    connected:true,
     connection: {
       github_username: connection.github_username,
       github_user_id: connection.github_user_id,
@@ -261,11 +282,17 @@ async function capture(req: Request, payload: Record<string, unknown>) {
       account_type: connection.account_type,
       scopes,
     },
-    organization_membership: orgMembership ? {
-      state: orgMembership.state || null,
-      role: orgMembership.role || null,
-      organization: COMMUNITY_ORG,
-    } : null,
+    organization_membership:orgMembership?{
+      state:orgMembership.state||null,
+      role:orgMembership.role||null,
+      organization:COMMUNITY_ORG,
+    }:null,
+    organization_access:{
+      authorized:orgScopeAuthorized&&!orgMembershipError,
+      scope_authorized:orgScopeAuthorized,
+      error:orgMembershipError,
+      required_scope:"read:org",
+    },
   }
 }
 
