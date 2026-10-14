@@ -178,6 +178,24 @@ async function organizationPayload(req: Request) {
 
   let request = null
   let staffRequests: Record<string, unknown>[] = []
+  let appStatus: Record<string, unknown> | null = null
+
+  if (staff.staff) {
+    try {
+      const installation = await organizationInstallation()
+      const permissions = (installation?.permissions || {}) as Record<string, unknown>
+      appStatus = {
+        installed: Boolean(installation?.id),
+        installation_id: installation?.id || null,
+        permissions,
+        members_write: String(permissions.members || "") === "write",
+        contents_write: String(permissions.contents || "") === "write",
+        pull_requests_write: String(permissions.pull_requests || "") === "write",
+      }
+    } catch (error) {
+      appStatus = { installed:false, error: error instanceof Error ? error.message : "Não foi possível verificar o GitHub App." }
+    }
+  }
 
   if (user?.id) {
     const { data } = await admin
@@ -226,6 +244,7 @@ async function organizationPayload(req: Request) {
     request,
     is_staff: staff.staff,
     staff_requests: staffRequests,
+    app_status: appStatus,
   }
 }
 
