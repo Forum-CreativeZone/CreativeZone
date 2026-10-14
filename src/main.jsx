@@ -100,6 +100,8 @@ import {
   getAccountSettings,
   getBookmarkIds,
   getIgnored,
+  getNotifications,
+  markAllNotificationsRead,
   registerDeviceSession,
   registerLoginDay,
   toggleBookmark,
@@ -1321,6 +1323,9 @@ function App() {
   const [toast, setToast] = useState('')
   const [overlay, setOverlay] = useState(null)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [unreadNotifications, setUnreadNotifications] = useState([])
+  const [loginNotificationPopup, setLoginNotificationPopup] = useState(false)
+  const notificationPopupShownFor = useRef(null)
   const [reply, setReply] = useState('')
   const [topics, setTopics] = useState([])
   const [popularTopics, setPopularTopics] = useState([])
@@ -1359,6 +1364,49 @@ function App() {
   const [ignoredIds, setIgnoredIds] = useState([])
   const mobileThemes = useRef()
   const { session, user, loading: authLoading } = useAuth()
+
+  const refreshUnreadNotifications = useCallback(async () => {
+    if (!user?.id) {
+      setUnreadNotifications([])
+      return []
+    }
+    try {
+      const items=await getNotifications(user.id)
+      const unread=items.filter((item)=>!item.read)
+      setUnreadNotifications(unread)
+      return unread
+    } catch {
+      setUnreadNotifications([])
+      return []
+    }
+  }, [user?.id])
+
+  useEffect(() => {
+    if (!user?.id) {
+      notificationPopupShownFor.current=null
+      setLoginNotificationPopup(false)
+      setUnreadNotifications([])
+      return undefined
+    }
+    let active=true
+    refreshUnreadNotifications().then((unread)=>{
+      if(!active) return
+      if(unread.length && notificationPopupShownFor.current!==user.id){
+        notificationPopupShownFor.current=user.id
+        setLoginNotificationPopup(true)
+      }
+    })
+
+    if(!supabase) return ()=>{active=false}
+    const channel=supabase
+      .channel('creativezone-unread-counter-'+user.id)
+      .on('postgres_changes',{event:'*',schema:'public',table:'notifications',filter:`user_id=eq.${user.id}`},refreshUnreadNotifications)
+      .subscribe()
+    return()=>{
+      active=false
+      supabase.removeChannel(channel)
+    }
+  }, [user?.id,refreshUnreadNotifications])
 
   useEffect(() => {
     if (!toast) return undefined
@@ -3328,14 +3376,17 @@ function App() {
 
           <button
             className="notifications"
-            aria-label="Últimas publicações"
+            aria-label={unreadNotifications.length ? `Notificações: ${unreadNotifications.length} não lida(s)` : 'Notificações'}
             aria-expanded={overlay === 'notifications'}
             onClick={() => {
               setUserMenuOpen(false)
+              setLoginNotificationPopup(false)
+              refreshUnreadNotifications()
               setOverlay((current) => current === 'notifications' ? null : 'notifications')
             }}
           >
             <Icon name="bell" />
+            {unreadNotifications.length>0&&<span className="notification-count-badge">{unreadNotifications.length>99?'99+':unreadNotifications.length}</span>}
           </button>
 
           {!authLoading && session ? (
@@ -3463,6 +3514,18 @@ function App() {
         </div>
       )}
 
+      {loginNotificationPopup && unreadNotifications.length>0 && (
+        <aside className="login-notification-popup" role="status" aria-live="polite">
+          <button className="login-notification-close" aria-label="Fechar" onClick={()=>setLoginNotificationPopup(false)}><X/></button>
+          <span className="login-notification-icon"><Bell/></span>
+          <div><strong>Você tem {unreadNotifications.length} notificação{unreadNotifications.length===1?'':'ões'} não lida{unreadNotifications.length===1?'':'s'}</strong><p>Abra a central para ver convites, respostas, mensagens e atualizações importantes.</p></div>
+          <div className="login-notification-actions">
+            <button className="action primary-action" onClick={()=>{setLoginNotificationPopup(false);setOverlay('notifications')}}>Ver notificações</button>
+            <button className="action" onClick={async()=>{await markAllNotificationsRead(user.id);await refreshUnreadNotifications();setLoginNotificationPopup(false)}}>Marcar todas como lidas</button>
+          </div>
+        </aside>
+      )}
+
       {isHome ? renderHome() : renderRoutePage()}
 
       <nav className="bottomnav" aria-label="Navegação mobile">
@@ -3539,6 +3602,7 @@ function App() {
               session={session}
               navigate={navigate}
               onClose={() => setOverlay(null)}
+              onChanged={(items)=>setUnreadNotifications((items||[]).filter(item=>!item.read))}
             />
           ) : (
             <div className="panel-content notification-list overlay-notifications">
