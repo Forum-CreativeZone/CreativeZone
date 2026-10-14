@@ -592,16 +592,17 @@
 .status-paused{color:#f5c46a;border-color:#735c2d}
 .project-tags{display:flex;gap:6px;flex-wrap:wrap}
 .project-tags span{padding:4px 7px;border-radius:20px;background:#ffffff0d;color:#aaa;font-size:12px}
-.project-detail{padding:20px;display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px}
-.project-overview,.project-members-panel,.project-pending-panel,.project-updates{border:1px solid #ffffff14;border-radius:9px;padding:18px;background:#ffffff04}
-.project-overview{grid-column:1}
-.project-members-panel{grid-column:2;grid-row:1 / span 2}
-.project-updates{grid-column:1}
-.project-pending-panel{grid-column:1}
+.project-detail{padding:20px;display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+.project-overview,.project-pending-panel,.project-updates{border:1px solid #ffffff14;border-radius:9px;padding:18px;background:#ffffff04}
+.project-overview,.project-updates,.project-pending-panel{grid-column:1;width:100%;min-width:0}
 .project-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#aaa;font-size:12px}
 .project-summary{font-size:20px;font-weight:700;margin:16px 0 10px}
 .project-description{white-space:pre-wrap;line-height:1.7;color:#bbb}
 .project-links,.project-status-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.project-members-strip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 2px;padding:10px 12px;border:1px solid rgba(148,163,184,.14);border-radius:10px;background:rgba(255,255,255,.025)}
+.project-members-strip-label{display:inline-flex;align-items:center;gap:6px;color:#aab4c3;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.project-members-strip-label svg{width:15px;height:15px}
+.project-members-avatars{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.project-member-avatar-button{display:grid;place-items:center;width:42px;height:42px;padding:0;border:1px solid rgba(255,255,255,.14);border-radius:50%;background:transparent;cursor:pointer;transition:.15s ease}.project-member-avatar-button:hover,.project-member-avatar-button:focus-visible{transform:translateY(-1px);border-color:var(--red);outline:none}.project-member-avatar-button .community-avatar{width:38px!important;height:38px!important}
+.project-members-count,.project-members-note{color:#7f8a98;font-size:11px}.project-members-count{margin-right:auto}.join-project-form.compact{display:flex;align-items:center;gap:7px;margin:0;min-width:min(460px,100%);flex:1 1 320px}.join-project-form.compact input{min-width:0;flex:1;background:#191919;color:#fff;border:1px solid #3a3a3a;border-radius:7px;padding:8px 10px}.project-leave-button{margin-left:auto}
 .project-member-list{display:grid;gap:8px;margin:12px 0}
 .project-member-list>div,.project-pending-panel>div{display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid var(--line)}
 .project-member-list span,.project-pending-panel span{display:grid;flex:1}
@@ -630,7 +631,6 @@
 :root[data-theme="light"] .project-form,
 :root[data-theme="light"] .project-card,
 :root[data-theme="light"] .project-overview,
-:root[data-theme="light"] .project-members-panel,
 :root[data-theme="light"] .project-pending-panel,
 :root[data-theme="light"] .project-updates{background:#fff;border-color:#e7d9d6}
 :root[data-theme="light"] .inline-edit-form input,
@@ -651,7 +651,8 @@
 @media(max-width:900px){
   .projects-grid{grid-template-columns:1fr 1fr}
   .project-detail{grid-template-columns:1fr}
-  .project-overview,.project-members-panel,.project-updates,.project-pending-panel{grid-column:1;grid-row:auto}
+  .project-overview,.project-updates,.project-pending-panel{grid-column:1;grid-row:auto}
+  .join-project-form.compact{flex-basis:100%}
 }
 @media(max-width:760px){
   .projects-hero{grid-template-columns:1fr;padding:18px}
@@ -6865,3 +6866,5 @@ main{
 .github-community-admin-status{display:inline-flex;align-items:center;width:max-content;margin-top:4px;padding:3px 7px;border-radius:999px;border:1px solid rgba(96,165,250,.28);background:rgba(59,130,246,.08);color:#93c5fd;font-style:normal;font-size:10px;font-weight:700}
 .github-community-app-status>a.action{margin-left:auto;white-space:nowrap}
 @media(max-width:720px){.github-community-app-status>a.action{margin-left:0;width:100%;justify-content:center}}
+
+:root[data-theme="light"] .project-members-strip{background:#faf7f6;border-color:#e4d9d6}:root[data-theme="light"] .join-project-form.compact input{background:#fff;color:#191919;border-color:#dfd3d0}
