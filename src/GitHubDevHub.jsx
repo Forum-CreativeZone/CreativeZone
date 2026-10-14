@@ -24,6 +24,7 @@ import {
 import {
   getGitHubRepositoryCard,
   getGitHubRenderedReadme,
+  getGitHubReadmeAsset,
   syncGitHubProject,
   getGitHubCommunityOrganization,
   requestGitHubOrganizationMembership,
@@ -74,6 +75,60 @@ function sanitizeReadmeHtml(html='') {
   }
 }
 
+async function prepareReadmeHtml(readmeDoc,projectId){
+  if(typeof window==='undefined'||!readmeDoc?.html) return ''
+  try{
+    const parser=new DOMParser()
+    const doc=parser.parseFromString('<div id="cz-readme-hydrate">'+readmeDoc.html+'</div>','text/html')
+    const root=doc.getElementById('cz-readme-hydrate')
+    if(!root) return sanitizeReadmeHtml(readmeDoc.html)
+
+    const owner=String(readmeDoc.owner||'')
+    const repo=String(readmeDoc.repo||'')
+    const branch=String(readmeDoc.branch||'main')
+    const readmePath=String(readmeDoc.path||'README.md')
+    const baseDir=readmePath.includes('/')?readmePath.slice(0,readmePath.lastIndexOf('/')+1):''
+
+    const normalizePath=(value)=>{
+      try{
+        const url=new URL(String(value||''),'https://creativezone.invalid/'+baseDir)
+        return decodeURIComponent(url.pathname.replace(/^\//,''))
+      }catch{return String(value||'').replace(/^\.\//,'')}
+    }
+
+    const images=[...root.querySelectorAll('img')].slice(0,20)
+    await Promise.all(images.map(async(img)=>{
+      const src=String(img.getAttribute('src')||'').trim()
+      if(!src||/^(?:https?:|data:|blob:)/i.test(src)) return
+      if(src.startsWith('/')){
+        img.setAttribute('src','https://github.com'+src)
+        return
+      }
+      const path=normalizePath(src)
+      if(!path) return
+      try{
+        const asset=await getGitHubReadmeAsset(projectId,path)
+        if(asset?.data_url) img.setAttribute('src',asset.data_url)
+      }catch{}
+    }))
+
+    root.querySelectorAll('a[href]').forEach(link=>{
+      const href=String(link.getAttribute('href')||'').trim()
+      if(!href||href.startsWith('#')||/^(?:https?:|mailto:)/i.test(href)) return
+      if(href.startsWith('/')){
+        link.setAttribute('href','https://github.com'+href)
+        return
+      }
+      const path=normalizePath(href)
+      if(path&&owner&&repo) link.setAttribute('href',`https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/blob/${encodeURIComponent(branch)}/${path.split('/').map(encodeURIComponent).join('/')}`)
+    })
+
+    return sanitizeReadmeHtml(root.innerHTML)
+  }catch{
+    return sanitizeReadmeHtml(readmeDoc?.html||'')
+  }
+}
+
 function topLanguages(languages = {}) {
   const rows = Object.entries(languages || {}).sort((a,b)=>Number(b[1])-Number(a[1])).slice(0,6)
   const total = rows.reduce((sum,[,bytes])=>sum+Number(bytes || 0),0)
@@ -104,9 +159,9 @@ export function GitHubRepositoryPanel({ project, canManage = false, notify, onCh
       if(result?.repository){
         setReadmeLoading(true)
         getGitHubRenderedReadme(project.id)
-          .then((doc)=>setReadme({
+          .then(async(doc)=>setReadme({
             ...doc,
-            html:sanitizeReadmeHtml(doc?.html || ''),
+            html:await prepareReadmeHtml(doc,project.id),
           }))
           .catch(()=>setReadme(null))
           .finally(()=>setReadmeLoading(false))
