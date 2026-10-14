@@ -218,7 +218,6 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
   const [data,setData] = useState(null)
   const [loading,setLoading] = useState(true)
   const [busy,setBusy] = useState(false)
-  const [githubUsername,setGithubUsername] = useState('')
   const [message,setMessage] = useState('')
   const [selectedRepo,setSelectedRepo] = useState(null)
 
@@ -253,11 +252,10 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
   async function submit(event) {
     event.preventDefault()
     if (!session?.user) return navigate?.('/entrar')
-    if (!githubUsername.trim()) return notify?.('Informe seu usuário do GitHub.')
     setBusy(true)
     try {
-      await requestGitHubOrganizationMembership(githubUsername.trim(),message.trim())
-      notify?.('Pedido enviado para a organização CreativeZone.')
+      await requestGitHubOrganizationMembership('',message.trim())
+      notify?.('Pedido enviado para a organização CreativeZone usando sua conta GitHub conectada.')
       setMessage('')
       await load()
     } catch (error) {
