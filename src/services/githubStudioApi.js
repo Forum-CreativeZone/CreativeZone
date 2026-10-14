@@ -57,3 +57,5 @@ export const updateProjectStudioRepositorySettings = (projectId, payload) => inv
 export const runProjectStudioCode = (projectId, payload) => invokeStudio({ action:'run_code', project_id:projectId, ...payload })
 
 export const commitProjectStudioBatch = (projectId, payload) => invokeStudio({ action:'commit_batch', project_id:projectId, ...payload })
+
+export const previewProjectStudioFile = (projectId, payload) => invokeStudio({ action:'preview', project_id:projectId, ...payload })
