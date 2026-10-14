@@ -93,6 +93,138 @@ function terminalPrompt(term,branch='main'){
   )
 }
 
+
+const MONACO_VERSION='0.52.2'
+const MONACO_BASE='https://cdn.jsdelivr.net/npm/monaco-editor@'+MONACO_VERSION+'/min'
+const MONACO_VS=MONACO_BASE+'/vs'
+let monacoRuntimePromise=null
+let monacoThemeReady=false
+
+function loadMonacoRuntime(){
+  if(typeof window==='undefined') return Promise.reject(new Error('Monaco Editor requer um navegador.'))
+  if(window.monaco?.editor) return Promise.resolve(window.monaco)
+  if(monacoRuntimePromise) return monacoRuntimePromise
+
+  monacoRuntimePromise=new Promise((resolve,reject)=>{
+    const configure=()=>{
+      const amdRequire=window.require
+      if(typeof amdRequire!=='function'||typeof amdRequire.config!=='function'){
+        reject(new Error('AMD loader do Monaco Editor indisponível.'))
+        return
+      }
+      window.MonacoEnvironment={
+        getWorkerUrl(){
+          const source=[
+            "self.MonacoEnvironment={baseUrl:'"+MONACO_BASE+"/'};",
+            "importScripts('"+MONACO_VS+"/base/worker/workerMain.js');",
+          ].join('')
+          return 'data:text/javascript;charset=utf-8,'+encodeURIComponent(source)
+        },
+      }
+      amdRequire.config({paths:{vs:MONACO_VS}})
+      amdRequire(['vs/editor/editor.main'],()=>{
+        if(window.monaco?.editor) resolve(window.monaco)
+        else reject(new Error('Monaco Editor não inicializou.'))
+      },reject)
+    }
+
+    if(typeof window.require==='function'&&typeof window.require.config==='function'){
+      configure()
+      return
+    }
+
+    const existing=document.getElementById('creativezone-monaco-loader')
+    if(existing){
+      existing.addEventListener('load',configure,{once:true})
+      existing.addEventListener('error',()=>reject(new Error('Falha ao carregar o Monaco Editor.')),{once:true})
+      return
+    }
+
+    const script=document.createElement('script')
+    script.id='creativezone-monaco-loader'
+    script.src=MONACO_VS+'/loader.js'
+    script.async=true
+    script.crossOrigin='anonymous'
+    script.addEventListener('load',configure,{once:true})
+    script.addEventListener('error',()=>reject(new Error('Falha ao carregar o Monaco Editor.')),{once:true})
+    document.head.appendChild(script)
+  })
+
+  return monacoRuntimePromise
+}
+
+function monacoLanguageForPath(path=''){
+  const value=String(path||'')
+  const name=value.split('/').pop()?.toLowerCase()||''
+  if(name==='dockerfile') return 'dockerfile'
+  if(name==='makefile'||name==='gnumakefile') return 'plaintext'
+  if(name==='.env'||name.startsWith('.env.')) return 'ini'
+  const ext=name.includes('.')?name.split('.').pop():''
+  return ({
+    js:'javascript',mjs:'javascript',cjs:'javascript',jsx:'javascript',
+    ts:'typescript',mts:'typescript',cts:'typescript',tsx:'typescript',
+    json:'json',jsonc:'json',
+    md:'markdown',markdown:'markdown',mdx:'markdown',
+    html:'html',htm:'html',vue:'html',
+    css:'css',scss:'scss',sass:'scss',less:'less',
+    xml:'xml',svg:'xml',
+    yml:'yaml',yaml:'yaml',
+    py:'python',pyw:'python',
+    sh:'shell',bash:'shell',zsh:'shell',
+    c:'c',h:'c',cpp:'cpp',cc:'cpp',cxx:'cpp',hpp:'cpp',hh:'cpp',
+    java:'java',cs:'csharp',go:'go',rs:'rust',
+    php:'php',rb:'ruby',sql:'sql',
+    toml:'ini',ini:'ini',cfg:'ini',conf:'ini',
+    ps1:'powershell',bat:'bat',cmd:'bat',
+    graphql:'graphql',gql:'graphql',
+    lua:'lua',pl:'perl',r:'r',
+  })[ext]||'plaintext'
+}
+
+function monacoLanguageLabel(id='plaintext'){
+  return ({
+    javascript:'JavaScript',typescript:'TypeScript',json:'JSON',markdown:'Markdown',
+    html:'HTML',css:'CSS',scss:'SCSS',less:'Less',xml:'XML',yaml:'YAML',
+    python:'Python',shell:'Shell Script',c:'C',cpp:'C++',java:'Java',
+    csharp:'C#',go:'Go',rust:'Rust',php:'PHP',ruby:'Ruby',sql:'SQL',
+    ini:'Config',dockerfile:'Dockerfile',powershell:'PowerShell',bat:'Batch',
+    graphql:'GraphQL',lua:'Lua',perl:'Perl',r:'R',plaintext:'Plain Text',
+  })[id]||id
+}
+
+function ensureMonacoTheme(monaco){
+  if(monacoThemeReady) return
+  monaco.editor.defineTheme('creativezone-vscode-dark',{
+    base:'vs-dark',
+    inherit:true,
+    rules:[],
+    colors:{
+      'editor.background':'#1e1e1e',
+      'editor.foreground':'#d4d4d4',
+      'editorCursor.foreground':'#aeafad',
+      'editor.lineHighlightBackground':'#2a2d2e',
+      'editorLineNumber.foreground':'#858585',
+      'editorLineNumber.activeForeground':'#c6c6c6',
+      'editor.selectionBackground':'#264f78',
+      'editor.inactiveSelectionBackground':'#3a3d41',
+      'editorIndentGuide.background1':'#404040',
+      'editorIndentGuide.activeBackground1':'#707070',
+      'editorWhitespace.foreground':'#3b3b3b',
+      'editorWidget.background':'#252526',
+      'editorWidget.border':'#454545',
+      'editorSuggestWidget.background':'#252526',
+      'editorSuggestWidget.border':'#454545',
+      'editorHoverWidget.background':'#252526',
+      'editorHoverWidget.border':'#454545',
+      'minimap.background':'#1e1e1e',
+      'scrollbarSlider.background':'#79797966',
+      'scrollbarSlider.hoverBackground':'#646464b3',
+      'scrollbarSlider.activeBackground':'#bfbfbf66',
+    },
+  })
+  monacoThemeReady=true
+}
+
 function StudioLocked({ plan }) {
   return (
     <section className="project-studio locked">
@@ -200,6 +332,11 @@ export function ProjectStudio({ project, canManage = false, notify }) {
   const [terminalPane,setTerminalPane]=useState('terminal')
   const [xtermState,setXtermState]=useState('idle')
   const [xtermError,setXtermError]=useState('')
+  const [monacoState,setMonacoState]=useState('idle')
+  const [monacoError,setMonacoError]=useState('')
+  const [monacoCursor,setMonacoCursor]=useState({lineNumber:1,column:1})
+  const [monacoMinimap,setMonacoMinimap]=useState(true)
+  const [monacoWordWrap,setMonacoWordWrap]=useState(false)
   const [terminalCommand,setTerminalCommand]=useState('')
   const [runnerSource,setRunnerSource]=useState('')
   const [runnerLanguage,setRunnerLanguage]=useState('javascript')
@@ -217,7 +354,14 @@ export function ProjectStudio({ project, canManage = false, notify }) {
   const xtermHistoryIndexRef=useRef(-1)
   const xtermRunningRef=useRef(false)
   const terminalExecutorRef=useRef(null)
+  const monacoHostRef=useRef(null)
+  const monacoEditorRef=useRef(null)
+  const monacoModelRef=useRef(null)
+  const monacoContentRef=useRef('')
+  const monacoCommitRef=useRef(null)
   const terminalBranchRef=useRef('')
+
+  monacoContentRef.current=content
 
   useEffect(()=>{
     let active=true
@@ -641,6 +785,8 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     finally{setBusy('')}
   }
 
+  monacoCommitRef.current=commit
+
   async function createPr() {
     const source=commitInfo?.branch || (branch!==baseBranch?branch:'')
     if(!source) return notify?.('Crie uma branch ou faça uma alteração antes de abrir a Pull Request.')
@@ -810,6 +956,131 @@ export function ProjectStudio({ project, canManage = false, notify }) {
   }
 
   terminalExecutorRef.current=executeTerminalCommand
+
+  useEffect(()=>{
+    if(tab!=='code'||!selected||selectedMeta?.editable===false||preview||!monacoHostRef.current) return undefined
+    let disposed=false
+    let editor=null
+    let model=null
+    const disposables=[]
+    setMonacoState('loading')
+    setMonacoError('')
+
+    loadMonacoRuntime().then(monaco=>{
+      if(disposed||!monacoHostRef.current) return
+      ensureMonacoTheme(monaco)
+      const language=monacoLanguageForPath(selected)
+      const encodedPath=selected.split('/').map(encodeURIComponent).join('/')
+      const uri=monaco.Uri.parse('inmemory://creativezone/'+encodeURIComponent(String(project?.id||'project'))+'/'+encodedPath)
+      const existing=monaco.editor.getModel(uri)
+      if(existing) existing.dispose()
+      model=monaco.editor.createModel(monacoContentRef.current||'',language,uri)
+      monacoModelRef.current=model
+
+      editor=monaco.editor.create(monacoHostRef.current,{
+        model,
+        theme:'creativezone-vscode-dark',
+        automaticLayout:true,
+        fontFamily:'"Cascadia Code","SFMono-Regular",Consolas,"Liberation Mono",monospace',
+        fontSize:14,
+        lineHeight:21,
+        fontLigatures:true,
+        cursorBlinking:'smooth',
+        cursorSmoothCaretAnimation:'on',
+        smoothScrolling:true,
+        mouseWheelZoom:true,
+        contextmenu:true,
+        glyphMargin:false,
+        lineNumbers:'on',
+        lineNumbersMinChars:4,
+        folding:true,
+        foldingHighlight:true,
+        showFoldingControls:'mouseover',
+        renderLineHighlight:'all',
+        renderWhitespace:'selection',
+        renderControlCharacters:false,
+        roundedSelection:false,
+        scrollBeyondLastLine:false,
+        scrollbar:{verticalScrollbarSize:10,horizontalScrollbarSize:10,useShadows:false},
+        minimap:{enabled:monacoMinimap,showSlider:'mouseover',renderCharacters:true,maxColumn:120},
+        wordWrap:monacoWordWrap?'on':'off',
+        wrappingIndent:'indent',
+        bracketPairColorization:{enabled:true,independentColorPoolPerBracketType:true},
+        guides:{bracketPairs:true,bracketPairsHorizontal:'active',highlightActiveBracketPair:true,indentation:true},
+        stickyScroll:{enabled:true,maxLineCount:5},
+        formatOnPaste:true,
+        formatOnType:true,
+        quickSuggestions:{other:true,comments:false,strings:false},
+        suggestOnTriggerCharacters:true,
+        acceptSuggestionOnEnter:'on',
+        tabCompletion:'on',
+        snippetSuggestions:'inline',
+        links:true,
+        colorDecorators:true,
+        occurrencesHighlight:'singleFile',
+        selectionHighlight:true,
+        codeLens:true,
+        lightbulb:{enabled:'on'},
+        padding:{top:8,bottom:8},
+        fixedOverflowWidgets:true,
+      })
+      monacoEditorRef.current=editor
+
+      disposables.push(editor.onDidChangeModelContent(()=>{
+        if(disposed) return
+        const value=editor.getValue()
+        monacoContentRef.current=value
+        setContent(value)
+      }))
+      disposables.push(editor.onDidChangeCursorPosition(event=>{
+        if(disposed) return
+        setMonacoCursor({lineNumber:event.position.lineNumber,column:event.position.column})
+      }))
+      disposables.push(editor.onDidFocusEditorText(()=>setEditMenuOpen(false)))
+      editor.addCommand(monaco.KeyMod.CtrlCmd|monaco.KeyCode.KeyS,()=>{
+        monacoCommitRef.current?.()
+      })
+
+      setMonacoCursor(editor.getPosition()||{lineNumber:1,column:1})
+      setMonacoState('ready')
+      requestAnimationFrame(()=>{
+        try{editor.layout();editor.focus()}catch{}
+      })
+    }).catch(error=>{
+      if(disposed) return
+      setMonacoState('error')
+      setMonacoError(error?.message||'Não foi possível carregar o Monaco Editor.')
+    })
+
+    return ()=>{
+      disposed=true
+      disposables.forEach(item=>item?.dispose?.())
+      editor?.dispose?.()
+      model?.dispose?.()
+      if(monacoEditorRef.current===editor) monacoEditorRef.current=null
+      if(monacoModelRef.current===model) monacoModelRef.current=null
+    }
+  },[tab,selected,selectedMeta?.editable,preview,project?.id])
+
+  useEffect(()=>{
+    monacoContentRef.current=content
+    const editor=monacoEditorRef.current
+    const model=editor?.getModel?.()
+    if(!model||model.getValue()===content) return
+    const position=editor.getPosition()
+    model.setValue(content)
+    if(position) editor.setPosition(position)
+  },[content])
+
+  useEffect(()=>{
+    const editor=monacoEditorRef.current
+    if(!editor) return
+    editor.updateOptions({
+      minimap:{enabled:monacoMinimap,showSlider:'mouseover',renderCharacters:true,maxColumn:120},
+      wordWrap:monacoWordWrap?'on':'off',
+    })
+    requestAnimationFrame(()=>{try{editor.layout()}catch{}})
+  },[monacoMinimap,monacoWordWrap])
 
   useEffect(()=>{
     terminalBranchRef.current=branch || baseBranch || 'main'
@@ -1077,7 +1348,7 @@ export function ProjectStudio({ project, canManage = false, notify }) {
                 <div className="studio-edit-control">
                   <button type="button" className="studio-edit-trigger" onClick={()=>setEditMenuOpen(value=>!value)}><Pencil/>Editar<ChevronDown/></button>
                   {editMenuOpen&&<div className="studio-edit-menu">
-                    <button type="button" onClick={openDirectEditor}><Pencil/><span><strong>Editor direto</strong><small>Editar o conteúdo no Code Studio</small></span></button>
+                    <button type="button" onClick={openDirectEditor}><Pencil/><span><strong>Monaco Editor</strong><small>Editor profissional do VS Code dentro do Code Studio</small></span></button>
                     <button type="button" onClick={openTerminalEditor}><Terminal/><span><strong>Editar no terminal</strong><small>Abrir editor terminal dentro do fórum</small></span></button>
                   </div>}
                 </div>
@@ -1094,7 +1365,39 @@ export function ProjectStudio({ project, canManage = false, notify }) {
               : selectedMeta?.editable===false
                 ? <div className="project-studio-binary-file"><FileCode2/><strong>{selectedMeta?.binary?'Arquivo binário':'Arquivo grande demais para o editor de texto'}</strong><p>{selectedMeta?.size?Math.ceil(Number(selectedMeta.size)/1024).toLocaleString('pt-BR')+' KB · ':''}O arquivo faz parte do repositório e aparece na estrutura. Para substituí-lo, use <b>Upload</b>; para excluir, use o botão acima.</p></div>
                 : <>
-                    <textarea className="project-studio-editor" spellCheck="false" value={content} onChange={e=>setContent(e.target.value)}/>
+                    <div className="studio-monaco-shell">
+                      <div className="studio-monaco-tabs">
+                        <div className="studio-monaco-tab active">
+                          <FileCode2/>
+                          <span>{selected.split('/').pop()}</span>
+                          {content!==original&&<em title="Arquivo alterado">●</em>}
+                        </div>
+                        <div className="studio-monaco-actions">
+                          <button type="button" className={monacoWordWrap?'active':''} onClick={()=>setMonacoWordWrap(value=>!value)} title="Alternar quebra automática de linha">Wrap</button>
+                          <button type="button" className={monacoMinimap?'active':''} onClick={()=>setMonacoMinimap(value=>!value)} title="Alternar minimapa">Minimap</button>
+                          <span className="studio-monaco-runtime">Monaco {MONACO_VERSION}</span>
+                        </div>
+                      </div>
+                      <div className="studio-monaco-breadcrumbs">
+                        {selected.split('/').map((part,index,parts)=><React.Fragment key={parts.slice(0,index+1).join('/')}><span>{part}</span>{index<parts.length-1&&<ChevronRight/>}</React.Fragment>)}
+                      </div>
+                      <div className="studio-monaco-editor-wrap">
+                        <div ref={monacoHostRef} className="studio-monaco-editor" aria-label={'Editor Monaco de '+selected}/>
+                        {monacoState==='loading'&&<div className="studio-monaco-state"><RefreshCw className="security-spin"/>Carregando Monaco Editor...</div>}
+                        {monacoState==='error'&&<div className="studio-monaco-fallback">
+                          <div><AlertTriangle/><span><strong>Monaco Editor indisponível</strong><small>{monacoError}</small></span></div>
+                          <textarea className="project-studio-editor" spellCheck="false" value={content} onChange={e=>setContent(e.target.value)}/>
+                        </div>}
+                      </div>
+                      <footer className="studio-monaco-status">
+                        <span>Ln {monacoCursor.lineNumber}, Col {monacoCursor.column}</span>
+                        <span>Spaces: 2</span>
+                        <span>UTF-8</span>
+                        <span>LF</span>
+                        <span>{monacoLanguageLabel(monacoLanguageForPath(selected))}</span>
+                        <span>Monaco Editor</span>
+                      </footer>
+                    </div>
                     <div className="project-studio-commitbar">
                       <input value={message} onChange={e=>setMessage(e.target.value)} placeholder="Mensagem do commit"/>
                       <button className="action primary-action" onClick={commit} disabled={content===original||Boolean(busy)}><GitCommitHorizontal/>{busy==='commit'?'Commitando...':'Commitar'}</button>
