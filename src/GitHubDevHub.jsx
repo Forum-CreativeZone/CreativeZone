@@ -259,9 +259,9 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
           <strong>CreativeZone DevHub GitHub App</strong>
           {!data.app_status.installed
             ? <span>Instale o GitHub App na organização <b>Creatiive-Zone</b> para que colaboradores aprovados usem o workspace através da organização.</span>
-            : data.app_status.members_write
-              ? <span><CheckCircle2/> Instalação ativa e permissão de membros pronta para convites automáticos.</span>
-              : <span><Clock3/> Instalação encontrada. Falta habilitar <b>Organization members: Read and write</b> para o botão “Aprovar e enviar convite”.</span>}
+            : data.app_status.members_write && data.app_status.administration_write
+              ? <span><CheckCircle2/> Instalação pronta: convites automáticos e criação centralizada de repositórios habilitados.</span>
+              : <span><Clock3/> Instalação encontrada. {data.app_status.members_write ? '' : <>Habilite <b>Organization members: Read and write</b>. </>}{data.app_status.administration_write ? '' : <>Habilite também <b>Repository administration: Read and write</b> para criação centralizada de repositórios.</>}</span>}
         </div>
       )}
 
