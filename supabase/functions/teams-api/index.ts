@@ -73,19 +73,28 @@ async function teamContext(teamId:string,userId:string|null){
   const owner=Boolean(userId&&(team.owner_id===userId||systemOwner))
   const role=systemOwner?"system_owner":owner?"owner":String(member?.role||"")
   const active=Boolean(member||owner||systemOwner)
-  return {team,member,systemOwner,owner,role,active}
+  const ownerPlan=await profileState(String(team.owner_id))
+  const teamEntitled=Boolean(ownerPlan.elite)
+  return {team,member,systemOwner,owner,role,active,teamEntitled,ownerPlan}
 }
-function permissions(role:string,owner=false,systemOwner=false){
+function permissions(role:string,owner=false,systemOwner=false,writeEnabled=true){
   const effective=systemOwner?"system_owner":owner?"owner":role
+  const canWrite=systemOwner||writeEnabled
   return {
     role:effective,
     view_private:Boolean(effective),
-    manage_members:["system_owner","owner"].includes(effective),
-    manage_team:["system_owner","owner"].includes(effective),
-    manage_topics:["system_owner","owner","maintainer"].includes(effective),
-    create_topics:["system_owner","owner","maintainer","developer","designer","member"].includes(effective),
-    reply:["system_owner","owner","maintainer","developer","reviewer","designer","member"].includes(effective),
-    review:["system_owner","owner","maintainer","reviewer"].includes(effective),
+    team_entitled:canWrite,
+    manage_members:canWrite&&["system_owner","owner"].includes(effective),
+    manage_team:canWrite&&["system_owner","owner"].includes(effective),
+    manage_topics:canWrite&&["system_owner","owner","maintainer"].includes(effective),
+    create_topics:canWrite&&["system_owner","owner","maintainer","developer","designer","member"].includes(effective),
+    reply:canWrite&&["system_owner","owner","maintainer","developer","reviewer","designer","member"].includes(effective),
+    review:canWrite&&["system_owner","owner","maintainer","reviewer"].includes(effective),
+  }
+}
+function ensureTeamEntitled(ctx:any){
+  if(!ctx.teamEntitled&&!ctx.systemOwner){
+    throw new Error("A equipe está em modo somente leitura porque o plano ELITE do dono não está ativo.")
   }
 }
 async function teamBySlug(slug:string){
@@ -182,7 +191,7 @@ async function getTeam(req:Request,payload:Record<string,unknown>){
   if(!team) throw new Error("Equipe não encontrada.")
   const ctx=await teamContext(team.id,user?.id||null)
   if(!team.public_profile&&!ctx.active) throw new Error("Esta equipe é privada.")
-  const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner)
+  const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner,ctx.teamEntitled)
 
   let members:any[]=[]
   let invites:any[]=[]
@@ -220,7 +229,8 @@ async function inviteMember(req:Request,payload:Record<string,unknown>){
   if(!user) throw new Error("Autenticação necessária.")
   const teamId=String(payload.team_id||"")
   const ctx=await teamContext(teamId,user.id)
-  const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner)
+  ensureTeamEntitled(ctx)
+  const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner,ctx.teamEntitled)
   if(!perms.manage_members) throw new Error("Somente o dono da equipe pode convidar e definir funções.")
   const username=String(payload.username||"").trim().replace(/^@/,"")
   if(!username) throw new Error("Informe o @username do fórum.")
@@ -277,7 +287,8 @@ async function setMemberRole(req:Request,payload:Record<string,unknown>){
   const targetId=String(payload.user_id||"")
   const role=String(payload.role||"")
   const ctx=await teamContext(teamId,user.id)
-  const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner)
+  ensureTeamEntitled(ctx)
+  const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner,ctx.teamEntitled)
   if(!perms.manage_members) throw new Error("Somente o dono da equipe pode definir permissões.")
   if(targetId===ctx.team.owner_id) throw new Error("A função do dono não pode ser alterada.")
   if(!["maintainer","developer","reviewer","designer","member","viewer"].includes(role)) throw new Error("Função inválida.")
@@ -294,7 +305,8 @@ async function removeMember(req:Request,payload:Record<string,unknown>){
   const teamId=String(payload.team_id||"")
   const targetId=String(payload.user_id||"")
   const ctx=await teamContext(teamId,user.id)
-  const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner)
+  ensureTeamEntitled(ctx)
+  const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner,ctx.teamEntitled)
   if(!perms.manage_members) throw new Error("Somente o dono da equipe pode remover membros.")
   if(targetId===ctx.team.owner_id) throw new Error("O dono não pode ser removido da própria equipe.")
   const {error}=await admin.from("creative_team_members").update({status:"removed",updated_at:new Date().toISOString()})
@@ -308,7 +320,8 @@ async function createTopic(req:Request,payload:Record<string,unknown>){
   if(!user) throw new Error("Entre para criar tópicos da equipe.")
   const teamId=String(payload.team_id||"")
   const ctx=await teamContext(teamId,user.id)
-  const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner)
+  ensureTeamEntitled(ctx)
+  const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner,ctx.teamEntitled)
   if(!perms.create_topics) throw new Error("Sua função na equipe não permite criar tópicos.")
   const title=compact(payload.title,160)
   if(title.length<3) throw new Error("Informe um título válido.")
@@ -341,7 +354,7 @@ async function getTopic(req:Request,payload:Record<string,unknown>){
   const ctx=await teamContext(team.id,user?.id||null)
   const publicPreview=topic.visibility==="public_preview"
   if(!ctx.active&&!publicPreview) throw new Error("Este tópico é privado para a equipe.")
-  const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner)
+  const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner,ctx.teamEntitled)
   if(!ctx.active) return {team:{id:team.id,name:team.name,slug:team.slug,avatar_url:team.avatar_url},topic,private_content:null,posts:[],permissions:{...perms,view_private:false,reply:false}}
   const [{data:privateRow},{data:posts}]=await Promise.all([
     admin.from("creative_team_topic_private").select("content,updated_at").eq("topic_id",topic.id).maybeSingle(),
@@ -360,7 +373,8 @@ async function replyTopic(req:Request,payload:Record<string,unknown>){
   if(!topic) throw new Error("Tópico não encontrado.")
   if(topic.locked) throw new Error("Este tópico está fechado.")
   const ctx=await teamContext(topic.team_id,user.id)
-  const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner)
+  ensureTeamEntitled(ctx)
+  const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner,ctx.teamEntitled)
   if(!perms.reply) throw new Error("Sua função na equipe não permite responder.")
   const content=compact(payload.content,20000)
   if(!content) throw new Error("Resposta vazia.")
@@ -376,7 +390,8 @@ async function updateTopic(req:Request,payload:Record<string,unknown>){
   if(error) throw error
   if(!topic) throw new Error("Tópico não encontrado.")
   const ctx=await teamContext(topic.team_id,user.id)
-  const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner)
+  ensureTeamEntitled(ctx)
+  const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner,ctx.teamEntitled)
   if(!perms.manage_topics&&topic.author_id!==user.id) throw new Error("Você não pode editar este tópico.")
   const changes:any={updated_at:new Date().toISOString()}
   if(payload.title!==undefined){
