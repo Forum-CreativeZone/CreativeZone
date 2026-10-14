@@ -20,6 +20,7 @@ import {
 const ROLE_LABELS={
   owner:'Dono',
   system_owner:'Arquiteto',
+  lead:'Administrador',
   maintainer:'Maintainer',
   developer:'Developer',
   reviewer:'Reviewer',
@@ -27,7 +28,7 @@ const ROLE_LABELS={
   member:'Membro',
   viewer:'Viewer',
 }
-const ROLE_OPTIONS=['maintainer','developer','reviewer','designer','member','viewer']
+const ROLE_OPTIONS=['lead','maintainer','developer','reviewer','designer','member','viewer']
 
 function avatar(profile,size=38){
   const name=profile?.display_name||profile?.username||'Membro'
@@ -159,7 +160,7 @@ export function TeamPage({slug,session,navigate,notify}){
     event.preventDefault();setBusy(true)
     try{
       await inviteCreativeTeamMember(data.team.id,invite)
-      notify?.('Convite enviado dentro da CreativeZone.')
+      notify?.('Convite enviado na CreativeZone e encaminhado por e-mail.')
       setInvite({username:'',role:'member',message:''});await load()
     }catch(error){notify?.(error?.message||'Não foi possível enviar o convite.')}
     finally{setBusy(false)}
@@ -205,19 +206,19 @@ export function TeamPage({slug,session,navigate,notify}){
         {(data.members||[]).map(member=><article key={member.user_id}>
           <button type="button" data-profile-username={member.profile?.username||undefined}>{avatar(member.profile,42)}</button>
           <span><strong>{member.profile?.display_name||member.profile?.username}</strong><small>{ROLE_LABELS[member.role]||member.role}</small></span>
-          {perms.manage_members&&member.role!=='owner'&&<div>
-            <select value={member.role} disabled={busy} onChange={e=>roleChange(member.user_id,e.target.value)}>{ROLE_OPTIONS.map(role=><option value={role} key={role}>{ROLE_LABELS[role]}</option>)}</select>
-            <button title="Remover membro" disabled={busy} onClick={()=>remove(member.user_id)}><X/></button>
+          {member.role!=='owner'&&(perms.manage_members||perms.remove_members)&&<div>
+            {perms.manage_members&&<select value={member.role} disabled={busy} onChange={e=>roleChange(member.user_id,e.target.value)}>{ROLE_OPTIONS.map(role=><option value={role} key={role}>{ROLE_LABELS[role]}</option>)}</select>}
+            {perms.remove_members&&<button title="Remover membro" disabled={busy} onClick={()=>remove(member.user_id)}><X/></button>}
           </div>}
         </article>)}
       </div>
     </section>}
 
-    {perms.manage_members&&<section className="team-admin-grid">
+    {perms.invite_members&&<section className="team-admin-grid">
       <form onSubmit={sendInvite}>
-        <header><UserPlus/><div><strong>Convidar pelo @username</strong><small>O convidado pode ser FREE, PRO ou ELITE.</small></div></header>
+        <header><UserPlus/><div><strong>Convidar pelo @username</strong><small>Escolha usuário, função e mensagem. O convidado recebe aviso no fórum e por e-mail.</small></div></header>
         <label>Usuário<input required value={invite.username} onChange={e=>setInvite({...invite,username:e.target.value})} placeholder="@CreativeZone"/></label>
-        <label>Função<select value={invite.role} onChange={e=>setInvite({...invite,role:e.target.value})}>{ROLE_OPTIONS.map(role=><option value={role} key={role}>{ROLE_LABELS[role]}</option>)}</select></label>
+        <label>Função<select value={invite.role} onChange={e=>setInvite({...invite,role:e.target.value})}>{ROLE_OPTIONS.filter(role=>perms.manage_members||role!=='lead').map(role=><option value={role} key={role}>{ROLE_LABELS[role]}</option>)}</select></label>
         <label>Mensagem<textarea maxLength={1000} value={invite.message} onChange={e=>setInvite({...invite,message:e.target.value})} placeholder="Conte no que a pessoa vai colaborar."/></label>
         <button className="action primary-action" disabled={busy}><Send/>Enviar convite</button>
       </form>
