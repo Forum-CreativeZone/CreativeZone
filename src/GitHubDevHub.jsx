@@ -496,6 +496,8 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
 
         {!session?.user ? (
           <button className="action primary-action" onClick={()=>navigate?.('/entrar')}><UserPlus/> Entrar para solicitar participação</button>
+        ) : data?.is_system_owner ? (
+          <div className="github-community-request-state joined"><ShieldCheck/><span><strong>Você administra o CreativeZone DevHub</strong><small>Pedidos de participação aparecem abaixo somente quando pertencem a outros membros e exigem sua ação.</small></span></div>
         ) : membership?.state === 'active' || request?.status === 'joined' ? (
           <div className="github-community-request-state joined"><CheckCircle2/><span><strong>Você já faz parte da organização</strong><small>@{membership?.github_username || request?.github_username} · função GitHub: {membership?.role || request?.github_membership_role || 'member'}</small></span></div>
         ) : request?.status === 'pending' ? (
@@ -518,7 +520,7 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
 
       {data?.is_staff && pending.length > 0 && (
         <section className="github-community-admin">
-          <div className="github-community-section-title"><strong>Pedidos enviados pelo fórum</strong><small>{pending.length} aguardando conclusão</small></div>
+          <div className="github-community-section-title"><strong>Pedidos reais aguardando ação</strong><small>{pending.length} aguardando conclusão</small></div>
           {pending.map(item=>(
             <article key={item.id}>
               <span>
