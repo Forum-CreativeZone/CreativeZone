@@ -12,6 +12,7 @@ import {
 export function GitHubAccountConnect({ session, notify, compact = false, onChanged }) {
   const [state,setState]=useState(null)
   const [membership,setMembership]=useState(null)
+  const [membershipError,setMembershipError]=useState('')
   const [loading,setLoading]=useState(Boolean(session?.user))
   const [busy,setBusy]=useState(false)
 
@@ -22,8 +23,17 @@ export function GitHubAccountConnect({ session, notify, compact = false, onChang
       const next = capture ? await captureGitHubProviderToken() : await getGitHubAccountStatus()
       setState(next)
       if(next?.connected){
-        try{setMembership(await getCreativeZoneGitHubMembership())}catch{setMembership(null)}
-      }else setMembership(null)
+        try{
+          setMembership(await getCreativeZoneGitHubMembership())
+          setMembershipError('')
+        }catch(error){
+          setMembership(null)
+          setMembershipError(error?.message || 'O GitHub não autorizou a leitura da organização.')
+        }
+      }else{
+        setMembership(null)
+        setMembershipError('')
+      }
       onChanged?.(next)
     }catch(error){
       notify?.(error?.message || 'Não foi possível verificar sua conta GitHub.')
@@ -57,6 +67,18 @@ export function GitHubAccountConnect({ session, notify, compact = false, onChang
     }
   }
 
+  async function authorizeOrganization(){
+    if(!session?.user) return
+    setBusy(true)
+    try{
+      const returnTo=window.location.pathname || '/projetos'
+      await reauthorizeGitHubIdentity(returnTo)
+    }catch(error){
+      notify?.(error?.message || 'Não foi possível autorizar a leitura da organização GitHub.')
+      setBusy(false)
+    }
+  }
+
   async function disconnect(){
     setBusy(true)
     try{
@@ -72,6 +94,10 @@ export function GitHubAccountConnect({ session, notify, compact = false, onChang
   if(loading) return <section className={'github-account-connect '+(compact?'compact':'')}><RefreshCw className="security-spin"/><span>Verificando GitHub...</span></section>
 
   const connection=state?.connection
+  const needsOrgAuthorization=Boolean(state?.connected && (
+    membershipError ||
+    state?.organization_access?.scope_authorized===false
+  ))
   return (
     <section className={'github-account-connect '+(compact?'compact':'')}>
       <header>
@@ -82,7 +108,9 @@ export function GitHubAccountConnect({ session, notify, compact = false, onChang
           <em>{state?.connected
             ? (membership?.member
                 ? 'Membro da organização Creatiive-Zone'
-                : 'Conta reconhecida pelo CreativeZone DevHub')
+                : needsOrgAuthorization
+                  ? 'Autorize read:org para o DevHub enxergar membros privados da organização.'
+                  : 'Conta reconhecida pelo CreativeZone DevHub')
             : 'Mesmo usando Google ou e-mail no fórum, seu perfil GitHub pode ser vinculado separadamente.'}</em>
         </span>
         {state?.connected?<CheckCircle2 className="github-account-ok"/>:<Link2/>}
@@ -91,6 +119,7 @@ export function GitHubAccountConnect({ session, notify, compact = false, onChang
         {!state?.connected
           ? <button className="action primary-action" disabled={busy} onClick={connect}><Code2/>{busy?'Abrindo GitHub...':'Conectar GitHub'}</button>
           : <>
+              {needsOrgAuthorization&&<button className="action primary-action" disabled={busy} onClick={authorizeOrganization}><Link2/>{busy?'Abrindo GitHub...':'Autorizar organização'}</button>}
               <button className="action" disabled={busy} onClick={()=>load({capture:true})}><RefreshCw/>Atualizar vínculo</button>
               {!compact&&<button className="action" disabled={busy} onClick={disconnect}><Unplug/>Desconectar DevHub</button>}
             </>}
