@@ -57,6 +57,10 @@ export function getGitHubCommunityOrganization() {
   return invokeGithubCommunity({ action: 'organization' })
 }
 
+export function syncGitHubCommunityOrganization() {
+  return invokeGithubCommunity({ action: 'sync_organization' })
+}
+
 export function requestGitHubOrganizationMembership(githubUsername, message = '') {
   return invokeGithubCommunity({
     action: 'request_membership',
