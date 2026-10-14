@@ -5,6 +5,7 @@ import {
   connectGitHubIdentity,
   disconnectGitHubAccount,
   getCreativeZoneGitHubMembership,
+  reauthorizeGitHubIdentity,
   getGitHubAccountStatus,
 } from './services/githubAuthApi'
 
@@ -44,7 +45,12 @@ export function GitHubAccountConnect({ session, notify, compact = false, onChang
     if(!session?.user) return
     setBusy(true)
     try{
-      await connectGitHubIdentity(window.location.pathname || '/projetos')
+      const returnTo=window.location.pathname || '/projetos'
+      if(state?.identity_linked){
+        await reauthorizeGitHubIdentity(returnTo)
+      }else{
+        await connectGitHubIdentity(returnTo)
+      }
     }catch(error){
       notify?.(error?.message || 'Não foi possível conectar sua conta GitHub. Verifique se o vínculo manual de identidades está habilitado no Supabase Auth.')
       setBusy(false)
