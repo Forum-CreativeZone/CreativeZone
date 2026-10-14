@@ -1229,19 +1229,27 @@ function notificationTitle(item) {
     membership_expired: 'Seu VIP expirou',
     github_org_join_request: 'Novo pedido para entrar na organização GitHub',
     github_org_join_request_updated: 'Seu pedido da organização GitHub foi atualizado',
+    team_invite: 'Convite para uma equipe privada',
+    team_invite_accepted: 'Convite de equipe aceito',
+    team_invite_declined: 'Convite de equipe recusado',
+    team_role_updated: 'Sua função na equipe foi atualizada',
+    team_member_removed: 'Você foi removido de uma equipe',
   }[item.type] || 'Nova notificação'
 }
 
-export function NotificationsPanel({ session, navigate, onClose }) {
+export function NotificationsPanel({ session, navigate, onClose, onChanged }) {
   const [items, setItems] = useState([])
   const userId = session?.user?.id
 
   async function refreshNotifications() {
     if (!userId) return
     try {
-      setItems(await getNotifications(userId))
+      const next=await getNotifications(userId)
+      setItems(next)
+      onChanged?.(next)
     } catch {
       setItems([])
+      onChanged?.([])
     }
   }
 
@@ -1266,11 +1274,40 @@ export function NotificationsPanel({ session, navigate, onClose }) {
   }, [userId])
 
   if (!session) return <p className="community-empty">Entre para ver suas notificações.</p>
-  return <div className="overlay-notifications personal-notifications"><button className="mark-all-overlay" onClick={async()=>{await markAllNotificationsRead(session.user.id); setItems(await getNotifications(session.user.id))}}>Marcar todas como lidas</button>{items.map((item)=><button
-  key={item.id}
-  className={item.read?'':'unread'}
-  data-profile-username={item.actor?.username || undefined}
-  onClick={async()=>{await markNotificationRead(item.id); onClose(); if(item.data?.path) navigate(item.data.path); else if(item.data?.topic_id) navigate(`/topico/${item.data.topic_id}`); else if(item.type==='direct_message' && item.actor?.username) navigate(`/mensagens/${item.actor.username}`)}}><Avatar profile={item.actor} size={40}/><span><strong>{notificationTitle(item)}</strong><small>{item.actor?.display_name || item.actor?.username || 'CreativeZone'} · {formatRelative(item.created_at)}</small></span></button>)}{!items.length&&<p className="community-empty">Nenhuma notificação.</p>}</div>
+
+  async function openNotification(item) {
+    if(!item.read) await markNotificationRead(item.id)
+    await refreshNotifications()
+    onClose()
+    if(item.data?.path) navigate(item.data.path)
+    else if(item.data?.topic_id) navigate(`/topico/${item.data.topic_id}`)
+    else if(item.type==='direct_message' && item.actor?.username) navigate(`/mensagens/${item.actor.username}`)
+  }
+
+  async function markOne(event,item) {
+    event.stopPropagation()
+    await markNotificationRead(item.id)
+    await refreshNotifications()
+  }
+
+  return <div className="overlay-notifications personal-notifications">
+    <div className="notification-list-toolbar">
+      <strong>{items.filter(item=>!item.read).length} não lida(s)</strong>
+      <button className="mark-all-overlay" onClick={async()=>{await markAllNotificationsRead(session.user.id);await refreshNotifications()}}>Marcar todas como lidas</button>
+    </div>
+    {items.map((item)=><article className={'personal-notification-row '+(item.read?'':'unread')} key={item.id}>
+      <button
+        className="personal-notification-open"
+        data-profile-username={item.actor?.username || undefined}
+        onClick={()=>openNotification(item)}
+      >
+        <Avatar profile={item.actor} size={40}/>
+        <span><strong>{notificationTitle(item)}</strong><small>{item.actor?.display_name || item.actor?.username || 'CreativeZone'} · {formatRelative(item.created_at)}</small></span>
+      </button>
+      {!item.read&&<button className="personal-notification-mark" title="Marcar como lida" aria-label="Marcar como lida" onClick={(event)=>markOne(event,item)}><BadgeCheck/></button>}
+    </article>)}
+    {!items.length&&<p className="community-empty">Nenhuma notificação.</p>}
+  </div>
 }
 
 export function MessagesPage({ username, session, members, navigate, notify }) {
