@@ -281,6 +281,8 @@ async function capture(req: Request, payload: Record<string, unknown>) {
       profile_url: connection.profile_url,
       account_type: connection.account_type,
       scopes,
+      connected_at: connection.connected_at,
+      last_verified_at: connection.last_verified_at,
     },
     organization_membership:orgMembership?{
       state:orgMembership.state||null,
