@@ -325,13 +325,15 @@ async function organizationPayload(req: Request) {
       }
     }
 
-    const { data } = await admin
+    let staffQuery = admin
       .from("github_org_membership_requests")
       .select("id,user_id,organization,github_username,message,status,created_at,reviewed_at,invite_error,github_membership_state,github_membership_role,membership_verified_at,profile:profiles!github_org_membership_requests_user_id_fkey(id,username,display_name,avatar_url)")
       .eq("organization", ORG)
       .in("status", ["pending","approved"])
       .order("created_at", { ascending: true })
       .limit(50)
+    if (staff.system_owner && user?.id) staffQuery = staffQuery.neq("user_id", user.id)
+    const { data } = await staffQuery
     staffRequests = data || []
   }
 
@@ -359,6 +361,7 @@ async function organizationPayload(req: Request) {
     request,
     viewer_membership:viewerMembership,
     is_staff: staff.staff,
+    is_system_owner: staff.system_owner,
     staff_requests: staffRequests,
     github_invitations:githubInvitations.map((item:any)=>({
       id:item.id,
