@@ -132,6 +132,43 @@ async function isStaff(userId: string) {
   return Boolean(data?.system_owner || ["admin","moderator"].includes(String(data?.role || "")))
 }
 
+
+async function devHubPlanForUser(userId: string) {
+  const [{data:profile},{data:membership}]=await Promise.all([
+    admin.from("profiles").select("system_owner").eq("id",userId).maybeSingle(),
+    admin.from("user_memberships").select("plan_id,status,permanent,ends_at").eq("user_id",userId).maybeSingle(),
+  ])
+  if(profile?.system_owner){
+    const {data:elite}=await admin.from("membership_plans").select("entitlements").eq("id","elite").maybeSingle()
+    return {plan_id:"owner",rank:99,capabilities:{...(elite?.entitlements?.github_devhub||{}),repository_limit:-1,private_repository:true}}
+  }
+  let planId="free"
+  const active=membership?.status==="active" && (membership?.permanent || !membership?.ends_at || new Date(membership.ends_at).getTime()>Date.now())
+  if(active && membership?.plan_id) planId=String(membership.plan_id)
+  const {data:plan}=await admin.from("membership_plans").select("id,rank,entitlements").eq("id",planId).maybeSingle()
+  return {plan_id:plan?.id||"free",rank:Number(plan?.rank||0),capabilities:plan?.entitlements?.github_devhub||{}}
+}
+
+async function enforceRepositoryEntitlement(userId: string, projectId: string, isPrivate: boolean) {
+  const plan=await devHubPlanForUser(userId)
+  if(isPrivate && !plan.capabilities?.private_repository){
+    throw new Error("Repositórios privados fazem parte do plano CreativeZone ELITE.")
+  }
+  const limit=Number(plan.capabilities?.repository_limit ?? 1)
+  const {data:existing}=await admin.from("github_devhub_repositories").select("id").eq("project_id",projectId).maybeSingle()
+  if(!existing && limit>=0){
+    const {count,error}=await admin.from("github_devhub_repositories")
+      .select("id",{count:"exact",head:true})
+      .eq("user_id",userId)
+      .eq("status","active")
+    if(error) throw error
+    if(Number(count||0)>=limit){
+      throw new Error("Seu plano "+String(plan.plan_id).toUpperCase()+" permite até "+limit+" repositório(s) no DevHub.")
+    }
+  }
+  return plan
+}
+
 async function projectForUser(userId: string, projectId: string) {
   const { data: project } = await admin.from("projects")
     .select("id,owner_id,title,repo_url")
@@ -354,6 +391,7 @@ async function createRepository(req: Request, payload: Record<string, unknown>) 
   const name = validRepoName(payload.name)
   const description = compact(payload.description || project.title || "", 350)
   const isPrivate = Boolean(payload.private)
+  const plan = await enforceRepositoryEntitlement(user.id, projectId, isPrivate)
 
   let ownerLogin = ""
   let endpoint = "/user/repos"
@@ -423,6 +461,7 @@ async function createRepository(req: Request, payload: Record<string, unknown>) 
 
     return {
       created: true,
+      plan,
       repository: {
         id: repo.id,
         name: repo.name,
@@ -450,12 +489,13 @@ async function connectExisting(req: Request, payload: Record<string, unknown>) {
   const project = await projectForUser(user.id, projectId)
   const { token } = await credentialFor(user.id)
   const repo = await github("/repos/" + fullName.split("/").map(encodeURIComponent).join("/"), token)
+  const plan = await enforceRepositoryEntitlement(user.id, projectId, Boolean(repo.private))
   const canPush = Boolean(repo.permissions?.push || repo.permissions?.admin || repo.permissions?.maintain)
   if (!canPush) throw new Error("Sua conta GitHub não possui permissão de escrita neste repositório.")
   const ownerType = String(repo.owner?.type || "").toLowerCase() === "organization" ? "organization" : "personal"
   const devhubRepo = await linkRepository(project, user.id, repo, ownerType)
   await recordAction(user.id, devhubRepo.id, "sync", { full_name: fullName }, "completed", { connected: true })
-  return { connected: true, repository: { full_name: repo.full_name, html_url: repo.html_url, private: Boolean(repo.private) } }
+  return { connected: true, plan, repository: { full_name: repo.full_name, html_url: repo.html_url, private: Boolean(repo.private) } }
 }
 
 Deno.serve(async (req: Request) => {
