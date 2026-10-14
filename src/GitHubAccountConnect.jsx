@@ -95,6 +95,10 @@ export function GitHubAccountConnect({ session, notify, compact = false, onChang
   if(loading) return <section className={'github-account-connect '+(compact?'compact':'')}><RefreshCw className="security-spin"/><span>Verificando GitHub...</span></section>
 
   const connection=state?.connection
+  const oauthPolicyRestricted=Boolean(
+    membership?.authorized===false &&
+    /OAuth App access restrictions/i.test(String(membership?.error||membershipError||''))
+  )
   const needsOrgAuthorization=Boolean(state?.connected && (
     membershipError ||
     membership?.authorized===false ||
@@ -110,9 +114,11 @@ export function GitHubAccountConnect({ session, notify, compact = false, onChang
           <em>{state?.connected
             ? (membership?.member
                 ? 'Membro da organização Creatiive-Zone'
-                : needsOrgAuthorization
-                  ? 'Autorize read:org para o DevHub enxergar membros privados da organização.'
-                  : 'Conta reconhecida pelo CreativeZone DevHub')
+                : oauthPolicyRestricted
+                  ? 'O GitHub bloqueou este OAuth App na organização. Como proprietário, aprove o app na política OAuth da Creatiive-Zone.'
+                  : needsOrgAuthorization
+                    ? 'Autorize read:org para o DevHub enxergar membros privados da organização.'
+                    : 'Conta reconhecida pelo CreativeZone DevHub')
             : 'Mesmo usando Google ou e-mail no fórum, seu perfil GitHub pode ser vinculado separadamente.'}</em>
         </span>
         {state?.connected?<CheckCircle2 className="github-account-ok"/>:<Link2/>}
@@ -121,7 +127,9 @@ export function GitHubAccountConnect({ session, notify, compact = false, onChang
         {!state?.connected
           ? <button className="action primary-action" disabled={busy} onClick={connect}><Code2/>{busy?'Abrindo GitHub...':'Conectar GitHub'}</button>
           : <>
-              {needsOrgAuthorization&&<button className="action primary-action" disabled={busy} onClick={authorizeOrganization}><Link2/>{busy?'Abrindo GitHub...':'Autorizar organização'}</button>}
+              {oauthPolicyRestricted
+                ? <a className="action primary-action" href="https://github.com/organizations/Creatiive-Zone/settings/oauth_application_policy" target="_blank" rel="noreferrer"><Link2/>Aprovar OAuth App na organização</a>
+                : needsOrgAuthorization&&<button className="action primary-action" disabled={busy} onClick={authorizeOrganization}><Link2/>{busy?'Abrindo GitHub...':'Autorizar organização'}</button>}
               <button className="action" disabled={busy} onClick={()=>load({capture:true})}><RefreshCw/>Atualizar vínculo</button>
               {!compact&&<button className="action" disabled={busy} onClick={disconnect}><Unplug/>Desconectar DevHub</button>}
             </>}
