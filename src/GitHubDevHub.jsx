@@ -291,7 +291,7 @@ export function GitHubRepositoryPanel({ project, canManage = false, notify, onCh
 }
 
 
-export function GitHubCommunityOrganization({ session, navigate, notify, onUseRepository }) {
+export function GitHubCommunityOrganization({ session, navigate, notify, onUseRepository, connectionRevision = '' }) {
   const [data,setData] = useState(null)
   const [loading,setLoading] = useState(true)
   const [busy,setBusy] = useState(false)
@@ -325,7 +325,7 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
     }
   }
 
-  useEffect(()=>{ load() },[session?.user?.id])
+  useEffect(()=>{ load() },[session?.user?.id,connectionRevision])
 
 
   async function syncOrganization() {
