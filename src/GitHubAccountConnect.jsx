@@ -96,8 +96,12 @@ export function GitHubAccountConnect({ session, notify, compact = false, onChang
 
   const connection=state?.connection
   const oauthPolicyRestricted=Boolean(
-    membership?.authorized===false &&
-    /OAuth App access restrictions/i.test(String(membership?.error||membershipError||''))
+    membership?.restriction_type==='oauth_app_access_restriction' ||
+    (
+      membership?.authorized===false &&
+      state?.organization_access?.scope_authorized!==false &&
+      /OAuth App access restrictions|third-part|access restriction|do not have access to this organization membership/i.test(String(membership?.error||membershipError||''))
+    )
   )
   const needsOrgAuthorization=Boolean(state?.connected && (
     membershipError ||
