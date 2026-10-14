@@ -191,6 +191,40 @@ async function syncOrganizationTruth(installation:any, fallbackToken="", source=
   try{
     const token=appCanRead&&installationId?await installationToken(installationId):fallbackToken
     const effectiveSource=appCanRead&&installationId?"github_app":source
+
+    if(effectiveSource==="owner_oauth"){
+      try{
+        await githubTokenRequest("/user/memberships/orgs/"+encodeURIComponent(ORG),token)
+      }catch(error){
+        const message=error instanceof Error?error.message:""
+        const status=(error as Error & {status?:number})?.status
+        if(status===403&&/OAuth App access restrictions/i.test(message)){
+          await admin.from("github_org_sync_state").upsert({
+            organization:ORG,
+            installation_id:installationId||null,
+            members_count:0,
+            invitations_count:0,
+            sync_status:"error",
+            last_error:compact(message,800),
+            updated_at:now,
+          },{onConflict:"organization"})
+          return {
+            available:false,
+            source:"owner_oauth",
+            requires_authorization:true,
+            authorization_kind:"oauth_app_policy",
+            authorization_url:"https://github.com/organizations/"+ORG+"/settings/oauth_application_policy",
+            error:message,
+            members:[],
+            invitations:[],
+            member_count:0,
+            invitation_count:0,
+            synced_at:null,
+          }
+        }
+        throw error
+      }
+    }
     const [membersResult,{data:connections},{data:requests}]=await Promise.all([
       githubTokenPages("/orgs/"+encodeURIComponent(ORG)+"/members?filter=all&role=all",token),
       admin.from("github_connections").select("user_id,github_username,github_user_id,avatar_url,profile_url").not("github_username","is",null),
@@ -439,6 +473,7 @@ async function organizationPayload(req: Request) {
   if (staff.staff) {
     try {
       installation = await organizationInstallation()
+      const appInfo=await appRequest("/app").catch(()=>null)
       const permissions = (installation?.permissions || {}) as Record<string, unknown>
       const membersPermission=String(permissions.members || "")
       appStatus = {
@@ -453,6 +488,11 @@ async function organizationPayload(req: Request) {
         settings_url: installation?.id
           ? "https://github.com/organizations/" + ORG + "/settings/installations/" + installation.id
           : "https://github.com/organizations/" + ORG + "/settings/installations",
+        app_slug:String(appInfo?.slug||""),
+        developer_permissions_url:appInfo?.slug
+          ? "https://github.com/settings/apps/"+encodeURIComponent(String(appInfo.slug))+"/permissions"
+          : null,
+        oauth_policy_url:"https://github.com/organizations/"+ORG+"/settings/oauth_application_policy",
       }
 
       if(installation?.id){
