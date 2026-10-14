@@ -866,7 +866,7 @@ export function ProjectStudio({ project, canManage = false, notify }) {
         {selectedPull&&<section className="studio-thread"><header><strong>PR #{selectedPull.number} · reviews</strong><button onClick={()=>setSelectedPull(null)}>×</button></header><div>{pullReviews.map(review=><article key={review.id}><strong>@{review.user} · {review.state}</strong><small>{shortDate(review.submitted_at)}</small><p>{review.body}</p></article>)}</div><div className="studio-review-form"><textarea value={reviewBody} onChange={e=>setReviewBody(e.target.value)} placeholder="Comentário da review..."/><div><button className="action" onClick={()=>submitReview('COMMENT')} disabled={!reviewBody.trim()||Boolean(busy)}>Comentar</button><button className="action" onClick={()=>submitReview('REQUEST_CHANGES')} disabled={!reviewBody.trim()||Boolean(busy)}><AlertTriangle/>Solicitar mudanças</button><button className="action primary-action" onClick={()=>submitReview('APPROVE')} disabled={Boolean(busy)}><CheckCircle2/>Aprovar</button></div></div></section>}
       </div>}
 
-      {tab==='terminal'&&<div className="studio-terminal vscode-terminal">
+      {tab==='terminal'&&<div className={'studio-terminal vscode-terminal '+(terminalEditor?'has-editor':'')}>
         <div className="vscode-terminal-titlebar">
           <nav>
             <button type="button" className="active">TERMINAL</button>
