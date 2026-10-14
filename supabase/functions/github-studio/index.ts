@@ -6,6 +6,8 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || ""
 const APP_ID = Deno.env.get("GITHUB_APP_ID") || ""
 const PRIVATE_KEY = Deno.env.get("GITHUB_PRIVATE_KEY") || ""
+const JUDGE0_URL = (Deno.env.get("JUDGE0_URL") || "https://ce.judge0.com").replace(/\/+$/, "")
+const JUDGE0_AUTH_TOKEN = Deno.env.get("JUDGE0_AUTH_TOKEN") || ""
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -740,6 +742,98 @@ async function mergePullRequest(req: Request, payload: Record<string, unknown>) 
   return { enabled: true, merged: Boolean(result?.merged), sha: result?.sha || null, message: result?.message || "", plan: access.plan }
 }
 
+
+function judge0Headers() {
+  return {
+    "Content-Type":"application/json",
+    ...(JUDGE0_AUTH_TOKEN ? {"X-Auth-Token":JUDGE0_AUTH_TOKEN} : {}),
+  }
+}
+
+async function judge0(path: string, init: RequestInit = {}) {
+  const response=await fetch(JUDGE0_URL+path,{
+    ...init,
+    headers:{...judge0Headers(),...(init.headers||{})},
+  })
+  const data=await response.json().catch(()=>({}))
+  if(!response.ok){
+    if(response.status===401 && !JUDGE0_AUTH_TOKEN){
+      throw new Error("A instância pública do Judge0 está exigindo autenticação. Configure JUDGE0_AUTH_TOKEN ou uma instância Judge0 CE própria.")
+    }
+    throw new Error(compact(data?.error || data?.message || ("Judge0 HTTP "+response.status),400))
+  }
+  return data
+}
+
+async function runCode(req: Request, payload: Record<string, unknown>) {
+  const access=await repositoryAccess(req,payload,"project_studio")
+  if(!access.enabled) return status(req,payload)
+  const source=String(payload.source_code||"")
+  if(!source.trim()) throw new Error("Código vazio.")
+  if(source.length>150000) throw new Error("O Runner aceita até 150 KB de código por execução.")
+  const requested=String(payload.language||"javascript").toLowerCase()
+  const aliases:Record<string,string[]>={
+    javascript:["javascript (node.js","javascript"],
+    typescript:["typescript"],
+    python:["python (3","python"],
+    bash:["bash"],
+    shell:["bash"],
+    cpp:["c++"],
+    c:["c (gcc","c (clang"],
+    java:["java"],
+    csharp:["c#"],
+    go:["go ("],
+    rust:["rust"],
+    php:["php"],
+    ruby:["ruby"],
+  }
+  const languages=await judge0("/languages/")
+  const needles=aliases[requested]||[requested]
+  const candidates=Array.isArray(languages)?languages:[]
+  let language=candidates.find((item:any)=>needles.some((needle)=>String(item.name||"").toLowerCase().startsWith(needle)))
+  if(!language) language=candidates.find((item:any)=>needles.some((needle)=>String(item.name||"").toLowerCase().includes(needle)))
+  if(!language) throw new Error("Linguagem não disponível no Judge0: "+requested)
+
+  const submission=await judge0("/submissions?base64_encoded=false&wait=false",{
+    method:"POST",
+    body:JSON.stringify({
+      source_code:source,
+      language_id:language.id,
+      stdin:String(payload.stdin||""),
+      cpu_time_limit:3,
+      wall_time_limit:6,
+      memory_limit:256000,
+      max_file_size:4096,
+    }),
+  })
+  if(!submission?.token) throw new Error("Judge0 não retornou token de execução.")
+
+  let result:any=null
+  for(let attempt=0;attempt<14;attempt++){
+    await new Promise((resolve)=>setTimeout(resolve,350))
+    result=await judge0("/submissions/"+encodeURIComponent(submission.token)+"?base64_encoded=false&fields=stdout,stderr,compile_output,message,status,time,memory,language")
+    const statusId=Number(result?.status?.id||0)
+    if(statusId>2) break
+  }
+  await logAction(access,"terminal",{runner:"judge0",language:requested},"completed",{
+    status:result?.status?.description||"Processing",time:result?.time||null,memory:result?.memory||null
+  })
+  return {
+    enabled:true,
+    runner:"Judge0 CE",
+    token:submission.token,
+    language:result?.language?.name || language.name,
+    status:result?.status || {id:1,description:"Processing"},
+    stdout:result?.stdout||"",
+    stderr:result?.stderr||"",
+    compile_output:result?.compile_output||"",
+    message:result?.message||"",
+    time:result?.time||null,
+    memory:result?.memory||null,
+    plan:access.plan,
+  }
+}
+
 async function terminal(req: Request, payload: Record<string, unknown>) {
   const access = await repositoryAccess(req, payload)
   if (!access.enabled || !access.ref) return status(req, payload)
@@ -894,6 +988,7 @@ Deno.serve(async (req: Request) => {
     if (action === "repository_settings") return reply({ ok: true, ...(await repositorySettings(req, payload)) })
     if (action === "update_repository_settings") return reply({ ok: true, ...(await updateRepositorySettings(req, payload)) })
     if (action === "terminal") return reply({ ok: true, ...(await terminal(req, payload)) })
+    if (action === "run_code") return reply({ ok: true, ...(await runCode(req, payload)) })
     if (action === "ci") return reply({ ok: true, ...(await ciCockpit(req, payload)) })
     if (action === "fixes") return reply({ ok: true, ...(await fixes(req, payload)) })
     if (action === "autofix") return reply({ ok: true, ...(await autoFix(req, payload)) })
