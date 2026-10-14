@@ -213,15 +213,17 @@ async function context(req: Request, projectId: string) {
     .maybeSingle()
   if (!project) throw new Error("Projeto não encontrado.")
   const [{ data: profile }, { data: member }] = await Promise.all([
-    admin.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+    admin.from("profiles").select("role,system_owner").eq("id", user.id).maybeSingle(),
     admin.from("project_members").select("role,status").eq("project_id", projectId).eq("user_id", user.id).maybeSingle(),
   ])
-  const manager = project.owner_id === user.id ||
-    ["admin", "moderator"].includes(String(profile?.role || "")) ||
-    (member?.status === "active" && member?.role === "maintainer")
-  if (!manager) throw new Error("Você não possui permissão para editar este projeto.")
+  const staff = Boolean(profile?.system_owner || ["admin", "moderator"].includes(String(profile?.role || "")))
+  const memberRole = member?.status === "active" ? String(member?.role || "") : ""
+  const projectRole = project.owner_id === user.id ? "owner" : staff ? "maintainer" : memberRole
+  const participant = ["owner","maintainer","contributor"].includes(projectRole)
+  if (!participant) throw new Error("Você não possui permissão para trabalhar neste projeto.")
+  const canManage = projectRole === "owner" || projectRole === "maintainer"
   const plan = await planFor(project.owner_id)
-  return { user, project, plan }
+  return { user, project, plan, projectRole, canManage, staff }
 }
 
 async function repositoryAccess(req: Request, payload: Record<string, unknown>, capability = "project_studio") {
@@ -256,10 +258,14 @@ async function status(req: Request, payload: Record<string, unknown>) {
   return {
     enabled: access.enabled,
     plan: access.plan,
+    role: access.projectRole,
+    can_manage: access.canManage,
     repository: access.repository ? {
       repo_url: access.repository.repo_url,
       default_branch: access.repository.default_branch || "main",
       is_private: Boolean(access.repository.is_private),
+      repo_owner: access.repository.repo_owner || access.ref?.owner || null,
+      repo_name: access.repository.repo_name || access.ref?.repo || null,
     } : null,
   }
 }
@@ -395,6 +401,271 @@ async function ciCockpit(req: Request, payload: Record<string, unknown>) {
   }
 }
 
+
+async function logAction(access: Awaited<ReturnType<typeof repositoryAccess>>, actionType: string, payload: Record<string, unknown>, statusValue = "completed", result: Record<string, unknown> = {}, errorText: string | null = null) {
+  const projectId = String(access.project?.id || "")
+  let repositoryId: string | null = null
+  if (projectId) {
+    const { data } = await admin.from("github_devhub_repositories").select("id").eq("project_id", projectId).maybeSingle()
+    repositoryId = data?.id || null
+  }
+  await admin.from("github_devhub_actions").insert({
+    user_id: access.user.id,
+    repository_id: repositoryId,
+    action_type: actionType,
+    payload,
+    status: statusValue,
+    result,
+    error: errorText,
+    completed_at: statusValue === "completed" || statusValue === "failed" ? new Date().toISOString() : null,
+  })
+}
+
+async function userGithubToken(userId: string) {
+  const { data, error } = await admin.rpc("get_github_user_credential", { p_user_id: userId })
+  if (error) throw error
+  const row = Array.isArray(data) ? data[0] : data
+  return row?.access_token ? String(row.access_token) : ""
+}
+
+async function listBranches(req: Request, payload: Record<string, unknown>) {
+  const access = await repositoryAccess(req, payload)
+  if (!access.enabled || !access.ref) return status(req, payload)
+  const data = await github("/repos/" + encodeURIComponent(access.ref.owner) + "/" + encodeURIComponent(access.ref.repo) + "/branches?per_page=100", access.token)
+  return {
+    enabled: true,
+    branches: (Array.isArray(data) ? data : []).map((item: Record<string, unknown>) => ({
+      name: item.name,
+      protected: Boolean(item.protected),
+      sha: (item.commit as Record<string, unknown> | undefined)?.sha || null,
+    })),
+    default_branch: access.repository?.default_branch || "main",
+    role: access.projectRole,
+    can_manage: access.canManage,
+    plan: access.plan,
+  }
+}
+
+async function createBranch(req: Request, payload: Record<string, unknown>) {
+  const access = await repositoryAccess(req, payload, "branch_pr_workflow")
+  if (!access.enabled || !access.ref) return status(req, payload)
+  const base = String(payload.base_branch || access.repository?.default_branch || "main")
+  const raw = String(payload.branch || "").trim()
+  if (!raw) throw new Error("Nome da branch não informado.")
+  const branch = raw.replace(/[^A-Za-z0-9._/-]/g, "-").replace(/^[-/]+|[-/]+$/g, "").slice(0,150)
+  if (!branch) throw new Error("Nome da branch inválido.")
+  await ensureBranch(access, branch, base)
+  await logAction(access, "branch", { branch, base }, "completed", { branch })
+  return { enabled: true, branch, base_branch: base, plan: access.plan }
+}
+
+async function listCommits(req: Request, payload: Record<string, unknown>) {
+  const access = await repositoryAccess(req, payload)
+  if (!access.enabled || !access.ref) return status(req, payload)
+  const branch = String(payload.branch || access.repository?.default_branch || "main")
+  const data = await github("/repos/" + encodeURIComponent(access.ref.owner) + "/" + encodeURIComponent(access.ref.repo) +
+    "/commits?sha=" + encodeURIComponent(branch) + "&per_page=40", access.token)
+  return {
+    enabled: true,
+    branch,
+    commits: (Array.isArray(data) ? data : []).map((item: any) => ({
+      sha: item.sha,
+      message: item.commit?.message || "",
+      author: item.commit?.author?.name || item.author?.login || "GitHub",
+      date: item.commit?.author?.date || null,
+      avatar_url: item.author?.avatar_url || null,
+    })),
+    plan: access.plan,
+  }
+}
+
+async function uploadFile(req: Request, payload: Record<string, unknown>) {
+  const access = await repositoryAccess(req, payload, "forum_commits")
+  if (!access.enabled || !access.ref) return status(req, payload)
+  const path = safePath(payload.path)
+  const content = String(payload.content_base64 || "").replace(/\s+/g, "")
+  if (!content) throw new Error("Arquivo vazio ou inválido.")
+  if (content.length > 8_000_000) throw new Error("Upload limitado a aproximadamente 6 MB por arquivo.")
+  const base = String(access.repository?.default_branch || "main")
+  const branch = String(payload.branch || ("creativezone/" + String(access.user.id).slice(0,8) + "/" + Date.now()))
+    .replace(/[^A-Za-z0-9._/-]/g, "-").slice(0,150)
+  await ensureBranch(access, branch, base)
+  let currentSha: string | null = null
+  try {
+    const current = await github("/repos/" + encodeURIComponent(access.ref.owner) + "/" + encodeURIComponent(access.ref.repo) +
+      "/contents/" + path.split("/").map(encodeURIComponent).join("/") + "?ref=" + encodeURIComponent(branch), access.token)
+    currentSha = String(current?.sha || "") || null
+  } catch {}
+  const body: Record<string, unknown> = {
+    message: compact(payload.message || ("Upload " + path + " via CreativeZone"), 200),
+    content,
+    branch,
+  }
+  if (currentSha) body.sha = currentSha
+  const result = await github("/repos/" + encodeURIComponent(access.ref.owner) + "/" + encodeURIComponent(access.ref.repo) +
+    "/contents/" + path.split("/").map(encodeURIComponent).join("/"), access.token, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+  await logAction(access, "upload_file", { path, branch }, "completed", { sha: result?.commit?.sha || null })
+  return { enabled: true, branch, base_branch: base, commit: result?.commit || {}, file: result?.content || {}, plan: access.plan }
+}
+
+async function deleteFile(req: Request, payload: Record<string, unknown>) {
+  const access = await repositoryAccess(req, payload, "forum_commits")
+  if (!access.enabled || !access.ref) return status(req, payload)
+  const path = safePath(payload.path)
+  const branch = String(payload.branch || access.repository?.default_branch || "main")
+  const current = await github("/repos/" + encodeURIComponent(access.ref.owner) + "/" + encodeURIComponent(access.ref.repo) +
+    "/contents/" + path.split("/").map(encodeURIComponent).join("/") + "?ref=" + encodeURIComponent(branch), access.token)
+  if (!current?.sha) throw new Error("Arquivo não encontrado.")
+  const result = await github("/repos/" + encodeURIComponent(access.ref.owner) + "/" + encodeURIComponent(access.ref.repo) +
+    "/contents/" + path.split("/").map(encodeURIComponent).join("/"), access.token, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: compact(payload.message || ("Delete " + path + " via CreativeZone"), 200),
+      sha: current.sha,
+      branch,
+    }),
+  })
+  await logAction(access, "delete_file", { path, branch }, "completed", { sha: result?.commit?.sha || null })
+  return { enabled: true, branch, commit: result?.commit || {}, plan: access.plan }
+}
+
+async function listIssues(req: Request, payload: Record<string, unknown>) {
+  const access = await repositoryAccess(req, payload)
+  if (!access.enabled || !access.ref) return status(req, payload)
+  const stateValue = ["open","closed","all"].includes(String(payload.state || "")) ? String(payload.state) : "open"
+  const data = await github("/repos/" + encodeURIComponent(access.ref.owner) + "/" + encodeURIComponent(access.ref.repo) +
+    "/issues?state=" + encodeURIComponent(stateValue) + "&per_page=50", access.token)
+  return {
+    enabled: true,
+    issues: (Array.isArray(data) ? data : []).filter((item: any) => !item.pull_request).map((item: any) => ({
+      number: item.number,
+      title: item.title,
+      body: item.body || "",
+      state: item.state,
+      labels: (item.labels || []).map((label: any) => typeof label === "string" ? label : label.name),
+      user: item.user?.login || null,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+      comments: item.comments || 0,
+    })),
+    role: access.projectRole,
+    plan: access.plan,
+  }
+}
+
+async function createIssue(req: Request, payload: Record<string, unknown>) {
+  const access = await repositoryAccess(req, payload)
+  if (!access.enabled || !access.ref) return status(req, payload)
+  const userToken = await userGithubToken(access.user.id)
+  if (!userToken) throw new Error("Conecte sua conta GitHub ao CreativeZone para criar Issues.")
+  const issue = await github("/repos/" + encodeURIComponent(access.ref.owner) + "/" + encodeURIComponent(access.ref.repo) + "/issues", userToken, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: compact(payload.title || "", 250),
+      body: compact(payload.body || "", 60000),
+      labels: Array.isArray(payload.labels) ? payload.labels : undefined,
+    }),
+  })
+  await logAction(access, "issue", { number: issue.number, title: issue.title }, "completed", { number: issue.number })
+  return { enabled: true, issue: { number: issue.number, title: issue.title, body: issue.body || "", state: issue.state }, plan: access.plan }
+}
+
+async function listPullRequests(req: Request, payload: Record<string, unknown>) {
+  const access = await repositoryAccess(req, payload)
+  if (!access.enabled || !access.ref) return status(req, payload)
+  const stateValue = ["open","closed","all"].includes(String(payload.state || "")) ? String(payload.state) : "open"
+  const data = await github("/repos/" + encodeURIComponent(access.ref.owner) + "/" + encodeURIComponent(access.ref.repo) +
+    "/pulls?state=" + encodeURIComponent(stateValue) + "&per_page=50", access.token)
+  return {
+    enabled: true,
+    pull_requests: (Array.isArray(data) ? data : []).map((item: any) => ({
+      number: item.number,
+      title: item.title,
+      body: item.body || "",
+      state: item.state,
+      draft: Boolean(item.draft),
+      head: item.head?.ref || null,
+      base: item.base?.ref || null,
+      user: item.user?.login || null,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+    })),
+    role: access.projectRole,
+    can_manage: access.canManage,
+    plan: access.plan,
+  }
+}
+
+async function mergePullRequest(req: Request, payload: Record<string, unknown>) {
+  const access = await repositoryAccess(req, payload, "branch_pr_workflow")
+  if (!access.enabled || !access.ref) return status(req, payload)
+  if (!access.canManage) throw new Error("Apenas proprietário ou mantenedor pode fazer merge.")
+  const number = Number(payload.number || 0)
+  if (!number) throw new Error("Pull Request inválida.")
+  const result = await github("/repos/" + encodeURIComponent(access.ref.owner) + "/" + encodeURIComponent(access.ref.repo) +
+    "/pulls/" + number + "/merge", access.token, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ merge_method: String(payload.merge_method || "squash") }),
+  })
+  await logAction(access, "merge_pull_request", { number }, "completed", { merged: Boolean(result?.merged), sha: result?.sha || null })
+  return { enabled: true, merged: Boolean(result?.merged), sha: result?.sha || null, message: result?.message || "", plan: access.plan }
+}
+
+async function terminal(req: Request, payload: Record<string, unknown>) {
+  const access = await repositoryAccess(req, payload)
+  if (!access.enabled || !access.ref) return status(req, payload)
+  const command = String(payload.command || "").trim()
+  const branch = String(payload.branch || access.repository?.default_branch || "main")
+  if (!command) return { enabled: true, output: "", branch, plan: access.plan }
+  if (command === "help") {
+    return { enabled: true, branch, output: ["Comandos Git seguros do CreativeZone:","git status","git branch","git log","git pull","git diff","git checkout -b <branch>","git switch -c <branch>","pwd","ls"].join("\n"), plan: access.plan }
+  }
+  if (command === "pwd") return { enabled: true, branch, output: "/" + access.ref.owner + "/" + access.ref.repo, plan: access.plan }
+  if (command === "git status") {
+    const ref = await github("/repos/" + encodeURIComponent(access.ref.owner) + "/" + encodeURIComponent(access.ref.repo) + "/git/ref/heads/" + encodeURIComponent(branch), access.token)
+    return { enabled: true, branch, output: "On branch " + branch + "\nHEAD " + String(ref?.object?.sha || "").slice(0,12) + "\nworking tree clean (GitHub-backed workspace)", plan: access.plan }
+  }
+  if (command === "git branch") {
+    const result = await listBranches(req, { ...payload, branch })
+    return { enabled: true, branch, output: (result.branches || []).map((item: any) => (item.name === branch ? "* " : "  ") + item.name).join("\n"), plan: access.plan }
+  }
+  if (command === "git log") {
+    const result = await listCommits(req, { ...payload, branch })
+    return { enabled: true, branch, output: (result.commits || []).slice(0,20).map((item: any) => item.sha.slice(0,7) + " " + item.message.split("\n")[0] + " — " + item.author).join("\n"), plan: access.plan }
+  }
+  if (command === "git pull") {
+    const ref = await github("/repos/" + encodeURIComponent(access.ref.owner) + "/" + encodeURIComponent(access.ref.repo) + "/git/ref/heads/" + encodeURIComponent(branch), access.token)
+    return { enabled: true, branch, output: "Already synchronized with GitHub.\nHEAD " + String(ref?.object?.sha || "").slice(0,12), plan: access.plan }
+  }
+  if (command === "ls") {
+    const result = await tree(req, { ...payload, branch })
+    const top = Array.from(new Set((result.files || []).map((item: any) => String(item.path).split("/")[0]))).slice(0,100)
+    return { enabled: true, branch, output: top.join("\n"), plan: access.plan }
+  }
+  const createMatch = command.match(/^git\s+(?:checkout\s+-b|switch\s+-c)\s+(.+)$/)
+  if (createMatch) {
+    const result = await createBranch(req, { ...payload, branch: createMatch[1].trim(), base_branch: branch })
+    return { enabled: true, branch: result.branch, output: "Switched to a new branch '" + result.branch + "'", plan: access.plan }
+  }
+  if (command === "git diff") {
+    if (branch === String(access.repository?.default_branch || "main")) {
+      return { enabled: true, branch, output: "Branch padrão selecionada. Escolha uma branch de trabalho para comparar.", plan: access.plan }
+    }
+    const base = String(access.repository?.default_branch || "main")
+    const compare = await github("/repos/" + encodeURIComponent(access.ref.owner) + "/" + encodeURIComponent(access.ref.repo) + "/compare/" + encodeURIComponent(base) + "..." + encodeURIComponent(branch), access.token)
+    const lines = (compare.files || []).map((file: any) => file.status + " " + file.filename + " (+" + file.additions + " -" + file.deletions + ")")
+    return { enabled: true, branch, output: lines.length ? lines.join("\n") : "No differences.", plan: access.plan }
+  }
+  throw new Error("Comando não permitido neste terminal seguro. Digite help.")
+}
+
 async function fixes(req: Request, payload: Record<string, unknown>) {
   const access = await repositoryAccess(req, payload, "auto_fix")
   if (!access.enabled) return status(req, payload)
@@ -483,7 +754,17 @@ Deno.serve(async (req: Request) => {
     if (action === "tree") return reply({ ok: true, ...(await tree(req, payload)) })
     if (action === "read") return reply({ ok: true, ...(await readFile(req, payload)) })
     if (action === "commit") return reply({ ok: true, ...(await commitFile(req, payload)) })
+    if (action === "upload") return reply({ ok: true, ...(await uploadFile(req, payload)) })
+    if (action === "delete_file") return reply({ ok: true, ...(await deleteFile(req, payload)) })
+    if (action === "branches") return reply({ ok: true, ...(await listBranches(req, payload)) })
+    if (action === "create_branch") return reply({ ok: true, ...(await createBranch(req, payload)) })
+    if (action === "commits") return reply({ ok: true, ...(await listCommits(req, payload)) })
+    if (action === "issues") return reply({ ok: true, ...(await listIssues(req, payload)) })
+    if (action === "create_issue") return reply({ ok: true, ...(await createIssue(req, payload)) })
+    if (action === "pull_requests") return reply({ ok: true, ...(await listPullRequests(req, payload)) })
     if (action === "pull_request") return reply({ ok: true, ...(await createPullRequest(req, payload)) })
+    if (action === "merge_pull_request") return reply({ ok: true, ...(await mergePullRequest(req, payload)) })
+    if (action === "terminal") return reply({ ok: true, ...(await terminal(req, payload)) })
     if (action === "ci") return reply({ ok: true, ...(await ciCockpit(req, payload)) })
     if (action === "fixes") return reply({ ok: true, ...(await fixes(req, payload)) })
     if (action === "autofix") return reply({ ok: true, ...(await autoFix(req, payload)) })
