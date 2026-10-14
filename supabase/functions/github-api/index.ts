@@ -319,6 +319,8 @@ async function renderedReadme(req: Request, payload: Record<string, unknown>) {
   if (!projectId) throw new Error("Projeto não informado.")
   const context = await projectContext(projectId, user?.id || null)
   if (!context.canView) throw new Error("Você não possui acesso a este projeto.")
+  const plan=await devHubPlan(context.project.owner_id)
+  if(!plan.capabilities?.readme_summary) return {html:"",path:"README.md",source:""}
 
   const { data: row } = await admin
     .from("project_repositories")
@@ -597,6 +599,8 @@ async function readmeAsset(req: Request, payload: Record<string, unknown>) {
 
   const context=await projectContext(projectId,user?.id||null)
   if(!context.canView) throw new Error("Você não possui acesso a este projeto.")
+  const plan=await devHubPlan(context.project.owner_id)
+  if(!plan.capabilities?.readme_summary) throw new Error("README não disponível neste plano.")
   const {data:row}=await admin.from("project_repositories")
     .select("repo_owner,repo_name,default_branch,is_private,installation_id")
     .eq("project_id",projectId).order("updated_at",{ascending:false}).limit(1).maybeSingle()
