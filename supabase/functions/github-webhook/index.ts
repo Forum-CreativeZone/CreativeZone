@@ -87,6 +87,129 @@ async function projectIdsForRepo(ref: { owner: string; name: string; fullName: s
   return [...ids]
 }
 
+
+function organizationActorLogin(payload:Record<string,unknown>){
+  const membership=payload.membership as Record<string,unknown>|undefined
+  const membershipUser=membership?.user as Record<string,unknown>|undefined
+  const invitation=payload.invitation as Record<string,unknown>|undefined
+  const invitationInvitee=invitation?.invitee as Record<string,unknown>|undefined
+  const user=payload.user as Record<string,unknown>|undefined
+  return String(
+    membershipUser?.login ||
+    invitation?.login ||
+    invitationInvitee?.login ||
+    user?.login ||
+    ""
+  ).trim()
+}
+
+async function syncOrganizationWebhook(payload:Record<string,unknown>,action:string){
+  const organization=payload.organization as Record<string,unknown>|undefined
+  const orgLogin=String(organization?.login||"")
+  if(orgLogin.toLowerCase()!=="creatiive-zone") return
+  if(!["member_invited","member_added","member_removed"].includes(action)) return
+
+  const githubUsername=organizationActorLogin(payload)
+  if(!githubUsername) return
+  const now=new Date().toISOString()
+  const invitation=payload.invitation as Record<string,unknown>|undefined
+
+  const {data:connection}=await admin.from("github_connections")
+    .select("user_id,github_username")
+    .ilike("github_username",githubUsername)
+    .limit(1)
+    .maybeSingle()
+
+  let {data:request}=await admin.from("github_org_membership_requests")
+    .select("id,user_id,status")
+    .eq("organization","Creatiive-Zone")
+    .ilike("github_username",githubUsername)
+    .order("created_at",{ascending:false})
+    .limit(1)
+    .maybeSingle()
+
+  if(!request&&connection?.user_id){
+    const status=action==="member_added"?"joined":action==="member_invited"?"invited":"cancelled"
+    const {data:newRequest,error}=await admin.from("github_org_membership_requests").insert({
+      user_id:connection.user_id,
+      organization:"Creatiive-Zone",
+      github_username:githubUsername,
+      message:"Estado criado automaticamente a partir de um evento real do GitHub.",
+      status,
+      github_membership_state:action==="member_added"?"active":action==="member_invited"?"pending":null,
+      github_invitation_id:action==="member_invited"?(Number(invitation?.id||0)||null):null,
+      github_invitation_created_at:action==="member_invited"?(invitation?.created_at||null):null,
+      membership_verified_at:now,
+      last_github_sync_at:now,
+      updated_at:now,
+    }).select("id,user_id,status").single()
+    if(!error) request=newRequest
+  }else if(request){
+    const changes:Record<string,unknown>={
+      membership_verified_at:now,
+      last_github_sync_at:now,
+      updated_at:now,
+      invite_error:null,
+    }
+    if(action==="member_invited"){
+      changes.status="invited"
+      changes.github_membership_state="pending"
+      changes.github_invitation_id=Number(invitation?.id||0)||null
+      changes.github_invitation_created_at=invitation?.created_at||null
+    }else if(action==="member_added"){
+      changes.status="joined"
+      changes.github_membership_state="active"
+      changes.github_invitation_id=null
+      changes.github_invitation_created_at=null
+    }else if(action==="member_removed"){
+      changes.status="cancelled"
+      changes.github_membership_state=null
+      changes.github_invitation_id=null
+      changes.github_invitation_created_at=null
+      changes.invite_error="Membro removido da organização no GitHub."
+    }
+    await admin.from("github_org_membership_requests").update(changes).eq("id",request.id)
+  }
+
+  const targetUserId=String(request?.user_id||connection?.user_id||"")
+  if(targetUserId){
+    const type=action==="member_invited"
+      ?"github_org_invited"
+      :action==="member_added"
+        ?"github_org_joined"
+        :"github_org_removed"
+    await admin.from("notifications").insert({
+      user_id:targetUserId,
+      actor_id:null,
+      type,
+      data:{
+        organization:"Creatiive-Zone",
+        github_username:githubUsername,
+        github_action:action,
+        path:"/projetos",
+      },
+    }).catch(()=>null)
+  }
+
+  if(action==="member_invited"){
+    const {data:owners}=await admin.from("profiles").select("id").eq("system_owner",true)
+    const ownerRows=(owners||[])
+      .filter((owner:any)=>String(owner.id)!==targetUserId)
+      .map((owner:any)=>({
+        user_id:owner.id,
+        actor_id:null,
+        type:"github_org_external_change",
+        data:{
+          organization:"Creatiive-Zone",
+          github_username:githubUsername,
+          github_action:action,
+          path:"/projetos",
+        },
+      }))
+    if(ownerRows.length) await admin.from("notifications").insert(ownerRows).catch(()=>null)
+  }
+}
+
 async function processProject(projectId: string, event: string, pullRequestNumber: number | null = null) {
   const headers = { "Content-Type": "application/json", "x-creativezone-github": WEBHOOK_SECRET }
   const sync = fetch(`${SUPABASE_URL}/functions/v1/github-api`, {
@@ -142,6 +265,11 @@ Deno.serve(async (req: Request) => {
   const ref = repoRef(payload)
   const installationId = Number((payload.installation as Record<string, unknown> | undefined)?.id || 0) || null
   const action = String(payload.action || "")
+
+  if(event==="organization"){
+    // @ts-ignore Supabase Edge Runtime global
+    EdgeRuntime.waitUntil(syncOrganizationWebhook(payload,action).catch((error)=>console.error("organization webhook sync:",error)))
+  }
 
   const projectIds = ref ? await projectIdsForRepo(ref) : []
 
