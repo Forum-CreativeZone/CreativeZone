@@ -578,6 +578,32 @@ export function ProjectPage({ slug, session, navigate, notify }) {
               />
             )}
           </div>
+
+          <div className="project-members-strip">
+            <span className="project-members-strip-label"><Users/>Equipe</span>
+            <div className="project-members-avatars">
+              {activeMembers.map(member=>{
+                const username=member.profile?.username || ''
+                return <button
+                  type="button"
+                  key={member.user_id}
+                  className="project-member-avatar-button"
+                  data-profile-username={username || undefined}
+                  title={username ? '@'+username : 'Membro do projeto'}
+                  aria-label={member.profile?.display_name || username || 'Membro do projeto'}
+                ><MiniAvatar profile={member.profile} size={38}/></button>
+              })}
+            </div>
+            <span className="project-members-count">{activeMembers.length} membro{activeMembers.length===1?'':'s'}</span>
+            {!isOwner && !membership && session && (
+              <form className="join-project-form compact" onSubmit={join}>
+                <input maxLength={1000} value={message} onChange={e=>setMessage(e.target.value)} placeholder="Como você quer contribuir? (opcional)"/>
+                <button className="action primary-action"><UserPlus/>Quero participar</button>
+              </form>
+            )}
+            {membership?.status==='pending' && <small className="project-members-note">Seu pedido está aguardando análise.</small>}
+            {membership?.status==='active' && membership.role!=='owner' && <button className="action project-leave-button" onClick={leave}>Sair do projeto</button>}
+          </div>
           {project.website_url && (
             <div className="project-website-preview">
               <LinkPreviewCard url={project.website_url} variant="project" eager />
@@ -607,21 +633,6 @@ export function ProjectPage({ slug, session, navigate, notify }) {
           {canManage && <div className="project-status-controls">
             {['idea','planning','active','paused','completed'].map(value=><button className="action" key={value} onClick={()=>changeStatus(value)}>{value}</button>)}
           </div>}
-        </section>
-
-        <section className="project-members-panel">
-          <h3>Membros do projeto</h3>
-          <div className="project-member-list">
-            {activeMembers.map(member=><div key={member.user_id}><MiniAvatar profile={member.profile} size={36}/><span><strong>{member.profile?.display_name || member.profile?.username}</strong><small>{member.role}</small></span></div>)}
-          </div>
-          {!isOwner && !membership && session && (
-            <form className="join-project-form" onSubmit={join}>
-              <textarea maxLength={1000} value={message} onChange={e=>setMessage(e.target.value)} placeholder="Conte como você gostaria de contribuir (opcional)."/>
-              <button className="action primary-action"><UserPlus/>Quero participar</button>
-            </form>
-          )}
-          {membership?.status==='pending' && <p className="community-empty">Seu pedido de participação está aguardando análise.</p>}
-          {membership?.status==='active' && membership.role!=='owner' && <button className="action" onClick={leave}>Sair do projeto</button>}
         </section>
 
         {canManage && pending.length>0 && (
