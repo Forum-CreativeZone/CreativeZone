@@ -332,7 +332,7 @@ async function listRepositories(req: Request) {
 async function organizationMembership(req: Request) {
   const user = await authUser(req)
   if (!user) throw new Error("Entre na sua conta para verificar a organização.")
-  const { token } = await credentialFor(user.id)
+  const { token, scopes } = await credentialFor(user.id)
   try {
     const membership = await github("/user/memberships/orgs/" + encodeURIComponent(COMMUNITY_ORG), token)
     return {
@@ -350,16 +350,16 @@ async function organizationMembership(req: Request) {
     }
     if (status === 403) {
       const message=(error as Error).message || "A organização bloqueou o acesso do OAuth App."
-      const oauthRestricted=/OAuth App access restrictions|third-part|access restriction|do not have access to this organization membership/i.test(message)
+      const scopeAuthorized=Array.isArray(scopes)&&(scopes.includes("read:org")||scopes.includes("admin:org"))
       return {
         organization: COMMUNITY_ORG,
         member: null,
         state: null,
         role: null,
         authorized: false,
-        scope_authorized: true,
-        restriction_type: oauthRestricted ? "oauth_app_access_restriction" : "organization_access_denied",
-        authorization_url: "https://github.com/organizations/"+COMMUNITY_ORG+"/settings/oauth_application_policy",
+        scope_authorized: scopeAuthorized,
+        restriction_type: scopeAuthorized ? "oauth_app_access_restriction" : "organization_access_denied",
+        authorization_url: scopeAuthorized ? "https://github.com/organizations/"+COMMUNITY_ORG+"/settings/oauth_application_policy" : null,
         error: message,
       }
     }
