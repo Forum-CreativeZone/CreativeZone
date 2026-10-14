@@ -14,8 +14,10 @@ import {
   GitCommitHorizontal,
   GitMerge,
   GitPullRequest,
+  Image as ImageIcon,
   LockKeyhole,
   MessageSquarePlus,
+  Pencil,
   Plus,
   RefreshCw,
   Search,
@@ -49,6 +51,7 @@ import {
   mergeProjectStudioPullRequest,
   reviewProjectStudioPullRequest,
   readProjectStudioFile,
+  previewProjectStudioFile,
   runProjectStudioTerminal,
   runProjectStudioCode,
   updateProjectStudioIssue,
@@ -133,6 +136,10 @@ export function ProjectStudio({ project, canManage = false, notify }) {
   const [newBranch,setNewBranch]=useState('')
   const [selected,setSelected]=useState('')
   const [selectedMeta,setSelectedMeta]=useState(null)
+  const [preview,setPreview]=useState(null)
+  const [editMenuOpen,setEditMenuOpen]=useState(false)
+  const [terminalEditor,setTerminalEditor]=useState(null)
+  const [terminalEditorMessage,setTerminalEditorMessage]=useState('')
   const [content,setContent]=useState('')
   const [original,setOriginal]=useState('')
   const [message,setMessage]=useState('')
@@ -231,6 +238,8 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     setCommitInfo(null)
     setSelected('')
     setSelectedMeta(null)
+    setPreview(null)
+    setEditMenuOpen(false)
     setContent('')
     setOriginal('')
     await refreshTree(nextBranch)
@@ -239,14 +248,40 @@ export function ProjectStudio({ project, canManage = false, notify }) {
   async function openFile(item) {
     const path=typeof item==='string'?item:item?.path
     if(!path) return
+    const meta=typeof item==='object'?item:null
     setSelected(path)
-    setSelectedMeta(typeof item==='object'?item:null)
+    setSelectedMeta(meta)
+    setPreview(null)
+    setEditMenuOpen(false)
     setError('')
-    if(typeof item==='object' && item?.editable===false){
+
+    const isImage=/\.(png|jpe?g|webp|gif|svg|avif)$/i.test(path)
+    if(isImage){
+      setContent('')
+      setOriginal('')
+      setBusy('preview')
+      try{
+        const result=await previewProjectStudioFile(project.id,{
+          path,
+          branch:branch || baseBranch,
+          sha:meta?.sha,
+          size:meta?.size,
+        })
+        setPreview(result)
+      }catch(next){
+        setError(next?.message || 'Não foi possível visualizar a imagem.')
+      }finally{
+        setBusy('')
+      }
+      return
+    }
+
+    if(meta?.editable===false){
       setContent('')
       setOriginal('')
       return
     }
+
     setBusy('file')
     try{
       const result=await readProjectStudioFile(project.id,path,branch || baseBranch)
@@ -318,6 +353,58 @@ export function ProjectStudio({ project, canManage = false, notify }) {
         title={node.path}
       ><FileCode2/><span>{node.name}</span></button>
     })
+  }
+
+  function openDirectEditor() {
+    if(!selected || selectedMeta?.editable===false) return
+    setEditMenuOpen(false)
+    setTab('code')
+  }
+
+  function openTerminalEditor() {
+    if(!selected || selectedMeta?.editable===false) return
+    setEditMenuOpen(false)
+    setTerminalEditor({
+      path:selected,
+      content,
+      original,
+    })
+    setTerminalEditorMessage('')
+    setTab('terminal')
+    setTerminalLines(lines=>[
+      ...lines,
+      {type:'system',text:'editor '+selected+' aberto no terminal CreativeZone.'},
+    ])
+  }
+
+  async function saveTerminalEditor() {
+    if(!terminalEditor || terminalEditor.content===terminalEditor.original) return
+    setBusy('terminal-editor');setError('')
+    try{
+      const requestedBranch=branch && branch!==baseBranch ? branch : undefined
+      const result=await commitProjectStudioFile(project.id,{
+        path:terminalEditor.path,
+        content:terminalEditor.content,
+        message:terminalEditorMessage || ('Edit '+terminalEditor.path+' via CreativeZone Terminal'),
+        branch:requestedBranch,
+      })
+      setTerminalEditor(current=>current?{...current,original:current.content}:current)
+      setTerminalEditorMessage('')
+      setCommitInfo(result)
+      setBranch(result.branch)
+      setContent(terminalEditor.content)
+      setOriginal(terminalEditor.content)
+      notify?.('Arquivo salvo e commitado pelo terminal CreativeZone.')
+      setTerminalLines(lines=>[
+        ...lines,
+        {type:'output',text:'[saved] '+terminalEditor.path+'\ncommit '+String(result?.commit?.sha || '').slice(0,12)},
+      ])
+      await Promise.all([refreshTree(result.branch),refreshBranches()])
+    }catch(next){
+      const msg=next?.message || 'Não foi possível salvar pelo terminal.'
+      setError(msg)
+      notify?.(msg)
+    }finally{setBusy('')}
   }
 
   async function commit() {
