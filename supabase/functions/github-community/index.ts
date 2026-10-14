@@ -178,18 +178,19 @@ async function githubTokenPages(path: string, token: string, maxPages=10) {
   return items
 }
 
-async function syncOrganizationTruth(installation:any) {
+async function syncOrganizationTruth(installation:any, fallbackToken="", source="github_app") {
   const now=new Date().toISOString()
   const installationId=Number(installation?.id||0)
   const permissions=(installation?.permissions||{}) as Record<string,unknown>
   const membersPermission=String(permissions.members||"")
-  const canRead=membersPermission==="read"||membersPermission==="write"
-  if(!installationId||!canRead){
-    return {available:false,members:[],invitations:[],member_count:0,invitation_count:0,synced_at:null}
+  const appCanRead=membersPermission==="read"||membersPermission==="write"
+  if(!appCanRead&&!fallbackToken){
+    return {available:false,requires_authorization:true,source:null,members:[],invitations:[],member_count:0,invitation_count:0,synced_at:null}
   }
 
   try{
-    const token=await installationToken(installationId)
+    const token=appCanRead&&installationId?await installationToken(installationId):fallbackToken
+    const effectiveSource=appCanRead&&installationId?"github_app":source
     const [members,invitations,{data:connections},{data:requests}]=await Promise.all([
       githubTokenPages("/orgs/"+encodeURIComponent(ORG)+"/members?filter=all&role=all",token),
       githubTokenPages("/orgs/"+encodeURIComponent(ORG)+"/invitations",token),
@@ -303,6 +304,8 @@ async function syncOrganizationTruth(installation:any) {
 
     return {
       available:true,
+      source:effectiveSource,
+      requires_authorization:false,
       members:members.map((item:any)=>{
         const login=String(item?.login||"")
         const key=login.toLowerCase()
@@ -440,13 +443,21 @@ async function organizationPayload(req: Request) {
           : "https://github.com/organizations/" + ORG + "/settings/installations",
       }
 
-      if(appStatus.members_read && installation?.id){
+      if(installation?.id){
         try{
-          githubSync=await syncOrganizationTruth(installation)
+          let fallbackToken=""
+          if(!appStatus.members_read&&user?.id){
+            fallbackToken=await userGithubToken(user.id).catch(()=>"")
+          }
+          githubSync=await syncOrganizationTruth(installation,fallbackToken,fallbackToken?"owner_oauth":"github_app")
           githubInvitations=githubSync.invitations||[]
           githubMembers=githubSync.members||[]
+          if(!githubSync.available&&!appStatus.members_read){
+            appStatus.sync_error="Autorize read:org na conta GitHub do proprietário ou habilite Organization members: Read no GitHub App."
+          }
         }catch(error){
           appStatus.sync_error=error instanceof Error?error.message:"Falha ao sincronizar membros e convites."
+          githubSync={available:false,requires_authorization:true,source:null,members:[],invitations:[],member_count:0,invitation_count:0,synced_at:null,error:appStatus.sync_error}
           console.warn("github organization truth sync:",error)
         }
       }
