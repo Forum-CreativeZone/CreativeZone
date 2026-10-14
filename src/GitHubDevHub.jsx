@@ -440,13 +440,21 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
               ? <span><CheckCircle2/> Instalação pronta: convites automáticos e criação centralizada de repositórios habilitados.</span>
               : <>
                   <span><Clock3/> Instalação encontrada. {data.app_status.members_write ? '' : <>Habilite <b>Organization members: Read and write</b>. </>}{data.app_status.administration_write ? '' : <>Habilite também <b>Repository administration: Read and write</b> para criação centralizada de repositórios.</>}</span>
-                  {data.app_status.settings_url&&<a className="action" href={data.app_status.settings_url} target="_blank" rel="noreferrer"><ExternalLink/>Configurar GitHub App</a>}
+                  {data.app_status.developer_permissions_url
+                    ? <a className="action" href={data.app_status.developer_permissions_url} target="_blank" rel="noreferrer"><ExternalLink/>Permissões do GitHub App</a>
+                    : data.app_status.settings_url&&<a className="action" href={data.app_status.settings_url} target="_blank" rel="noreferrer"><ExternalLink/>Configurar GitHub App</a>}
                 </>}
         </div>
       )}
       {data?.is_staff&&!githubSync?.available&&<div className="github-org-truth-status needs-auth">
         <Clock3/>
-        <span><strong>Autorize a leitura da organização</strong><small>Use o botão “Autorizar organização” na conta GitHub acima. Isso libera read:org para consultar membros privados e convites reais.</small></span>
+        <span>
+          <strong>{githubSync?.authorization_kind==='oauth_app_policy'?'OAuth App bloqueado pela política da organização':'Autorize a leitura da organização'}</strong>
+          <small>{githubSync?.authorization_kind==='oauth_app_policy'
+            ? 'Reautorizar a conta não resolve este bloqueio. O proprietário precisa conceder acesso ao OAuth App em Third-party Access → OAuth app policy.'
+            : 'Autorize read:org para consultar membros privados da organização.'}</small>
+        </span>
+        {githubSync?.authorization_url&&<a className="action" href={githubSync.authorization_url} target="_blank" rel="noreferrer"><ExternalLink/>Abrir política OAuth</a>}
       </div>}
       {data?.is_staff&&githubSync?.available&&githubSync?.invitations_available===false&&<div className="github-org-truth-status needs-auth">
         <Clock3/>
