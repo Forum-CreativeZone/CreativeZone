@@ -44,6 +44,7 @@ import {
   reviewProjectStudioPullRequest,
   readProjectStudioFile,
   runProjectStudioTerminal,
+  runProjectStudioCode,
   uploadProjectStudioFile,
   updateProjectStudioIssue,
   updateProjectStudioRepositorySettings,
@@ -110,6 +111,10 @@ export function ProjectStudio({ project, canManage = false, notify }) {
   const [fixes,setFixes]=useState([])
   const [terminalLines,setTerminalLines]=useState([{type:'system',text:'CreativeZone Git Terminal — digite help para ver os comandos disponíveis.'}])
   const [terminalCommand,setTerminalCommand]=useState('')
+  const [runnerSource,setRunnerSource]=useState('')
+  const [runnerLanguage,setRunnerLanguage]=useState('javascript')
+  const [runnerStdin,setRunnerStdin]=useState('')
+  const [runnerResult,setRunnerResult]=useState(null)
   const [busy,setBusy]=useState('')
   const [error,setError]=useState('')
   const uploadRef=useRef(null)
@@ -453,6 +458,34 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     finally{setBusy('')}
   }
 
+
+  function languageForPath(path) {
+    const ext=String(path||'').split('.').pop()?.toLowerCase()
+    return ({
+      js:'javascript',mjs:'javascript',cjs:'javascript',
+      ts:'typescript',tsx:'typescript',
+      py:'python',sh:'bash',bash:'bash',
+      cpp:'cpp',cc:'cpp',cxx:'cpp',c:'c',
+      java:'java',cs:'csharp',go:'go',rs:'rust',php:'php',rb:'ruby',
+    })[ext] || 'javascript'
+  }
+
+  async function runCode() {
+    if(!runnerSource.trim()) return notify?.('Adicione código para executar.')
+    setBusy('runner');setError('');setRunnerResult(null)
+    try{
+      const result=await runProjectStudioCode(project.id,{
+        source_code:runnerSource,
+        language:runnerLanguage,
+        stdin:runnerStdin,
+      })
+      setRunnerResult(result)
+    }catch(next){
+      const msg=next?.message || 'Não foi possível executar o código.'
+      setError(msg);notify?.(msg)
+    }finally{setBusy('')}
+  }
+
   async function runTerminal(event) {
     event.preventDefault()
     const command=terminalCommand.trim()
@@ -482,6 +515,12 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     if(next==='ci') loadCi()
     if(next==='security'&&!fixes.length) loadFixes()
     if(next==='settings'&&!settings) loadSettings()
+    if(next==='runner'){
+      if(selected && content){
+        setRunnerSource(content)
+        setRunnerLanguage(languageForPath(selected))
+      }
+    }
   }
 
   return (
@@ -499,7 +538,8 @@ export function ProjectStudio({ project, canManage = false, notify }) {
         <button className={tab==='prs'?'active':''} onClick={()=>changeTab('prs')}><GitPullRequest/>Pull Requests</button>
         <button className={tab==='branches'?'active':''} onClick={()=>changeTab('branches')}><GitBranch/>Branches</button>
         <button className={tab==='commits'?'active':''} onClick={()=>changeTab('commits')}><GitCommitHorizontal/>Commits</button>
-        <button className={tab==='terminal'?'active':''} onClick={()=>changeTab('terminal')}><Terminal/>Terminal</button>
+        <button className={tab==='terminal'?'active':''} onClick={()=>changeTab('terminal')}><Terminal/>Git Terminal</button>
+        <button className={tab==='runner'?'active':''} onClick={()=>changeTab('runner')}><Code2/>Executar código</button>
         <button className={tab==='ci'?'active':''} onClick={()=>changeTab('ci')}><Workflow/>CI/CD</button>
         <button className={tab==='security'?'active':''} onClick={()=>changeTab('security')}><ShieldCheck/>Segurança</button>
         <button className={tab==='settings'?'active':''} onClick={()=>changeTab('settings')}><Wrench/>Configurações</button>
@@ -565,6 +605,43 @@ export function ProjectStudio({ project, canManage = false, notify }) {
         <header><Terminal/><span><strong>Terminal Git seguro</strong><small>Comandos Git são executados por API no repositório real. Não é um shell Linux arbitrário.</small></span></header>
         <div className="studio-terminal-screen">{terminalLines.map((line,index)=><pre key={index} className={'terminal-'+line.type}>{line.text}</pre>)}</div>
         <form onSubmit={runTerminal}><span>$</span><input value={terminalCommand} onChange={e=>setTerminalCommand(e.target.value)} placeholder="git status" autoComplete="off"/><button disabled={busy==='terminal'}>Executar</button></form>
+      </div>}
+
+      {tab==='runner'&&<div className="studio-runner studio-panel">
+        <header><span><Code2/><strong>Sandbox de execução · Judge0 CE</strong></span><small>Execução isolada, sem acesso aos segredos ou ao servidor da CreativeZone.</small></header>
+        <div className="studio-runner-toolbar">
+          <label>Linguagem
+            <select value={runnerLanguage} onChange={e=>setRunnerLanguage(e.target.value)}>
+              <option value="javascript">JavaScript / Node.js</option>
+              <option value="typescript">TypeScript</option>
+              <option value="python">Python 3</option>
+              <option value="bash">Bash</option>
+              <option value="cpp">C++</option>
+              <option value="c">C</option>
+              <option value="java">Java</option>
+              <option value="csharp">C#</option>
+              <option value="go">Go</option>
+              <option value="rust">Rust</option>
+              <option value="php">PHP</option>
+              <option value="ruby">Ruby</option>
+            </select>
+          </label>
+          <button className="action" type="button" onClick={()=>{if(selected){setRunnerSource(content);setRunnerLanguage(languageForPath(selected))}}} disabled={!selected}>Usar arquivo aberto</button>
+          <button className="action primary-action" type="button" onClick={runCode} disabled={busy==='runner'||!runnerSource.trim()}>{busy==='runner'?'Executando...':'Executar no sandbox'}</button>
+        </div>
+        <div className="studio-runner-grid">
+          <label>Código<textarea className="studio-runner-code" value={runnerSource} onChange={e=>setRunnerSource(e.target.value)} spellCheck="false" placeholder="// Código para executar"/></label>
+          <label>stdin<textarea value={runnerStdin} onChange={e=>setRunnerStdin(e.target.value)} placeholder="Entrada opcional"/></label>
+        </div>
+        {runnerResult&&<section className="studio-runner-result">
+          <header><strong>{runnerResult.status?.description || 'Resultado'}</strong><span>{runnerResult.language}{runnerResult.time?' · '+runnerResult.time+'s':''}{runnerResult.memory?' · '+runnerResult.memory+' KB':''}</span></header>
+          {runnerResult.stdout&&<pre className="runner-stdout">{runnerResult.stdout}</pre>}
+          {runnerResult.compile_output&&<pre className="runner-compile">{runnerResult.compile_output}</pre>}
+          {runnerResult.stderr&&<pre className="runner-stderr">{runnerResult.stderr}</pre>}
+          {runnerResult.message&&<pre className="runner-message">{runnerResult.message}</pre>}
+          {!runnerResult.stdout&&!runnerResult.compile_output&&!runnerResult.stderr&&!runnerResult.message&&<pre>Sem saída.</pre>}
+        </section>}
+        <p className="studio-runner-note">Este runner usa o Judge0 CE, API gratuita/open-source listada nas referências de APIs da CreativeZone. Para comandos Git e sincronização use a aba Git Terminal.</p>
       </div>}
 
       {tab==='ci'&&<div className="project-studio-ci studio-panel">
