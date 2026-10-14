@@ -314,7 +314,7 @@ export function ForumSidebar({
             href="/projetos"
             onClick={(event) => { event.preventDefault(); navigate('/projetos') }}
           >
-            <BriefcaseBusiness /><span><strong>Projetos</strong><small>Criações da comunidade</small></span>
+            <BriefcaseBusiness /><span><strong>DevHub</strong><small>Projetos, GitHub e colaboração</small></span>
           </a>
           <a
             href="/membros"
