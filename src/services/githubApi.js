@@ -72,3 +72,11 @@ export function reviewGitHubOrganizationMembership(requestId, status) {
     status,
   })
 }
+
+
+export function sendGitHubOrganizationInvitation(requestId) {
+  return invokeGithubCommunity({
+    action: 'send_membership_invite',
+    request_id: requestId,
+  })
+}
