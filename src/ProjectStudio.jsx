@@ -27,19 +27,26 @@ import {
   createProjectStudioBranch,
   createProjectStudioIssue,
   createProjectStudioPullRequest,
+  addProjectStudioIssueComment,
   deleteProjectStudioFile,
   getProjectSecurityFixes,
   getProjectStudioBranches,
   getProjectStudioCi,
   getProjectStudioCommits,
   getProjectStudioIssues,
+  getProjectStudioIssueComments,
   getProjectStudioPullRequests,
+  getProjectStudioPullRequestReviews,
+  getProjectStudioRepositorySettings,
   getProjectStudioStatus,
   getProjectStudioTree,
   mergeProjectStudioPullRequest,
+  reviewProjectStudioPullRequest,
   readProjectStudioFile,
   runProjectStudioTerminal,
   uploadProjectStudioFile,
+  updateProjectStudioIssue,
+  updateProjectStudioRepositorySettings,
 } from './services/githubStudioApi'
 
 function StudioLocked({ plan }) {
@@ -90,7 +97,15 @@ export function ProjectStudio({ project, canManage = false, notify }) {
   const [issues,setIssues]=useState([])
   const [issueTitle,setIssueTitle]=useState('')
   const [issueBody,setIssueBody]=useState('')
+  const [selectedIssue,setSelectedIssue]=useState(null)
+  const [issueComments,setIssueComments]=useState([])
+  const [issueComment,setIssueComment]=useState('')
   const [pulls,setPulls]=useState([])
+  const [selectedPull,setSelectedPull]=useState(null)
+  const [pullReviews,setPullReviews]=useState([])
+  const [reviewBody,setReviewBody]=useState('')
+  const [settings,setSettings]=useState(null)
+  const [settingsForm,setSettingsForm]=useState({description:'',homepage:'',has_issues:true,has_projects:true,has_wiki:false})
   const [ciRuns,setCiRuns]=useState([])
   const [fixes,setFixes]=useState([])
   const [terminalLines,setTerminalLines]=useState([{type:'system',text:'CreativeZone Git Terminal — digite help para ver os comandos disponíveis.'}])
@@ -299,6 +314,41 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     finally{setBusy('')}
   }
 
+
+  async function toggleIssue(item) {
+    setBusy('issue-state:'+item.number);setError('')
+    try{
+      await updateProjectStudioIssue(project.id,{number:item.number,state:item.state==='open'?'closed':'open'})
+      await loadIssues()
+      notify?.('Issue #'+item.number+' '+(item.state==='open'?'fechada.':'reaberta.'))
+    }catch(next){const msg=next?.message || 'Não foi possível atualizar a Issue.';setError(msg);notify?.(msg)}
+    finally{setBusy('')}
+  }
+
+  async function openIssueComments(item) {
+    setSelectedIssue(item)
+    setIssueComment('')
+    setBusy('issue-comments');setError('')
+    try{
+      const result=await getProjectStudioIssueComments(project.id,item.number)
+      setIssueComments(result.comments || [])
+    }catch(next){setError(next?.message || 'Não foi possível carregar comentários.')}
+    finally{setBusy('')}
+  }
+
+  async function submitIssueComment(event) {
+    event.preventDefault()
+    if(!selectedIssue || !issueComment.trim()) return
+    setBusy('issue-comment');setError('')
+    try{
+      await addProjectStudioIssueComment(project.id,selectedIssue.number,issueComment.trim())
+      setIssueComment('')
+      await openIssueComments(selectedIssue)
+      notify?.('Comentário publicado na Issue pelo CreativeZone.')
+    }catch(next){const msg=next?.message || 'Não foi possível comentar.';setError(msg);notify?.(msg)}
+    finally{setBusy('')}
+  }
+
   async function createPr() {
     const source=commitInfo?.branch || (branch!==baseBranch?branch:'')
     if(!source) return notify?.('Crie uma branch ou faça uma alteração antes de abrir a Pull Request.')
@@ -314,6 +364,57 @@ export function ProjectStudio({ project, canManage = false, notify }) {
       setTab('prs')
       await loadPulls()
     }catch(next){const msg=next?.message || 'Falha ao criar Pull Request.';setError(msg);notify?.(msg)}
+    finally{setBusy('')}
+  }
+
+
+  async function openPullReviews(item) {
+    setSelectedPull(item)
+    setReviewBody('')
+    setBusy('reviews');setError('')
+    try{
+      const result=await getProjectStudioPullRequestReviews(project.id,item.number)
+      setPullReviews(result.reviews || [])
+    }catch(next){setError(next?.message || 'Não foi possível carregar as reviews.')}
+    finally{setBusy('')}
+  }
+
+  async function submitReview(eventName) {
+    if(!selectedPull) return
+    setBusy('review');setError('')
+    try{
+      await reviewProjectStudioPullRequest(project.id,selectedPull.number,eventName,reviewBody.trim())
+      setReviewBody('')
+      await openPullReviews(selectedPull)
+      notify?.('Review enviada pelo CreativeZone.')
+    }catch(next){const msg=next?.message || 'Não foi possível enviar a review.';setError(msg);notify?.(msg)}
+    finally{setBusy('')}
+  }
+
+  async function loadSettings() {
+    setBusy('settings');setError('')
+    try{
+      const result=await getProjectStudioRepositorySettings(project.id)
+      setSettings(result.settings || null)
+      setSettingsForm({
+        description:result.settings?.description || '',
+        homepage:result.settings?.homepage || '',
+        has_issues:Boolean(result.settings?.has_issues),
+        has_projects:Boolean(result.settings?.has_projects),
+        has_wiki:Boolean(result.settings?.has_wiki),
+      })
+    }catch(next){setError(next?.message || 'Não foi possível carregar as configurações.')}
+    finally{setBusy('')}
+  }
+
+  async function saveSettings(event) {
+    event.preventDefault()
+    setBusy('save-settings');setError('')
+    try{
+      const result=await updateProjectStudioRepositorySettings(project.id,settingsForm)
+      setSettings(current=>({...current,...result.settings}))
+      notify?.('Configurações do repositório atualizadas pelo CreativeZone.')
+    }catch(next){const msg=next?.message || 'Não foi possível salvar as configurações.';setError(msg);notify?.(msg)}
     finally{setBusy('')}
   }
 
@@ -380,6 +481,7 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     if(next==='prs') loadPulls()
     if(next==='ci') loadCi()
     if(next==='security'&&!fixes.length) loadFixes()
+    if(next==='settings'&&!settings) loadSettings()
   }
 
   return (
@@ -400,6 +502,7 @@ export function ProjectStudio({ project, canManage = false, notify }) {
         <button className={tab==='terminal'?'active':''} onClick={()=>changeTab('terminal')}><Terminal/>Terminal</button>
         <button className={tab==='ci'?'active':''} onClick={()=>changeTab('ci')}><Workflow/>CI/CD</button>
         <button className={tab==='security'?'active':''} onClick={()=>changeTab('security')}><ShieldCheck/>Segurança</button>
+        <button className={tab==='settings'?'active':''} onClick={()=>changeTab('settings')}><Wrench/>Configurações</button>
       </nav>
 
       {error&&<p className="project-studio-error"><AlertTriangle/>{error}</p>}
@@ -448,12 +551,14 @@ export function ProjectStudio({ project, canManage = false, notify }) {
       {tab==='issues'&&<div className="studio-panel">
         <header><span><MessageSquarePlus/><strong>Issues</strong></span><button className="action" onClick={loadIssues}><RefreshCw/>Atualizar</button></header>
         <form className="studio-issue-form" onSubmit={createIssue}><input value={issueTitle} onChange={e=>setIssueTitle(e.target.value)} placeholder="Título da nova Issue"/><textarea value={issueBody} onChange={e=>setIssueBody(e.target.value)} placeholder="Descreva a tarefa, bug ou melhoria..."/><button className="action primary-action" disabled={!issueTitle.trim()||Boolean(busy)}><Plus/>Criar Issue</button></form>
-        <div className="studio-list">{issues.map(item=><article key={item.number}><span className={'studio-state '+item.state}>{item.state}</span><span><strong>#{item.number} {item.title}</strong><small>{item.user||'GitHub'} · {item.comments||0} comentário(s) · {shortDate(item.updated_at)}</small><p>{item.body}</p></span></article>)}</div>
+        <div className="studio-list">{issues.map(item=><article key={item.number}><span className={'studio-state '+item.state}>{item.state}</span><span><strong>#{item.number} {item.title}</strong><small>{item.user||'GitHub'} · {item.comments||0} comentário(s) · {shortDate(item.updated_at)}</small><p>{item.body}</p></span><div className="studio-item-actions"><button className="action" onClick={()=>openIssueComments(item)}><MessageSquarePlus/>Comentários</button><button className="action" onClick={()=>toggleIssue(item)}>{item.state==='open'?'Fechar':'Reabrir'}</button></div></article>)}</div>
+        {selectedIssue&&<section className="studio-thread"><header><strong>Issue #{selectedIssue.number} · comentários</strong><button onClick={()=>setSelectedIssue(null)}>×</button></header><div>{issueComments.map(comment=><article key={comment.id}><strong>@{comment.user}</strong><small>{shortDate(comment.created_at)}</small><p>{comment.body}</p></article>)}</div><form onSubmit={submitIssueComment}><textarea value={issueComment} onChange={e=>setIssueComment(e.target.value)} placeholder="Adicionar comentário..."/><button className="action primary-action" disabled={!issueComment.trim()||Boolean(busy)}>Comentar</button></form></section>}
       </div>}
 
       {tab==='prs'&&<div className="studio-panel">
         <header><span><GitPullRequest/><strong>Pull Requests</strong></span><div><button className="action" onClick={createPr}><Plus/>Nova PR da branch atual</button><button className="action" onClick={loadPulls}><RefreshCw/>Atualizar</button></div></header>
-        <div className="studio-list">{pulls.map(item=><article key={item.number}><GitPullRequest/><span><strong>#{item.number} {item.title}</strong><small>{item.head} → {item.base} · {item.user||'GitHub'} · {item.state}{item.draft?' · draft':''}</small><p>{item.body}</p></span>{status.can_manage&&item.state==='open'&&<button className="action primary-action" onClick={()=>mergePr(item.number)} disabled={Boolean(busy)}><GitMerge/>{busy==='merge:'+item.number?'Integrando...':'Merge'}</button>}</article>)}</div>
+        <div className="studio-list">{pulls.map(item=><article key={item.number}><GitPullRequest/><span><strong>#{item.number} {item.title}</strong><small>{item.head} → {item.base} · {item.user||'GitHub'} · {item.state}{item.draft?' · draft':''}</small><p>{item.body}</p></span><div className="studio-item-actions"><button className="action" onClick={()=>openPullReviews(item)}>Review</button>{status.can_manage&&item.state==='open'&&<button className="action primary-action" onClick={()=>mergePr(item.number)} disabled={Boolean(busy)}><GitMerge/>{busy==='merge:'+item.number?'Integrando...':'Merge'}</button>}</div></article>)}</div>
+        {selectedPull&&<section className="studio-thread"><header><strong>PR #{selectedPull.number} · reviews</strong><button onClick={()=>setSelectedPull(null)}>×</button></header><div>{pullReviews.map(review=><article key={review.id}><strong>@{review.user} · {review.state}</strong><small>{shortDate(review.submitted_at)}</small><p>{review.body}</p></article>)}</div><div className="studio-review-form"><textarea value={reviewBody} onChange={e=>setReviewBody(e.target.value)} placeholder="Comentário da review..."/><div><button className="action" onClick={()=>submitReview('COMMENT')} disabled={!reviewBody.trim()||Boolean(busy)}>Comentar</button><button className="action" onClick={()=>submitReview('REQUEST_CHANGES')} disabled={!reviewBody.trim()||Boolean(busy)}><AlertTriangle/>Solicitar mudanças</button><button className="action primary-action" onClick={()=>submitReview('APPROVE')} disabled={Boolean(busy)}><CheckCircle2/>Aprovar</button></div></div></section>}
       </div>}
 
       {tab==='terminal'&&<div className="studio-terminal">
@@ -472,6 +577,22 @@ export function ProjectStudio({ project, canManage = false, notify }) {
         <header><span><ShieldCheck/><strong>CreativeZone Security + AutoFix</strong></span><button className="action" onClick={loadFixes}><RefreshCw/>Atualizar</button></header>
         {!fixes.length&&!busy&&<p>Nenhuma vulnerabilidade com versão corrigida disponível no último relatório.</p>}
         {fixes.map(item=><article key={item.id}><span><b>{item.package_name}</b><small>{item.osv_id} · {item.severity} · {item.version} → {item.fixed_versions?.[0]}</small></span><button className="action" onClick={()=>autoFix(item.id)} disabled={Boolean(busy)}><Wrench/>{busy==='autofix:'+item.id?'Criando PR...':'Criar correção'}</button></article>)}
+      </div>}
+
+      {tab==='settings'&&<div className="studio-panel studio-settings">
+        <header><span><Wrench/><strong>Configurações do repositório</strong></span><button className="action" onClick={loadSettings}><RefreshCw/>Atualizar</button></header>
+        {settings&&<form onSubmit={saveSettings}>
+          <div className="studio-settings-summary"><span><strong>{settings.full_name || status.repository?.repo_owner+'/'+status.repository?.repo_name}</strong><small>{settings.visibility} · branch padrão {settings.default_branch}</small></span>{settings.archived&&<em>Arquivado</em>}</div>
+          <label>Descrição<textarea value={settingsForm.description} onChange={e=>setSettingsForm({...settingsForm,description:e.target.value})} maxLength={350}/></label>
+          <label>Homepage<input type="url" value={settingsForm.homepage} onChange={e=>setSettingsForm({...settingsForm,homepage:e.target.value})} placeholder="https://..."/></label>
+          <div className="studio-setting-toggles">
+            <label><input type="checkbox" checked={settingsForm.has_issues} onChange={e=>setSettingsForm({...settingsForm,has_issues:e.target.checked})}/> Issues habilitadas</label>
+            <label><input type="checkbox" checked={settingsForm.has_projects} onChange={e=>setSettingsForm({...settingsForm,has_projects:e.target.checked})}/> GitHub Projects habilitado</label>
+            <label><input type="checkbox" checked={settingsForm.has_wiki} onChange={e=>setSettingsForm({...settingsForm,has_wiki:e.target.checked})}/> Wiki habilitada</label>
+          </div>
+          <button className="action primary-action" disabled={Boolean(busy)}>Salvar no GitHub</button>
+        </form>}
+        {!settings&&!busy&&<p>Carregue as configurações para editar o repositório pelo CreativeZone.</p>}
       </div>}
 
       <footer className="studio-footer-note"><CheckCircle2/>GitHub é a infraestrutura de versionamento; o trabalho cotidiano pode ser feito dentro da CreativeZone.</footer>
