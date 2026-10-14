@@ -499,6 +499,63 @@ async function listCommits(req: Request, payload: Record<string, unknown>) {
   }
 }
 
+
+async function commitBatch(req: Request, payload: Record<string, unknown>) {
+  const access=await repositoryAccess(req,payload,"forum_commits")
+  if(!access.enabled || !access.ref) return status(req,payload)
+  const changes=Array.isArray(payload.changes)?payload.changes.slice(0,40):[]
+  if(!changes.length) throw new Error("Nenhuma alteração informada.")
+  const base=String(access.repository?.default_branch||"main")
+  const branch=String(payload.branch || ("creativezone/"+String(access.user.id).slice(0,8)+"/"+Date.now()))
+    .replace(/[^A-Za-z0-9._/-]/g,"-").slice(0,150)
+  await ensureBranch(access,branch,base)
+
+  const ref=await github("/repos/"+encodeURIComponent(access.ref.owner)+"/"+encodeURIComponent(access.ref.repo)+"/git/ref/heads/"+encodeURIComponent(branch),access.token)
+  const headSha=String(ref?.object?.sha||"")
+  if(!headSha) throw new Error("Não foi possível localizar o HEAD da branch.")
+  const headCommit=await github("/repos/"+encodeURIComponent(access.ref.owner)+"/"+encodeURIComponent(access.ref.repo)+"/git/commits/"+encodeURIComponent(headSha),access.token)
+  const baseTree=String(headCommit?.tree?.sha||"")
+  if(!baseTree) throw new Error("Não foi possível localizar a árvore do repositório.")
+
+  let totalEncoded=0
+  const treeEntries:any[]=[]
+  for(const raw of changes){
+    const change=(raw||{}) as Record<string,unknown>
+    const path=safePath(change.path)
+    if(Boolean(change.delete)){
+      treeEntries.push({path,mode:"100644",type:"blob",sha:null})
+      continue
+    }
+    const base64=String(change.content_base64||"").replace(/\s+/g,"")
+    const text=change.content_text===undefined?null:String(change.content_text)
+    if(!base64 && text===null) throw new Error("Conteúdo ausente para "+path)
+    if(base64) totalEncoded+=base64.length
+    if(totalEncoded>28_000_000) throw new Error("O lote de upload excede o limite de aproximadamente 20 MB.")
+    const blob=await github("/repos/"+encodeURIComponent(access.ref.owner)+"/"+encodeURIComponent(access.ref.repo)+"/git/blobs",access.token,{
+      method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(
+        base64?{content:base64,encoding:"base64"}:{content:text,encoding:"utf-8"}
+      )
+    })
+    treeEntries.push({path,mode:"100644",type:"blob",sha:blob.sha})
+  }
+
+  const treeResult=await github("/repos/"+encodeURIComponent(access.ref.owner)+"/"+encodeURIComponent(access.ref.repo)+"/git/trees",access.token,{
+    method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({base_tree:baseTree,tree:treeEntries})
+  })
+  const commitResult=await github("/repos/"+encodeURIComponent(access.ref.owner)+"/"+encodeURIComponent(access.ref.repo)+"/git/commits",access.token,{
+    method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      message:compact(payload.message||("CreativeZone: "+changes.length+" alteração(ões)"),300),
+      tree:treeResult.sha,
+      parents:[headSha],
+    })
+  })
+  await github("/repos/"+encodeURIComponent(access.ref.owner)+"/"+encodeURIComponent(access.ref.repo)+"/git/refs/heads/"+encodeURIComponent(branch),access.token,{
+    method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({sha:commitResult.sha,force:false})
+  })
+  await logAction(access,"commit",{branch,files:changes.map((item:any)=>item.path)},"completed",{sha:commitResult.sha,count:changes.length})
+  return {enabled:true,branch,base_branch:base,commit:{sha:commitResult.sha,message:commitResult.message},changed_files:changes.length,plan:access.plan}
+}
+
 async function uploadFile(req: Request, payload: Record<string, unknown>) {
   const access = await repositoryAccess(req, payload, "forum_commits")
   if (!access.enabled || !access.ref) return status(req, payload)
@@ -970,6 +1027,7 @@ Deno.serve(async (req: Request) => {
     if (action === "tree") return reply({ ok: true, ...(await tree(req, payload)) })
     if (action === "read") return reply({ ok: true, ...(await readFile(req, payload)) })
     if (action === "commit") return reply({ ok: true, ...(await commitFile(req, payload)) })
+    if (action === "commit_batch") return reply({ ok: true, ...(await commitBatch(req, payload)) })
     if (action === "upload") return reply({ ok: true, ...(await uploadFile(req, payload)) })
     if (action === "delete_file") return reply({ ok: true, ...(await deleteFile(req, payload)) })
     if (action === "branches") return reply({ ok: true, ...(await listBranches(req, payload)) })
