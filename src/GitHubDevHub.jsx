@@ -27,6 +27,7 @@ import {
   getGitHubCommunityOrganization,
   requestGitHubOrganizationMembership,
   reviewGitHubOrganizationMembership,
+  sendGitHubOrganizationInvitation,
 } from './services/githubApi'
 
 function formatRelative(value) {
@@ -211,13 +212,34 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
   async function review(requestId,status) {
     setBusy(true)
     try {
-      await reviewGitHubOrganizationMembership(requestId,status)
-      notify?.(status === 'invited'
-        ? 'Pedido aprovado e convite enviado pela organização no GitHub.'
-        : 'Pedido recusado.')
+      const result=await reviewGitHubOrganizationMembership(requestId,status)
+      if(status === 'declined'){
+        notify?.('Pedido recusado.')
+      }else if(result?.request?.status === 'approved' || result?.invite_pending){
+        notify?.('Pedido aprovado no fórum. O convite GitHub ficou pendente porque o GitHub App ainda não possui Organization members: Read and write.')
+      }else{
+        notify?.('Pedido aprovado e convite enviado pela organização no GitHub.')
+      }
       await load()
     } catch (error) {
       notify?.(error?.message || 'Não foi possível revisar o pedido.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function retryInvite(requestId) {
+    setBusy(true)
+    try {
+      const result=await sendGitHubOrganizationInvitation(requestId)
+      if(result?.sent){
+        notify?.('Convite enviado pela organização no GitHub.')
+      }else{
+        notify?.(result?.invite_error || 'Pedido continua aprovado, mas o convite GitHub ainda depende da permissão Organization members: Read and write.')
+      }
+      await load()
+    } catch (error) {
+      notify?.(error?.message || 'Não foi possível enviar o convite.')
     } finally {
       setBusy(false)
     }
@@ -261,7 +283,10 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
             ? <span>Instale o GitHub App na organização <b>Creatiive-Zone</b> para que colaboradores aprovados usem o workspace através da organização.</span>
             : data.app_status.members_write && data.app_status.administration_write
               ? <span><CheckCircle2/> Instalação pronta: convites automáticos e criação centralizada de repositórios habilitados.</span>
-              : <span><Clock3/> Instalação encontrada. {data.app_status.members_write ? '' : <>Habilite <b>Organization members: Read and write</b>. </>}{data.app_status.administration_write ? '' : <>Habilite também <b>Repository administration: Read and write</b> para criação centralizada de repositórios.</>}</span>}
+              : <>
+                  <span><Clock3/> Instalação encontrada. {data.app_status.members_write ? '' : <>Habilite <b>Organization members: Read and write</b>. </>}{data.app_status.administration_write ? '' : <>Habilite também <b>Repository administration: Read and write</b> para criação centralizada de repositórios.</>}</span>
+                  {data.app_status.settings_url&&<a className="action" href={data.app_status.settings_url} target="_blank" rel="noreferrer"><ExternalLink/>Configurar GitHub App</a>}
+                </>}
         </div>
       )}
 
@@ -320,8 +345,10 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
           <button className="action primary-action" onClick={()=>navigate?.('/entrar')}><UserPlus/> Entrar para solicitar participação</button>
         ) : request?.status === 'pending' ? (
           <div className="github-community-request-state pending"><Clock3/><span><strong>Pedido em análise</strong><small>@{request.github_username} · enviado {formatRelative(request.created_at)}</small></span></div>
+        ) : request?.status === 'approved' ? (
+          <div className="github-community-request-state approved"><CheckCircle2/><span><strong>Pedido aprovado no fórum</strong><small>O convite da organização será enviado assim que a permissão Organization members: Read and write estiver disponível no GitHub App.</small></span></div>
         ) : request?.status === 'invited' ? (
-          <div className="github-community-request-state invited"><CheckCircle2/><span><strong>Convite sinalizado como enviado</strong><small>Verifique as notificações da sua conta GitHub e aceite o convite da organização.</small></span></div>
+          <div className="github-community-request-state invited"><CheckCircle2/><span><strong>Convite enviado pelo GitHub</strong><small>Verifique as notificações da sua conta GitHub e aceite o convite da organização.</small></span></div>
         ) : (
           <form onSubmit={submit}>
             {request?.status === 'declined' && <p className="github-community-request-state declined"><XCircle/> Seu pedido anterior foi recusado. Você pode enviar um novo pedido com mais contexto.</p>}
@@ -338,17 +365,26 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
 
       {data?.is_staff && pending.length > 0 && (
         <section className="github-community-admin">
-          <div className="github-community-section-title"><strong>Pedidos pendentes</strong><small>{pending.length} aguardando revisão</small></div>
+          <div className="github-community-section-title"><strong>Solicitações da organização</strong><small>{pending.length} aguardando conclusão</small></div>
           {pending.map(item=>(
             <article key={item.id}>
-              <span><strong>{item.profile?.display_name || item.profile?.username || 'Membro'}</strong><a href={'https://github.com/'+encodeURIComponent(item.github_username)} target="_blank" rel="noreferrer">@{item.github_username} <ExternalLink/></a><small>{item.message || 'Sem mensagem adicional.'}</small></span>
+              <span>
+                <strong>{item.profile?.display_name || item.profile?.username || 'Membro'}</strong>
+                <a href={'https://github.com/'+encodeURIComponent(item.github_username)} target="_blank" rel="noreferrer">@{item.github_username} <ExternalLink/></a>
+                <small>{item.message || 'Sem mensagem adicional.'}</small>
+                {item.status==='approved'&&<em className="github-community-admin-status">Aprovado no fórum · convite GitHub pendente</em>}
+              </span>
               <div>
-                <button className="action primary-action" disabled={busy} onClick={()=>review(item.id,'invited')}><CheckCircle2/> Aprovar e enviar convite</button>
-                <button className="action danger-action" disabled={busy} onClick={()=>review(item.id,'declined')}><XCircle/> Recusar</button>
+                {item.status==='approved'
+                  ? <button className="action primary-action" disabled={busy} onClick={()=>retryInvite(item.id)}><RefreshCw/> Tentar enviar convite</button>
+                  : <button className="action primary-action" disabled={busy} onClick={()=>review(item.id,'invited')}><CheckCircle2/> {data?.app_status?.members_write?'Aprovar e enviar convite':'Aprovar no fórum'}</button>}
+                {item.status==='pending'&&<button className="action danger-action" disabled={busy} onClick={()=>review(item.id,'declined')}><XCircle/> Recusar</button>}
               </div>
             </article>
           ))}
-          <p className="github-community-admin-note">Ao aprovar, o CreativeZone DevHub tenta enviar o convite automaticamente pela organização. Se o GitHub bloquear a ação, o fórum informa exatamente qual permissão do GitHub App precisa ser habilitada.</p>
+          <p className="github-community-admin-note">{data?.app_status?.members_write
+            ? 'O CreativeZone envia o convite automaticamente pela organização assim que o pedido é aprovado.'
+            : 'Sem a permissão Organization members: Read and write, a aprovação fica registrada no fórum sem gerar erro. Depois de habilitar a permissão, use “Tentar enviar convite”.'}</p>
         </section>
       )}
     </section>
