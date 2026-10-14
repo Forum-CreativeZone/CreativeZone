@@ -425,7 +425,7 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
       <div className="github-community-metrics">
         <span><Code2/><b>{org.public_repos || repos.length}</b><small>repositórios públicos</small></span>
         <span><Users/><b>{githubSync?.available ? githubSync.member_count : '!'}</b><small>{githubSync?.available?'membros reais no GitHub':'autorize o acesso à organização'}</small></span>
-        <span><UserPlus/><b>{githubSync?.available ? githubSync.invitation_count : '!'}</b><small>{githubSync?.available?'convites pendentes reais':'autorização necessária'}</small></span>
+        <span><UserPlus/><b>{githubSync?.available && githubSync?.invitations_available!==false ? githubSync.invitation_count : '!'}</b><small>{githubSync?.available && githubSync?.invitations_available!==false?'convites pendentes reais':'convites exigem permissão administrativa'}</small></span>
       </div>
 
       {data?.is_staff && data?.app_status && (
@@ -448,9 +448,13 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
         <Clock3/>
         <span><strong>Autorize a leitura da organização</strong><small>Use o botão “Autorizar organização” na conta GitHub acima. Isso libera read:org para consultar membros privados e convites reais.</small></span>
       </div>}
+      {data?.is_staff&&githubSync?.available&&githubSync?.invitations_available===false&&<div className="github-org-truth-status needs-auth">
+        <Clock3/>
+        <span><strong>Membros sincronizados; convites ainda restritos</strong><small>{githubSync.invitations_error || 'O GitHub exige permissão administrativa adicional para listar convites pendentes da organização.'}</small></span>
+      </div>}
       {data?.is_staff&&githubSync?.available&&<div className="github-org-truth-status">
         <CheckCircle2/>
-        <span><strong>Fonte de verdade: GitHub</strong><small>{githubSync.synced_at?'Última sincronização '+formatRelative(githubSync.synced_at):'Sincronização ativa'} · {githubSync.member_count} membro(s) · {githubSync.invitation_count} convite(s) pendente(s){githubSync.source==='owner_oauth'?' · via autorização do proprietário':' · via GitHub App'}</small></span>
+        <span><strong>Fonte de verdade: GitHub</strong><small>{githubSync.synced_at?'Última sincronização '+formatRelative(githubSync.synced_at):'Sincronização ativa'} · {githubSync.member_count} membro(s){githubSync.invitations_available===false?' · convites sem acesso administrativo':' · '+githubSync.invitation_count+' convite(s) pendente(s)'}{githubSync.source==='owner_oauth'?' · via autorização do proprietário':' · via GitHub App'}</small></span>
       </div>}
 
       <div className="github-community-purpose">
