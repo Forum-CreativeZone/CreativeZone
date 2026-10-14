@@ -168,7 +168,22 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
     try {
       setData(await getGitHubCommunityOrganization())
     } catch (error) {
-      notify?.(error?.message || 'Não foi possível carregar a organização CreativeZone no GitHub.')
+      setData({
+        organization:{
+          login:'Creatiive-Zone',
+          name:'CreativeZone',
+          html_url:'https://github.com/Creatiive-Zone',
+          avatar_url:'',
+          description:'Organização oficial da comunidade CreativeZone no GitHub.',
+          public_repos:0,
+          followers:0,
+        },
+        repositories:[],
+        request:null,
+        is_staff:false,
+        staff_requests:[],
+      })
+      notify?.(error?.message || 'Os dados ao vivo do GitHub estão temporariamente indisponíveis; o DevHub continua acessível.')
     } finally {
       setLoading(false)
     }
