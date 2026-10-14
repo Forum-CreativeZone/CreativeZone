@@ -3546,10 +3546,12 @@ function App() {
           <Icon name="mobilemembers" />
         </button>
         <button
-          aria-label="Últimas publicações"
-          onClick={() => setOverlay('notifications')}
+          className="mobile-notifications"
+          aria-label={unreadNotifications.length ? `Notificações: ${unreadNotifications.length} não lida(s)` : 'Notificações'}
+          onClick={() => {setLoginNotificationPopup(false);setOverlay('notifications')}}
         >
           <Icon name="feed" />
+          {unreadNotifications.length>0&&<span className="notification-count-badge">{unreadNotifications.length>99?'99+':unreadNotifications.length}</span>}
         </button>
       </nav>
 
