@@ -37,7 +37,7 @@ import { GitHubRepositoryPanel, GitHubCommunityOrganization } from './GitHubDevH
 import { ProjectStudio } from './ProjectStudio'
 import { GitHubAccountConnect } from './GitHubAccountConnect'
 import { createGitHubRepositoryForProject, getGitHubAccountStatus } from './services/githubAuthApi'
-import { requestGitHubOrganizationMembership } from './services/githubApi'
+import { requestGitHubOrganizationMembership, syncGitHubProject } from './services/githubApi'
 import { trackEvent } from './services/analytics'
 
 function Shell({ title, onBack, children }) {
@@ -320,6 +320,28 @@ export function ProjectsPage({ session, navigate, notify }) {
         skills_needed:form.skills_needed.split(',').map(v=>v.trim()).filter(Boolean).slice(0,12),
       })
 
+      if(form.repo_mode==='existing' && form.repo_url.trim()){
+        try{
+          await syncGitHubProject(created.id)
+          notify?.('Projeto criado e repositório existente conectado ao CreativeZone DevHub.')
+        }catch(syncError){
+          const account=await getGitHubAccountStatus().catch(()=>null)
+          if(form.repo_url.includes('github.com/Creatiive-Zone/') && account?.connected){
+            try{
+              await requestGitHubOrganizationMembership(
+                account.connection?.github_username || '',
+                'Quero participar da organização para colaborar no repositório '+form.repo_url.trim()+'.'
+              )
+              notify?.('Projeto criado. O repositório foi registrado e seu pedido para colaborar na organização foi enviado.')
+            }catch{
+              notify?.('Projeto criado. O repositório foi registrado, mas o DevHub ainda precisa de acesso da organização para sincronizá-lo.')
+            }
+          }else{
+            notify?.(syncError?.message || 'Projeto criado, mas o repositório existente ainda não pôde ser sincronizado.')
+          }
+        }
+      }
+
       if(['personal','organization'].includes(form.repo_mode)){
         const account=await getGitHubAccountStatus()
         if(!account?.connected){
@@ -370,12 +392,27 @@ export function ProjectsPage({ session, navigate, notify }) {
         </div>
         <div className="projects-hero-actions">
           {session && <button className="action primary-action" onClick={()=>setOpen(v=>!v)}><Plus/>Novo projeto</button>}
-          <a className="action" href="https://github.com/Creatiive-Zone" target="_blank" rel="noreferrer"><GitBranch/>Creatiive-Zone <ExternalLink/></a>
+          <button className="action" type="button" onClick={()=>document.querySelector('.github-community-hub')?.scrollIntoView({behavior:'smooth',block:'start'})}><GitBranch/>Organização CreativeZone</button>
         </div>
       </div>
 
       <GitHubAccountConnect session={session} notify={notify} />
-            <GitHubCommunityOrganization session={session} navigate={navigate} notify={notify} />
+      <GitHubCommunityOrganization
+        session={session}
+        navigate={navigate}
+        notify={notify}
+        onUseRepository={(repo)=>{
+          setOpen(true)
+          setForm(current=>({
+            ...current,
+            repo_mode:'existing',
+            repo_url:repo?.html_url || '',
+            title:current.title || repo?.name || '',
+            summary:current.summary || repo?.description || ('Projeto colaborativo '+(repo?.name || '')+' da organização CreativeZone.'),
+          }))
+          setTimeout(()=>document.querySelector('.project-form')?.scrollIntoView({behavior:'smooth',block:'start'}),30)
+        }}
+      />
 
       {open && (
         <form className="project-form" onSubmit={submit}>
