@@ -264,6 +264,80 @@ async function optionalRest(path: string, token: string) {
   try { return await githubRest(path, token) } catch { return null }
 }
 
+async function renderGithubReadme(owner: string, repo: string, token: string, branch = "main") {
+  try {
+    const response = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/readme?ref=${encodeURIComponent(branch)}`, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2026-03-10",
+        "User-Agent": "CreativeZone-DevHub/1.0 (+https://forum.creativezone.pro/)",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    })
+    if (!response.ok) return { html:"", path:"README.md", source:"" }
+    const data = await response.json()
+    if (!data?.content) return { html:"", path:String(data?.path || "README.md"), source:"" }
+    const binary = atob(String(data.content).replace(/\s+/g, ""))
+    const source = new TextDecoder().decode(Uint8Array.from(binary, (char) => char.charCodeAt(0))).slice(0, 250000)
+
+    const rendered = await fetch("https://api.github.com/markdown", {
+      method: "POST",
+      headers: {
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "X-GitHub-Api-Version": "2026-03-10",
+        "User-Agent": "CreativeZone-DevHub/1.0 (+https://forum.creativezone.pro/)",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        text: source,
+        mode: "gfm",
+        context: owner + "/" + repo,
+      }),
+    })
+    const html = rendered.ok ? (await rendered.text()).slice(0, 700000) : ""
+    return { html, path:String(data.path || "README.md"), source }
+  } catch {
+    return { html:"", path:"README.md", source:"" }
+  }
+}
+
+async function renderedReadme(req: Request, payload: Record<string, unknown>) {
+  const user = await authenticatedUser(req)
+  const projectId = String(payload.project_id || "")
+  if (!projectId) throw new Error("Projeto não informado.")
+  const context = await projectContext(projectId, user?.id || null)
+  if (!context.canView) throw new Error("Você não possui acesso a este projeto.")
+
+  const { data: row } = await admin
+    .from("project_repositories")
+    .select("repo_owner,repo_name,default_branch,is_private,installation_id")
+    .eq("project_id", projectId)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!row) return { html:"", path:"README.md", source:"" }
+  if (row.is_private && !context.participant) throw new Error("README privado disponível apenas para participantes do projeto.")
+
+  const installationId = Number(row.installation_id || 0)
+  let token = installationId ? await installationToken(installationId) : ""
+  if (!token && row.is_private) throw new Error("Instale o CreativeZone DevHub na conta proprietária para ler o README privado.")
+
+  const result = await renderGithubReadme(
+    String(row.repo_owner || ""),
+    String(row.repo_name || ""),
+    token,
+    String(row.default_branch || "main"),
+  )
+  return {
+    ...result,
+    owner:String(row.repo_owner || ""),
+    repo:String(row.repo_name || ""),
+    branch:String(row.default_branch || "main"),
+  }
+}
+
 function publicRow(row: Record<string, unknown>, capabilities: Capabilities, allowPrivate = false) {
   const advanced = Boolean(capabilities.commits_recent || capabilities.issues || capabilities.pull_requests || capabilities.actions_status)
   if (row.is_private && !allowPrivate) {
@@ -552,6 +626,9 @@ Deno.serve(async (req: Request) => {
       if (!projectId) return reply({ error: "project_id_required" }, 400)
       const result = await syncProject(projectId, null, true)
       return reply({ ok: true, repository_id: result.row?.id || null })
+    }
+    if (action === "readme_rendered") {
+      return reply({ ok: true, ...(await renderedReadme(req, payload)) })
     }
     if (action === "dependency_intelligence") {
       return reply({ ok: true, ...(await depsDev(req, payload)) })
