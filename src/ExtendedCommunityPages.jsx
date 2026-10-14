@@ -421,6 +421,7 @@ export function ProjectsPage({ session, navigate, notify }) {
       <GitHubAccountConnect session={session} notify={notify} onChanged={setGithubState} />
       <GitHubCommunityOrganization
         session={session}
+        connectionRevision={githubState?.connection?.last_verified_at || githubState?.connection?.connected_at || ''}
         navigate={navigate}
         notify={notify}
         onUseRepository={(repo)=>{
