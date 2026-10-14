@@ -198,7 +198,7 @@ export function GitHubCommunityOrganization({ session, navigate, notify }) {
     try {
       await reviewGitHubOrganizationMembership(requestId,status)
       notify?.(status === 'invited'
-        ? 'Pedido marcado como convite enviado.'
+        ? 'Pedido aprovado e convite enviado pela organização no GitHub.'
         : 'Pedido recusado.')
       await load()
     } catch (error) {
@@ -317,12 +317,12 @@ export function GitHubCommunityOrganization({ session, navigate, notify }) {
             <article key={item.id}>
               <span><strong>{item.profile?.display_name || item.profile?.username || 'Membro'}</strong><a href={'https://github.com/'+encodeURIComponent(item.github_username)} target="_blank" rel="noreferrer">@{item.github_username} <ExternalLink/></a><small>{item.message || 'Sem mensagem adicional.'}</small></span>
               <div>
-                <button className="action" disabled={busy} onClick={()=>review(item.id,'invited')}><CheckCircle2/> Marcar convite enviado</button>
+                <button className="action primary-action" disabled={busy} onClick={()=>review(item.id,'invited')}><CheckCircle2/> Aprovar e enviar convite</button>
                 <button className="action danger-action" disabled={busy} onClick={()=>review(item.id,'declined')}><XCircle/> Recusar</button>
               </div>
             </article>
           ))}
-          <p className="github-community-admin-note">O botão “Marcar convite enviado” registra a revisão no fórum. O convite de membro continua sendo enviado pela organização no GitHub.</p>
+          <p className="github-community-admin-note">Ao aprovar, o CreativeZone DevHub tenta enviar o convite automaticamente pela organização. Se o GitHub bloquear a ação, o fórum informa exatamente qual permissão do GitHub App precisa ser habilitada.</p>
         </section>
       )}
     </section>
