@@ -801,17 +801,37 @@ export function ProjectStudio({ project, canManage = false, notify }) {
         </aside>
         <main>
           {selected?<>
-            <div className="project-studio-filebar"><strong>{selected}</strong><span>{selectedMeta?.editable===false?'Somente visualização':content===original?'Sem alterações':original==='__creativezone_new_file__'?'Novo arquivo':'Alterado'}</span>{selectedMeta?.editable!==false&&original!=='__creativezone_new_file__'&&<button title="Renomear ou mover arquivo" onClick={renameCurrentFile} disabled={Boolean(busy)}>Mover</button>}<button title="Excluir arquivo" onClick={removeCurrentFile}><Trash2/></button></div>
-            {selectedMeta?.editable===false
-              ? <div className="project-studio-binary-file"><FileCode2/><strong>{selectedMeta?.binary?'Arquivo binário':'Arquivo grande demais para o editor de texto'}</strong><p>{selectedMeta?.size?Math.ceil(Number(selectedMeta.size)/1024).toLocaleString('pt-BR')+' KB · ':''}O arquivo faz parte do repositório e aparece na estrutura. Para substituí-lo, use <b>Upload</b>; para excluir, use o botão acima.</p></div>
-              : <>
-                  <textarea className="project-studio-editor" spellCheck="false" value={content} onChange={e=>setContent(e.target.value)}/>
-                  <div className="project-studio-commitbar">
-                    <input value={message} onChange={e=>setMessage(e.target.value)} placeholder="Mensagem do commit"/>
-                    <button className="action primary-action" onClick={commit} disabled={content===original||Boolean(busy)}><GitCommitHorizontal/>{busy==='commit'?'Commitando...':'Commitar'}</button>
-                    {(commitInfo?.branch||branch!==baseBranch)&&<button className="action" onClick={createPr} disabled={Boolean(busy)}><GitPullRequest/>Criar PR</button>}
-                  </div>
-                </>}
+            <div className="project-studio-filebar">
+              <strong>{selected}</strong>
+              <span>{preview?'Imagem':selectedMeta?.editable===false?'Somente visualização':content===original?'Sem alterações':original==='__creativezone_new_file__'?'Novo arquivo':'Alterado'}</span>
+              {selectedMeta?.editable!==false&&(
+                <div className="studio-edit-control">
+                  <button type="button" className="studio-edit-trigger" onClick={()=>setEditMenuOpen(value=>!value)}><Pencil/>Editar<ChevronDown/></button>
+                  {editMenuOpen&&<div className="studio-edit-menu">
+                    <button type="button" onClick={openDirectEditor}><Pencil/><span><strong>Editor direto</strong><small>Editar o conteúdo no Code Studio</small></span></button>
+                    <button type="button" onClick={openTerminalEditor}><Terminal/><span><strong>Editar no terminal</strong><small>Abrir editor terminal dentro do fórum</small></span></button>
+                  </div>}
+                </div>
+              )}
+              {selectedMeta?.editable!==false&&original!=='__creativezone_new_file__'&&<button title="Renomear ou mover arquivo" onClick={renameCurrentFile} disabled={Boolean(busy)}>Mover</button>}
+              <button title="Excluir arquivo" onClick={removeCurrentFile}><Trash2/></button>
+            </div>
+            {preview
+              ? <div className="project-studio-image-preview">
+                  <header><ImageIcon/><span><strong>Pré-visualização</strong><small>{preview.mime} · {preview.size?Math.ceil(Number(preview.size)/1024).toLocaleString('pt-BR')+' KB':''}</small></span></header>
+                  <div><img src={preview.data_url} alt={selected}/></div>
+                  <p>PNG, JPG/JPEG, WEBP, GIF, SVG e AVIF são carregados pelo DevHub sem expor o token do GitHub.</p>
+                </div>
+              : selectedMeta?.editable===false
+                ? <div className="project-studio-binary-file"><FileCode2/><strong>{selectedMeta?.binary?'Arquivo binário':'Arquivo grande demais para o editor de texto'}</strong><p>{selectedMeta?.size?Math.ceil(Number(selectedMeta.size)/1024).toLocaleString('pt-BR')+' KB · ':''}O arquivo faz parte do repositório e aparece na estrutura. Para substituí-lo, use <b>Upload</b>; para excluir, use o botão acima.</p></div>
+                : <>
+                    <textarea className="project-studio-editor" spellCheck="false" value={content} onChange={e=>setContent(e.target.value)}/>
+                    <div className="project-studio-commitbar">
+                      <input value={message} onChange={e=>setMessage(e.target.value)} placeholder="Mensagem do commit"/>
+                      <button className="action primary-action" onClick={commit} disabled={content===original||Boolean(busy)}><GitCommitHorizontal/>{busy==='commit'?'Commitando...':'Commitar'}</button>
+                      {(commitInfo?.branch||branch!==baseBranch)&&<button className="action" onClick={createPr} disabled={Boolean(busy)}><GitPullRequest/>Criar PR</button>}
+                    </div>
+                  </>}
           </>:<div className="project-studio-empty"><Code2/><strong>Code Studio</strong><p>Abra, crie, edite, envie ou exclua arquivos. As alterações são gravadas no GitHub sem sair da CreativeZone.</p></div>}
         </main>
       </div>}
@@ -841,7 +861,15 @@ export function ProjectStudio({ project, canManage = false, notify }) {
       </div>}
 
       {tab==='terminal'&&<div className="studio-terminal">
-        <header><Terminal/><span><strong>Terminal Git seguro</strong><small>Comandos Git são executados por API no repositório real. Não é um shell Linux arbitrário.</small></span></header>
+        <header><Terminal/><span><strong>Terminal Git seguro</strong><small>Comandos Git são executados por API no repositório real. O editor terminal abaixo salva e commita sem sair do fórum.</small></span></header>
+        {terminalEditor&&<section className="studio-terminal-editor">
+          <header><span><Terminal/><strong>editor {terminalEditor.path}</strong></span><button type="button" onClick={()=>setTerminalEditor(null)}>Fechar editor</button></header>
+          <textarea spellCheck="false" value={terminalEditor.content} onChange={e=>setTerminalEditor({...terminalEditor,content:e.target.value})}/>
+          <footer>
+            <input value={terminalEditorMessage} onChange={e=>setTerminalEditorMessage(e.target.value)} placeholder={'Mensagem do commit para '+terminalEditor.path}/>
+            <button type="button" disabled={busy==='terminal-editor'||terminalEditor.content===terminalEditor.original} onClick={saveTerminalEditor}><GitCommitHorizontal/>{busy==='terminal-editor'?'Salvando...':'Salvar + commit'}</button>
+          </footer>
+        </section>}
         <div className="studio-terminal-screen">{terminalLines.map((line,index)=><pre key={index} className={'terminal-'+line.type}>{line.text}</pre>)}</div>
         <form onSubmit={runTerminal}><span>$</span><input value={terminalCommand} onChange={e=>setTerminalCommand(e.target.value)} placeholder="git status" autoComplete="off"/><button disabled={busy==='terminal'}>Executar</button></form>
       </div>}
