@@ -174,6 +174,17 @@ function safePath(value: unknown) {
   return path
 }
 
+function imageMimeType(path: string) {
+  const value = path.toLowerCase()
+  if (value.endsWith(".png")) return "image/png"
+  if (value.endsWith(".webp")) return "image/webp"
+  if (value.endsWith(".gif")) return "image/gif"
+  if (value.endsWith(".jpg") || value.endsWith(".jpeg")) return "image/jpeg"
+  if (value.endsWith(".svg")) return "image/svg+xml"
+  if (value.endsWith(".avif")) return "image/avif"
+  return ""
+}
+
 function decodeText(content: string) {
   const binary = atob(String(content || "").replace(/\s+/g, ""))
   return new TextDecoder().decode(Uint8Array.from(binary, (char) => char.charCodeAt(0)))
@@ -379,6 +390,54 @@ async function readFile(req: Request, payload: Record<string, unknown>) {
   const content = decodeText(data.content)
   if (content.length > 750000) throw new Error("Arquivo grande demais para o Project Studio.")
   return { enabled: true, path, branch, content, sha: data.sha, plan: access.plan }
+}
+
+async function previewFile(req: Request, payload: Record<string, unknown>) {
+  const access = await repositoryAccess(req, payload)
+  if (!access.enabled || !access.ref) return status(req, payload)
+  const path = safePath(payload.path)
+  const mime = imageMimeType(path)
+  if (!mime) throw new Error("Pré-visualização disponível para PNG, JPG/JPEG, WEBP, GIF, SVG e AVIF.")
+
+  const branch = String(payload.branch || access.repository?.default_branch || "main")
+  let sha = String(payload.sha || "").trim()
+  let size = Number(payload.size || 0)
+
+  if (!sha) {
+    const metadata = await github(
+      "/repos/" + encodeURIComponent(access.ref.owner) + "/" + encodeURIComponent(access.ref.repo) +
+      "/contents/" + path.split("/").map(encodeURIComponent).join("/") + "?ref=" + encodeURIComponent(branch),
+      access.token,
+    )
+    sha = String(metadata?.sha || "")
+    size = Number(metadata?.size || size || 0)
+  }
+
+  if (!sha) throw new Error("Não foi possível localizar a imagem no GitHub.")
+  if (size > 12_000_000) throw new Error("Imagem muito grande para pré-visualização no fórum (limite de 12 MB).")
+
+  const blob = await github(
+    "/repos/" + encodeURIComponent(access.ref.owner) + "/" + encodeURIComponent(access.ref.repo) +
+    "/git/blobs/" + encodeURIComponent(sha),
+    access.token,
+  )
+
+  if (String(blob?.encoding || "").toLowerCase() !== "base64" || !blob?.content) {
+    throw new Error("O GitHub não retornou a imagem em formato compatível.")
+  }
+
+  const content = String(blob.content).replace(/\s+/g, "")
+  if (content.length > 18_000_000) throw new Error("Imagem muito grande para pré-visualização no fórum.")
+
+  return {
+    enabled: true,
+    path,
+    branch,
+    mime,
+    size: Number(blob.size || size || 0),
+    data_url: "data:" + mime + ";base64," + content,
+    plan: access.plan,
+  }
 }
 
 async function ensureBranch(access: Awaited<ReturnType<typeof repositoryAccess>>, branch: string, base: string) {
@@ -1079,6 +1138,7 @@ Deno.serve(async (req: Request) => {
     if (action === "status") return reply({ ok: true, ...(await status(req, payload)) })
     if (action === "tree") return reply({ ok: true, ...(await tree(req, payload)) })
     if (action === "read") return reply({ ok: true, ...(await readFile(req, payload)) })
+    if (action === "preview") return reply({ ok: true, ...(await previewFile(req, payload)) })
     if (action === "commit") return reply({ ok: true, ...(await commitFile(req, payload)) })
     if (action === "commit_batch") return reply({ ok: true, ...(await commitBatch(req, payload)) })
     if (action === "upload") return reply({ ok: true, ...(await uploadFile(req, payload)) })
