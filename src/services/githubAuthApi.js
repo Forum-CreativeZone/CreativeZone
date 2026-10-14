@@ -47,6 +47,22 @@ export async function connectGitHubIdentity(returnTo='/projetos') {
   return data
 }
 
+export async function reauthorizeGitHubIdentity(returnTo='/projetos') {
+  const client = requireSupabase()
+  const redirectTo = new URL(returnTo, window.location.origin)
+  redirectTo.searchParams.set('github_linked','1')
+  const { data, error } = await client.auth.signInWithOAuth({
+    provider:'github',
+    options:{
+      redirectTo:redirectTo.toString(),
+      scopes:'repo read:org workflow',
+    },
+  })
+  if (error) throw error
+  if (data?.url) window.location.assign(data.url)
+  return data
+}
+
 export async function disconnectGitHubAccount() {
   return invokeGitHubAuth({ action:'disconnect' })
 }
