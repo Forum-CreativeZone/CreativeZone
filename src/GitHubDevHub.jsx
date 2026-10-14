@@ -311,7 +311,9 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
   if (!org) return null
   const repos=data?.repositories || []
   const request=data?.request
+  const membership=data?.viewer_membership
   const pending=data?.staff_requests || []
+  const githubInvitations=data?.github_invitations || []
 
   return (
     <section className="github-community-hub">
@@ -396,34 +398,34 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
         <div>
           <small>PARTICIPE DA ORGANIZAÇÃO</small>
           <h3>Quer colaborar diretamente no GitHub?</h3>
-          <p>Envie seu pedido pelo próprio fórum. A equipe recebe a solicitação dentro da CreativeZone e também por e-mail.</p>
+          <p>O CreativeZone verifica sua conta GitHub conectada e consulta seu vínculo real com a organização. O pedido só aparece quando você realmente ainda não faz parte dela.</p>
         </div>
 
         {!session?.user ? (
           <button className="action primary-action" onClick={()=>navigate?.('/entrar')}><UserPlus/> Entrar para solicitar participação</button>
+        ) : membership?.state === 'active' || request?.status === 'joined' ? (
+          <div className="github-community-request-state joined"><CheckCircle2/><span><strong>Você já faz parte da organização</strong><small>@{membership?.github_username || request?.github_username} · função GitHub: {membership?.role || request?.github_membership_role || 'member'}</small></span></div>
         ) : request?.status === 'pending' ? (
-          <div className="github-community-request-state pending"><Clock3/><span><strong>Pedido em análise</strong><small>@{request.github_username} · enviado {formatRelative(request.created_at)}</small></span></div>
+          <div className="github-community-request-state pending"><Clock3/><span><strong>Pedido feito pelo fórum</strong><small>@{request.github_username} · enviado {formatRelative(request.created_at)}</small></span></div>
         ) : request?.status === 'approved' ? (
-          <div className="github-community-request-state approved"><CheckCircle2/><span><strong>Pedido aprovado no fórum</strong><small>O convite da organização será enviado assim que a permissão Organization members: Read and write estiver disponível no GitHub App.</small></span></div>
+          <div className="github-community-request-state approved"><CheckCircle2/><span><strong>Pedido aprovado no fórum</strong><small>O CreativeZone continuará comparando esse estado com o GitHub até o convite real ser criado.</small></span></div>
         ) : request?.status === 'invited' ? (
-          <div className="github-community-request-state invited"><CheckCircle2/><span><strong>Convite enviado pelo GitHub</strong><small>Verifique as notificações da sua conta GitHub e aceite o convite da organização.</small></span></div>
+          <div className="github-community-request-state invited"><CheckCircle2/><span><strong>Convite pendente no GitHub</strong><small>O estado é sincronizado com a organização. Aceite o convite no GitHub para concluir a entrada.</small></span></div>
         ) : (
           <form onSubmit={submit}>
             {request?.status === 'declined' && <p className="github-community-request-state declined"><XCircle/> Seu pedido anterior foi recusado. Você pode enviar um novo pedido com mais contexto.</p>}
-            <label>Seu usuário no GitHub
-              <input value={githubUsername} onChange={e=>setGithubUsername(e.target.value)} placeholder="seu-usuario" maxLength={39} required />
-            </label>
+            <p className="github-community-connected-identity"><CheckCircle2/> O pedido usará automaticamente a conta GitHub conectada ao seu perfil CreativeZone.</p>
             <label>Como você pretende contribuir?
               <textarea value={message} onChange={e=>setMessage(e.target.value)} placeholder="Ex.: frontend, backend, design, documentação, testes..." maxLength={1000}/>
             </label>
-            <button className="action primary-action" disabled={busy}><UserPlus/>{busy?'Enviando...':'Solicitar participação'}</button>
+            <button className="action primary-action" disabled={busy}><UserPlus/>{busy?'Verificando GitHub...':'Solicitar participação'}</button>
           </form>
         )}
       </section>
 
       {data?.is_staff && pending.length > 0 && (
         <section className="github-community-admin">
-          <div className="github-community-section-title"><strong>Solicitações da organização</strong><small>{pending.length} aguardando conclusão</small></div>
+          <div className="github-community-section-title"><strong>Pedidos enviados pelo fórum</strong><small>{pending.length} aguardando conclusão</small></div>
           {pending.map(item=>(
             <article key={item.id}>
               <span>
@@ -441,8 +443,15 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
             </article>
           ))}
           <p className="github-community-admin-note">{data?.app_status?.members_write
-            ? 'O CreativeZone envia o convite automaticamente pela organização assim que o pedido é aprovado.'
-            : 'Sem a permissão Organization members: Read and write, a aprovação fica registrada no fórum sem gerar erro. Depois de habilitar a permissão, use “Tentar enviar convite”.'}</p>
+            ? 'O CreativeZone envia o convite automaticamente pela organização assim que o pedido é aprovado e continua sincronizando o estado real do GitHub.'
+            : 'Estes são pedidos feitos no CreativeZone, não uma lista inventada de convites do GitHub. Com Organization members habilitado, o fórum também compara os convites reais da organização.'}</p>
+        </section>
+      )}
+
+      {data?.is_staff && data?.app_status?.members_read && githubInvitations.length > 0 && (
+        <section className="github-community-github-invitations">
+          <div className="github-community-section-title"><strong>Convites realmente pendentes no GitHub</strong><small>{githubInvitations.length} no GitHub</small></div>
+          {githubInvitations.map(item=><article key={item.id || item.login}><GitBranch/><span><strong>@{item.login || 'usuário'}</strong><small>{item.role || 'direct_member'}{item.created_at?' · '+formatRelative(item.created_at):''}</small></span></article>)}
         </section>
       )}
     </section>
