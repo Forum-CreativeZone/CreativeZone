@@ -436,10 +436,10 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
           </div>
           {!data.app_status.installed
             ? <span>Instale o GitHub App na organização <b>Creatiive-Zone</b> para que colaboradores aprovados usem o workspace através da organização.</span>
-            : data.app_status.members_write && data.app_status.administration_write
-              ? <span><CheckCircle2/> Instalação pronta: convites automáticos e criação centralizada de repositórios habilitados.</span>
+            : data.app_status.members_read && data.app_status.members_write && data.app_status.administration_write
+              ? <span><CheckCircle2/> Instalação pronta: membros, convites automáticos e criação centralizada de repositórios habilitados.</span>
               : <>
-                  <span><Clock3/> Instalação encontrada. {data.app_status.members_write ? '' : <>Habilite <b>Organization members: Read and write</b>. </>}{data.app_status.administration_write ? '' : <>Habilite também <b>Repository administration: Read and write</b> para criação centralizada de repositórios.</>}</span>
+                  <span><Clock3/> Instalação encontrada. {!data.app_status.members_read ? <>Habilite <b>Organization members: Read</b> para sincronizar membros reais. </> : !data.app_status.members_write ? <>Membros já podem sincronizar; <b>Read and write</b> é necessário apenas para convites automáticos. </> : ''}{data.app_status.administration_write ? '' : <>Habilite também <b>Repository administration: Read and write</b> para criação centralizada de repositórios.</>}</span>
                   {data.app_status.developer_permissions_url
                     ? <a className="action" href={data.app_status.developer_permissions_url} target="_blank" rel="noreferrer"><ExternalLink/>Permissões do GitHub App</a>
                     : data.app_status.settings_url&&<a className="action" href={data.app_status.settings_url} target="_blank" rel="noreferrer"><ExternalLink/>Configurar GitHub App</a>}
