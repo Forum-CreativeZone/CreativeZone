@@ -339,13 +339,30 @@ async function reviewMembership(req: Request, payload: Record<string, unknown>) 
   const status = String(payload.status || "")
   if (!requestId || !["invited","declined"].includes(status)) throw new Error("Revisão inválida.")
 
+  const { data: pendingRow, error: pendingError } = await admin
+    .from("github_org_membership_requests")
+    .select("id,user_id,github_username,status")
+    .eq("id", requestId)
+    .eq("organization", ORG)
+    .eq("status", "pending")
+    .maybeSingle()
+
+  if (pendingError) throw pendingError
+  if (!pendingRow) throw new Error("Pedido não encontrado ou já revisado.")
+
+  let githubMembership: Record<string, unknown> | null = null
+  if (status === "invited") {
+    githubMembership = await inviteToOrganization(String(pendingRow.github_username))
+  }
+
+  const reviewedAt = new Date().toISOString()
   const { data: row, error } = await admin
     .from("github_org_membership_requests")
     .update({
       status,
       reviewed_by: user.id,
-      reviewed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      reviewed_at: reviewedAt,
+      updated_at: reviewedAt,
     })
     .eq("id", requestId)
     .eq("organization", ORG)
@@ -354,7 +371,7 @@ async function reviewMembership(req: Request, payload: Record<string, unknown>) 
     .maybeSingle()
 
   if (error) throw error
-  if (!row) throw new Error("Pedido não encontrado ou já revisado.")
+  if (!row) throw new Error("Pedido foi alterado enquanto era revisado. Atualize a página.")
 
   await admin.from("notifications").insert({
     user_id: row.user_id,
@@ -365,11 +382,18 @@ async function reviewMembership(req: Request, payload: Record<string, unknown>) 
       organization: ORG,
       github_username: row.github_username,
       status,
+      github_membership_state: githubMembership?.state || null,
       path: "/projetos",
     },
   })
 
-  return { request: row }
+  return {
+    request: row,
+    github_membership: githubMembership ? {
+      state: githubMembership.state || null,
+      role: githubMembership.role || "member",
+    } : null,
+  }
 }
 
 Deno.serve(async (req: Request) => {
