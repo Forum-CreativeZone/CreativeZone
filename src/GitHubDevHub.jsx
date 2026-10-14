@@ -155,7 +155,7 @@ export function GitHubRepositoryPanel({ project, canManage = false, notify, onCh
 }
 
 
-export function GitHubCommunityOrganization({ session, navigate, notify }) {
+export function GitHubCommunityOrganization({ session, navigate, notify, onUseRepository }) {
   const [data,setData] = useState(null)
   const [loading,setLoading] = useState(true)
   const [busy,setBusy] = useState(false)
@@ -276,7 +276,7 @@ export function GitHubCommunityOrganization({ session, navigate, notify }) {
           <p className="github-community-repo-help">Para criar arquivos, branches, commits, Issues e Pull Requests dentro do fórum, associe o repositório a um projeto CreativeZone e use o Dev Workspace.</p>
           <footer>
             {session?.user
-              ? <button className="action primary-action" type="button" onClick={()=>notify?.('Crie ou abra um projeto CreativeZone e conecte este repositório para trabalhar nele pelo Dev Workspace.')}><Code2/>Trabalhar pelo CreativeZone</button>
+              ? <button className="action primary-action" type="button" onClick={()=>onUseRepository?.(selectedRepo)}><Code2/>Criar projeto com este repositório</button>
               : <button className="action primary-action" type="button" onClick={()=>navigate?.('/entrar')}><UserPlus/>Entrar para colaborar</button>}
             <a className="action devhub-external-fallback" href={selectedRepo.html_url} target="_blank" rel="noreferrer">GitHub <ExternalLink/></a>
           </footer>
