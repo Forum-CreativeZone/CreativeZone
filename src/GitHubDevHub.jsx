@@ -130,22 +130,23 @@ export function GitHubRepositoryPanel({ project, canManage = false, notify, onCh
       {repository.last_sync_at && <span><RefreshCw/> sincronizado {formatRelative(repository.last_sync_at)}</span>}
     </div>
 
-    {release?.tagName && <a className="devhub-release" href={release.url || repository.repo_url} target="_blank" rel="noreferrer"><Rocket/><span><small>Última release</small><strong>{release.tagName}</strong>{release.name && <em>{release.name}</em>}</span><ExternalLink/></a>}
+    {release?.tagName && <div className="devhub-release"><Rocket/><span><small>Última release</small><strong>{release.tagName}</strong>{release.name && <em>{release.name}</em>}</span></div>}
     {langs.length > 0 && <div className="devhub-languages"><strong>Linguagens</strong><div>{langs.map(item=><span key={item.name}><b>{item.name}</b><small>{item.percent}%</small></span>)}</div></div>}
     {lastCommit?.oid && <div className="devhub-last-commit"><GitCommitHorizontal/><span><small>Último commit</small><strong>{lastCommit.messageHeadline || String(lastCommit.oid).slice(0,7)}</strong><em>{formatRelative(lastCommit.committedDate)}</em></span></div>}
 
     {(issues.length > 0 || pulls.length > 0 || actions.length > 0) && <div className="devhub-advanced-grid">
-      {issues.length > 0 && <section><header><CircleDot/> Issues</header>{issues.slice(0,4).map(item=><a key={item.number} href={item.html_url} target="_blank" rel="noreferrer">#{item.number} {item.title}</a>)}</section>}
-      {pulls.length > 0 && <section><header><GitPullRequest/> Pull Requests</header>{pulls.slice(0,4).map(item=><a key={item.number} href={item.html_url} target="_blank" rel="noreferrer">#{item.number} {item.title}</a>)}</section>}
-      {actions.length > 0 && <section><header><Workflow/> GitHub Actions</header>{actions.slice(0,4).map(item=><a key={item.id} href={item.html_url} target="_blank" rel="noreferrer"><b>{item.name}</b><small>{item.conclusion || item.status}</small></a>)}</section>}
+      {issues.length > 0 && <section><header><CircleDot/> Issues</header>{issues.slice(0,4).map(item=><div className="devhub-inline-item" key={item.number}>#{item.number} {item.title}</div>)}</section>}
+      {pulls.length > 0 && <section><header><GitPullRequest/> Pull Requests</header>{pulls.slice(0,4).map(item=><div className="devhub-inline-item" key={item.number}>#{item.number} {item.title}</div>)}</section>}
+      {actions.length > 0 && <section><header><Workflow/> GitHub Actions</header>{actions.slice(0,4).map(item=><div className="devhub-inline-item" key={item.id}><b>{item.name}</b><small>{item.conclusion || item.status}</small></div>)}</section>}
     </div>}
 
     {repository.readme_excerpt && <details className="devhub-readme"><summary>README do projeto</summary><pre>{repository.readme_excerpt}</pre></details>}
-    {capabilities.release_history && releases.length > 1 && <details className="devhub-release-history"><summary>Histórico de releases ({releases.length})</summary><div>{releases.map(item=><a key={item.html_url || item.tag_name} href={item.html_url} target="_blank" rel="noreferrer"><b>{item.tag_name}</b><span>{item.name || 'Release'}</span></a>)}</div></details>}
+    {capabilities.release_history && releases.length > 1 && <details className="devhub-release-history"><summary>Histórico de releases ({releases.length})</summary><div>{releases.map(item=><div className="devhub-inline-item" key={item.html_url || item.tag_name}><b>{item.tag_name}</b><span>{item.name || 'Release'}</span></div>)}</div></details>}
 
     {error && <p className="devhub-error">{error}</p>}
     <footer>
-      <a className="action" href={repository.repo_url} target="_blank" rel="noreferrer"><Code2/> Abrir no GitHub <ExternalLink/></a>
+      <span className="devhub-primary-note"><Code2/> Operações disponíveis abaixo no Dev Workspace</span>
+      <a className="action devhub-external-fallback" href={repository.repo_url} target="_blank" rel="noreferrer">GitHub <ExternalLink/></a>
       {canManage && <button className="action" type="button" onClick={sync} disabled={busy}><RefreshCw className={busy?'security-spin':''}/>{busy?'Sincronizando...':'Atualizar DevHub'}</button>}
       {String(plan.plan_id || '').toLowerCase() === 'free' && <small>PRO libera SBOM, deps.dev, commits, issues, PRs, Actions e histórico.</small>}
       {String(plan.plan_id || '').toLowerCase() === 'pro' && <small>ELITE libera repositórios privados, scans push/PR, Security Gate, AutoFix e Project Studio.</small>}
@@ -160,6 +161,7 @@ export function GitHubCommunityOrganization({ session, navigate, notify }) {
   const [busy,setBusy] = useState(false)
   const [githubUsername,setGithubUsername] = useState('')
   const [message,setMessage] = useState('')
+  const [selectedRepo,setSelectedRepo] = useState(null)
 
   async function load() {
     setLoading(true)
@@ -228,9 +230,7 @@ export function GitHubCommunityOrganization({ session, navigate, notify }) {
           <strong>@{org.login}</strong>
           <p>{org.description || 'Projetos abertos, colaboração técnica e código criado pela comunidade CreativeZone.'}</p>
         </div>
-        <a className="action" href={org.html_url} target="_blank" rel="noreferrer">
-          <Code2/> Abrir organização <ExternalLink/>
-        </a>
+        <span className="github-community-internal-badge"><Code2/> DevHub da organização</span>
       </header>
 
       <div className="github-community-metrics">
@@ -250,15 +250,37 @@ export function GitHubCommunityOrganization({ session, navigate, notify }) {
           <div className="github-community-section-title"><strong>Repositórios públicos da organização</strong><small>Visíveis para toda a comunidade</small></div>
           <div>
             {repos.slice(0,6).map(repo=>(
-              <a key={repo.id || repo.full_name} href={repo.html_url} target="_blank" rel="noreferrer">
+              <button type="button" className={selectedRepo?.id===repo.id?'active':''} key={repo.id || repo.full_name} onClick={()=>setSelectedRepo(repo)}>
                 <Code2/>
                 <span><strong>{repo.name}</strong><small>{repo.description || 'Projeto CreativeZone no GitHub'}</small></span>
                 {repo.language && <em>{repo.language}</em>}
-                <ExternalLink/>
-              </a>
+                <span className="github-community-open-internal">Abrir no DevHub</span>
+              </button>
             ))}
           </div>
         </div>
+      )}
+
+      {selectedRepo && (
+        <section className="github-community-repo-preview">
+          <header>
+            <span><Code2/><strong>{selectedRepo.full_name || selectedRepo.name}</strong></span>
+            <button type="button" onClick={()=>setSelectedRepo(null)} aria-label="Fechar repositório"><XCircle/></button>
+          </header>
+          <p>{selectedRepo.description || 'Repositório público da organização CreativeZone.'}</p>
+          <div>
+            {selectedRepo.language && <span><Languages/>{selectedRepo.language}</span>}
+            <span><Star/>{selectedRepo.stargazers_count || 0} stars</span>
+            <span><GitFork/>{selectedRepo.forks_count || 0} forks</span>
+          </div>
+          <p className="github-community-repo-help">Para criar arquivos, branches, commits, Issues e Pull Requests dentro do fórum, associe o repositório a um projeto CreativeZone e use o Dev Workspace.</p>
+          <footer>
+            {session?.user
+              ? <button className="action primary-action" type="button" onClick={()=>notify?.('Crie ou abra um projeto CreativeZone e conecte este repositório para trabalhar nele pelo Dev Workspace.')}><Code2/>Trabalhar pelo CreativeZone</button>
+              : <button className="action primary-action" type="button" onClick={()=>navigate?.('/entrar')}><UserPlus/>Entrar para colaborar</button>}
+            <a className="action devhub-external-fallback" href={selectedRepo.html_url} target="_blank" rel="noreferrer">GitHub <ExternalLink/></a>
+          </footer>
+        </section>
       )}
 
       <section className="github-community-join">
