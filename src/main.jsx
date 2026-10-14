@@ -75,6 +75,7 @@ import {
   ProjectsPage,
   ReportButton,
 } from './ExtendedCommunityPages'
+import { TeamPage, TeamsPage, TeamTopicPage } from './TeamWorkspace'
 import { PasswordRecoveryPage } from './AuthRecoveryPages'
 import { ThreadPostCard } from './ForumThreadComponents'
 import { ForumNodePage } from './ForumNodePage'
@@ -1668,6 +1669,11 @@ function App() {
   const messageUsername = messagesMatch?.[1] ? decodeURIComponent(messagesMatch[1]) : null
   const projectMatch = path.match(/^\/projetos\/([^/]+)$/)
   const routeProjectSlug = projectMatch?.[1] ? decodeURIComponent(projectMatch[1]) : null
+  const teamTopicMatch = path.match(/^\/equipes\/([^/]+)\/topico\/([^/]+)$/)
+  const routeTeamSlug = teamTopicMatch?.[1]
+    ? decodeURIComponent(teamTopicMatch[1])
+    : (path.match(/^\/equipes\/([^/]+)$/)?.[1] ? decodeURIComponent(path.match(/^\/equipes\/([^/]+)$/)[1]) : null)
+  const routeTeamTopicSlug = teamTopicMatch?.[2] ? decodeURIComponent(teamTopicMatch[2]) : null
   const tagMatch = path.match(/^\/tag\/([^/]+)$/)
   const routeTagSlug = tagMatch?.[1] ? decodeURIComponent(tagMatch[1]) : null
 
@@ -1685,6 +1691,7 @@ function App() {
       '/buscar',
       '/feed',
       '/chat',
+      '/equipes',
     ]
 
     if (routeTopicId) {
@@ -2404,6 +2411,7 @@ function App() {
   const isProfile = path === '/perfil'
   const isAbout = path === '/creativezone'
   const isProjects = path === '/projetos' || Boolean(routeProjectSlug)
+  const isTeams = path === '/equipes' || Boolean(routeTeamSlug)
   const isModeration = path === '/moderacao'
   const isAccount = Boolean(accountMatch)
   const isMessages = Boolean(messagesMatch)
@@ -2565,6 +2573,18 @@ function App() {
           ignoredIds={ignoredIds}
         />
       )
+    }
+
+    if (routeTeamTopicSlug && routeTeamSlug) {
+      return <TeamTopicPage teamSlug={routeTeamSlug} topicSlug={routeTeamTopicSlug} session={session} navigate={navigate} notify={setToast} />
+    }
+
+    if (routeTeamSlug) {
+      return <TeamPage slug={routeTeamSlug} session={session} navigate={navigate} notify={setToast} />
+    }
+
+    if (path === '/equipes') {
+      return <TeamsPage session={session} navigate={navigate} notify={setToast} />
     }
 
     if (routeProjectSlug) {
@@ -3272,6 +3292,10 @@ function App() {
           <button className={isProjects ? 'active' : ''} onClick={() => navigate('/projetos')}>
             <Briefcase />
             Projetos
+          </button>
+          <button className={isTeams ? 'active' : ''} onClick={() => navigate('/equipes')}>
+            <Users />
+            Equipes
           </button>
         </nav>
 
