@@ -58,6 +58,41 @@ import {
   updateProjectStudioRepositorySettings,
 } from './services/githubStudioApi'
 
+
+const XTERM_JS_URL='https://cdn.jsdelivr.net/npm/@xterm/xterm@6.0.0/+esm'
+const XTERM_FIT_URL='https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.11.0/+esm'
+const XTERM_CSS_URL='https://cdn.jsdelivr.net/npm/@xterm/xterm@6.0.0/css/xterm.css'
+let xtermRuntimePromise=null
+
+function loadXtermRuntime(){
+  if(typeof window==='undefined') return Promise.reject(new Error('xterm.js requer um navegador.'))
+  if(!document.getElementById('creativezone-xterm-css')){
+    const link=document.createElement('link')
+    link.id='creativezone-xterm-css'
+    link.rel='stylesheet'
+    link.href=XTERM_CSS_URL
+    document.head.appendChild(link)
+  }
+  if(!xtermRuntimePromise){
+    xtermRuntimePromise=Promise.all([
+      import(/* @vite-ignore */ XTERM_JS_URL),
+      import(/* @vite-ignore */ XTERM_FIT_URL),
+    ]).then(([xterm,fit])=>({Terminal:xterm.Terminal,FitAddon:fit.FitAddon}))
+  }
+  return xtermRuntimePromise
+}
+
+function terminalText(value=''){
+  return String(value??'').replace(/\r?\n/g,'\r\n')
+}
+
+function terminalPrompt(term,branch='main'){
+  term.write(
+    '\x1b[38;2;78;201;176mcreativezone@devhub\x1b[0m:'+
+    '\x1b[38;2;86;156;214m'+String(branch||'main')+'\x1b[0m$ '
+  )
+}
+
 function StudioLocked({ plan }) {
   return (
     <section className="project-studio locked">
@@ -163,6 +198,8 @@ export function ProjectStudio({ project, canManage = false, notify }) {
   const [fixes,setFixes]=useState([])
   const [terminalLines,setTerminalLines]=useState([{type:'system',text:'CreativeZone Git Terminal — digite help para ver os comandos disponíveis.'}])
   const [terminalPane,setTerminalPane]=useState('terminal')
+  const [xtermState,setXtermState]=useState('idle')
+  const [xtermError,setXtermError]=useState('')
   const [terminalCommand,setTerminalCommand]=useState('')
   const [runnerSource,setRunnerSource]=useState('')
   const [runnerLanguage,setRunnerLanguage]=useState('javascript')
@@ -172,6 +209,15 @@ export function ProjectStudio({ project, canManage = false, notify }) {
   const [error,setError]=useState('')
   const uploadRef=useRef(null)
   const terminalScreenRef=useRef(null)
+  const xtermHostRef=useRef(null)
+  const xtermRef=useRef(null)
+  const xtermFitRef=useRef(null)
+  const xtermInputRef=useRef('')
+  const xtermHistoryRef=useRef([])
+  const xtermHistoryIndexRef=useRef(-1)
+  const xtermRunningRef=useRef(false)
+  const terminalExecutorRef=useRef(null)
+  const terminalBranchRef=useRef('')
 
   useEffect(()=>{
     let active=true
@@ -727,24 +773,239 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     }finally{setBusy('')}
   }
 
-  async function runTerminal(event) {
-    event.preventDefault()
-    const command=terminalCommand.trim()
-    if(!command) return
+  async function executeTerminalCommand(rawCommand) {
+    const command=String(rawCommand||'').trim()
+    if(!command||xtermRunningRef.current) return
+    xtermRunningRef.current=true
     setTerminalCommand('')
     setTerminalLines(lines=>[...lines,{type:'command',text:'$ '+command}])
     setBusy('terminal');setError('')
+    const term=xtermRef.current
     try{
-      const result=await runProjectStudioTerminal(project.id,command,branch || baseBranch)
-      if(result.branch && result.branch!==branch){
+      const activeBranch=terminalBranchRef.current || branch || baseBranch
+      const result=await runProjectStudioTerminal(project.id,command,activeBranch)
+      if(result.branch && result.branch!==activeBranch){
+        terminalBranchRef.current=result.branch
         setBranch(result.branch)
         await Promise.all([refreshBranches(),refreshTree(result.branch)])
       }
-      setTerminalLines(lines=>[...lines,{type:'output',text:result.output || ''}])
+      const output=String(result.output || '')
+      setTerminalLines(lines=>[...lines,{type:'output',text:output}])
+      if(term&&output) term.write(terminalText(output))
     }catch(next){
       const msg=next?.message || 'Comando não executado.'
+      setError(msg)
       setTerminalLines(lines=>[...lines,{type:'error',text:msg}])
-    }finally{setBusy('')}
+      if(term) term.write('\x1b[38;2;244;135;113m'+terminalText(msg)+'\x1b[0m')
+    }finally{
+      setBusy('')
+      xtermRunningRef.current=false
+      const currentTerm=xtermRef.current
+      if(currentTerm){
+        currentTerm.write('\r\n')
+        terminalPrompt(currentTerm,terminalBranchRef.current || branch || baseBranch)
+        currentTerm.focus()
+      }
+    }
+  }
+
+  terminalExecutorRef.current=executeTerminalCommand
+
+  useEffect(()=>{
+    terminalBranchRef.current=branch || baseBranch || 'main'
+  },[branch,baseBranch])
+
+  useEffect(()=>{
+    if(tab!=='terminal'||!status?.enabled||!xtermHostRef.current) return undefined
+    let disposed=false
+    let resizeObserver=null
+    let dataDisposable=null
+    let terminal=null
+    setXtermState('loading')
+    setXtermError('')
+
+    loadXtermRuntime().then(({Terminal:XtermTerminal,FitAddon})=>{
+      if(disposed||!xtermHostRef.current) return
+      terminal=new XtermTerminal({
+        cursorBlink:true,
+        cursorStyle:'block',
+        cursorWidth:1,
+        fontFamily:'"Cascadia Code","SFMono-Regular",Consolas,"Liberation Mono",monospace',
+        fontSize:13,
+        fontWeight:'400',
+        fontWeightBold:'600',
+        lineHeight:1.25,
+        letterSpacing:0,
+        scrollback:4000,
+        convertEol:true,
+        rightClickSelectsWord:true,
+        macOptionIsMeta:true,
+        theme:{
+          background:'#1e1e1e',
+          foreground:'#cccccc',
+          cursor:'#aeafad',
+          cursorAccent:'#1e1e1e',
+          selectionBackground:'#264f78',
+          black:'#000000',
+          red:'#cd3131',
+          green:'#0dbc79',
+          yellow:'#e5e510',
+          blue:'#2472c8',
+          magenta:'#bc3fbc',
+          cyan:'#11a8cd',
+          white:'#e5e5e5',
+          brightBlack:'#666666',
+          brightRed:'#f14c4c',
+          brightGreen:'#23d18b',
+          brightYellow:'#f5f543',
+          brightBlue:'#3b8eea',
+          brightMagenta:'#d670d6',
+          brightCyan:'#29b8db',
+          brightWhite:'#e5e5e5',
+        },
+      })
+      const fitAddon=new FitAddon()
+      terminal.loadAddon(fitAddon)
+      terminal.open(xtermHostRef.current)
+      xtermRef.current=terminal
+      xtermFitRef.current=fitAddon
+
+      const replay=terminalLines.length?terminalLines:[{type:'system',text:'CreativeZone Git Terminal — xterm.js pronto.'}]
+      replay.forEach(line=>{
+        const color=line.type==='error'?'\x1b[38;2;244;135;113m':line.type==='command'?'\x1b[38;2;220;220;170m':line.type==='system'?'\x1b[38;2;156;220;254m':'\x1b[0m'
+        terminal.writeln(color+terminalText(line.text)+'\x1b[0m')
+      })
+      terminal.writeln('\x1b[38;2;133;133;133mGitHub-backed secure workspace · xterm.js 6.0\x1b[0m')
+      terminalPrompt(terminal,terminalBranchRef.current)
+      setXtermState('ready')
+
+      const eraseCurrentInput=()=>{
+        const current=xtermInputRef.current
+        if(current) terminal.write('\b \b'.repeat([...current].length))
+      }
+      const setInput=(value)=>{
+        eraseCurrentInput()
+        xtermInputRef.current=value
+        if(value) terminal.write(value)
+      }
+
+      dataDisposable=terminal.onData(data=>{
+        if(xtermRunningRef.current) return
+        if(data==='\r'){
+          const command=xtermInputRef.current.trim()
+          terminal.write('\r\n')
+          xtermInputRef.current=''
+          xtermHistoryIndexRef.current=-1
+          if(!command){
+            terminalPrompt(terminal,terminalBranchRef.current)
+            return
+          }
+          const history=xtermHistoryRef.current
+          if(history[history.length-1]!==command) history.push(command)
+          if(history.length>100) history.shift()
+          terminalExecutorRef.current?.(command)
+          return
+        }
+        if(data==='\u007f'){
+          const chars=[...xtermInputRef.current]
+          if(chars.length){
+            chars.pop()
+            xtermInputRef.current=chars.join('')
+            terminal.write('\b \b')
+          }
+          return
+        }
+        if(data==='\u001b[A'){
+          const history=xtermHistoryRef.current
+          if(!history.length) return
+          const currentIndex=xtermHistoryIndexRef.current
+          const nextIndex=currentIndex<0?history.length-1:Math.max(0,currentIndex-1)
+          xtermHistoryIndexRef.current=nextIndex
+          setInput(history[nextIndex]||'')
+          return
+        }
+        if(data==='\u001b[B'){
+          const history=xtermHistoryRef.current
+          if(!history.length) return
+          const currentIndex=xtermHistoryIndexRef.current
+          if(currentIndex<0) return
+          const nextIndex=currentIndex+1
+          if(nextIndex>=history.length){
+            xtermHistoryIndexRef.current=-1
+            setInput('')
+          }else{
+            xtermHistoryIndexRef.current=nextIndex
+            setInput(history[nextIndex]||'')
+          }
+          return
+        }
+        if(data==='\u0003'){
+          xtermInputRef.current=''
+          terminal.write('^C\r\n')
+          terminalPrompt(terminal,terminalBranchRef.current)
+          return
+        }
+        if(data==='\u000c'){
+          terminal.clear()
+          xtermInputRef.current=''
+          terminalPrompt(terminal,terminalBranchRef.current)
+          return
+        }
+        const printable=data.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g,'').replace(/[\r\n]/g,'')
+        if(printable){
+          xtermInputRef.current+=printable
+          terminal.write(printable)
+        }
+      })
+
+      const fit=()=>{
+        if(disposed||terminalPane!=='terminal') return
+        try{fitAddon.fit()}catch{}
+      }
+      requestAnimationFrame(()=>{fit();terminal.focus()})
+      if(typeof ResizeObserver!=='undefined'){
+        resizeObserver=new ResizeObserver(()=>requestAnimationFrame(fit))
+        resizeObserver.observe(xtermHostRef.current)
+      }
+    }).catch(error=>{
+      if(disposed) return
+      const message=error?.message||'Não foi possível carregar xterm.js.'
+      setXtermState('error')
+      setXtermError(message)
+    })
+
+    return ()=>{
+      disposed=true
+      resizeObserver?.disconnect()
+      dataDisposable?.dispose?.()
+      terminal?.dispose?.()
+      if(xtermRef.current===terminal) xtermRef.current=null
+      xtermFitRef.current=null
+    }
+  },[tab,status?.enabled,project?.id])
+
+  useEffect(()=>{
+    if(tab==='terminal'&&terminalPane==='terminal'&&xtermFitRef.current){
+      requestAnimationFrame(()=>{
+        try{xtermFitRef.current.fit();xtermRef.current?.focus()}catch{}
+      })
+    }
+  },[tab,terminalPane])
+
+  function resetXtermSession(){
+    const lines=[{type:'system',text:'CreativeZone Git Terminal — nova sessão xterm.js.'}]
+    setTerminalLines(lines)
+    xtermInputRef.current=''
+    xtermHistoryIndexRef.current=-1
+    const term=xtermRef.current
+    if(term){
+      term.clear()
+      term.write('\x1b[2J\x1b[H')
+      term.writeln('\x1b[38;2;156;220;254mCreativeZone Git Terminal — nova sessão xterm.js.\x1b[0m')
+      term.writeln('\x1b[38;2;133;133;133mGitHub-backed secure workspace · credenciais nunca são expostas no navegador.\x1b[0m')
+      terminalPrompt(term,terminalBranchRef.current)
+      term.focus()
+    }
   }
 
   function changeTab(next) {
@@ -867,23 +1128,25 @@ export function ProjectStudio({ project, canManage = false, notify }) {
         {selectedPull&&<section className="studio-thread"><header><strong>PR #{selectedPull.number} · reviews</strong><button onClick={()=>setSelectedPull(null)}>×</button></header><div>{pullReviews.map(review=><article key={review.id}><strong>@{review.user} · {review.state}</strong><small>{shortDate(review.submitted_at)}</small><p>{review.body}</p></article>)}</div><div className="studio-review-form"><textarea value={reviewBody} onChange={e=>setReviewBody(e.target.value)} placeholder="Comentário da review..."/><div><button className="action" onClick={()=>submitReview('COMMENT')} disabled={!reviewBody.trim()||Boolean(busy)}>Comentar</button><button className="action" onClick={()=>submitReview('REQUEST_CHANGES')} disabled={!reviewBody.trim()||Boolean(busy)}><AlertTriangle/>Solicitar mudanças</button><button className="action primary-action" onClick={()=>submitReview('APPROVE')} disabled={Boolean(busy)}><CheckCircle2/>Aprovar</button></div></div></section>}
       </div>}
 
-      {tab==='terminal'&&<div className={'studio-terminal vscode-terminal '+(terminalEditor?'has-editor':'')}>
+      {tab==='terminal'&&<div className={'studio-terminal vscode-terminal xterm-terminal-panel '+(terminalEditor?'has-editor':'')}>
         <div className="vscode-terminal-titlebar">
           <nav>
             <button type="button" className={terminalPane==='terminal'?'active':''} onClick={()=>setTerminalPane('terminal')}>TERMINAL</button>
             <button type="button" className={terminalPane==='output'?'active':''} onClick={()=>setTerminalPane('output')}>OUTPUT</button>
             <button type="button" className={terminalPane==='debug'?'active':''} onClick={()=>setTerminalPane('debug')}>DEBUG CONSOLE</button>
           </nav>
-          <div>
-            <span className="vscode-terminal-session"><Terminal/> cz-git</span>
-            <button type="button" title="Limpar terminal" onClick={()=>setTerminalLines([{type:'system',text:'CreativeZone Git Terminal — sessão limpa.'}])}>Limpar</button>
+          <div className="vscode-terminal-toolbar">
+            <span className="vscode-terminal-session"><Terminal/> cz-git <ChevronDown/></span>
+            <button type="button" title="Novo terminal" aria-label="Novo terminal" onClick={resetXtermSession}><Plus/></button>
+            <button type="button" title="Limpar terminal" aria-label="Limpar terminal" onClick={resetXtermSession}><Trash2/></button>
           </div>
         </div>
         <div className="vscode-terminal-context">
           <span><strong>{status.repository?.repo_owner || ''}/{status.repository?.repo_name || ''}</strong><small>branch {branch || baseBranch}</small></span>
-          <p>Terminal integrado ao GitHub: comandos permitidos são executados pela API do CreativeZone DevHub, sem expor credenciais do servidor.</p>
+          <p>Terminal xterm.js conectado ao GitHub pela API segura do CreativeZone DevHub. O navegador nunca recebe tokens GitHub.</p>
+          <span className="vscode-runtime-badge">xterm.js 6.0</span>
         </div>
-        {terminalEditor&&<section className="studio-terminal-editor vscode-terminal-editor">
+        {terminalEditor&&terminalPane==='terminal'&&<section className="studio-terminal-editor vscode-terminal-editor">
           <header>
             <span><FileCode2/><strong>{terminalEditor.path}</strong><small>EDITOR TERMINAL</small></span>
             <button type="button" onClick={()=>setTerminalEditor(null)}>×</button>
@@ -894,28 +1157,32 @@ export function ProjectStudio({ project, canManage = false, notify }) {
             <button type="button" disabled={busy==='terminal-editor'||terminalEditor.content===terminalEditor.original} onClick={saveTerminalEditor}><GitCommitHorizontal/>{busy==='terminal-editor'?'Salvando...':'Commit'}</button>
           </footer>
         </section>}
-        <div className="studio-terminal-screen vscode-terminal-screen" ref={terminalScreenRef}>
-          {terminalPane==='terminal' && terminalLines.map((line,index)=><pre key={index} className={'terminal-'+line.type}>{line.text}</pre>)}
-          {terminalPane==='output' && terminalLines.filter(line=>line.type==='output'||line.type==='error').map((line,index)=><pre key={index} className={'terminal-'+line.type}>{line.text}</pre>)}
-          {terminalPane==='output' && !terminalLines.some(line=>line.type==='output'||line.type==='error') && <pre className="terminal-system">Nenhuma saída produzida nesta sessão.</pre>}
-          {terminalPane==='debug' && <>
-            <pre className="terminal-system">CreativeZone DevHub Debug Console</pre>
-            <pre className="terminal-output">{'project: '+(status.repository?.repo_owner||'')+'/'+(status.repository?.repo_name||'')}</pre>
-            <pre className="terminal-output">{'branch: '+(branch||baseBranch)}</pre>
-            <pre className="terminal-output">{'role: '+(status.role||'contributor')}</pre>
-            <pre className="terminal-output">{'workspace: '+(status.enabled?'enabled':'disabled')}</pre>
-            {error&&<pre className="terminal-error">{error}</pre>}
-            {terminalLines.filter(line=>line.type==='error').map((line,index)=><pre key={index} className="terminal-error">{line.text}</pre>)}
-          </>}
+        <div className={'creativezone-xterm-pane '+(terminalPane==='terminal'?'is-active':'is-hidden')}>
+          <div ref={xtermHostRef} className="creativezone-xterm-host" aria-label="Terminal xterm.js CreativeZone"/>
+          {xtermState==='loading'&&<div className="xterm-runtime-state"><RefreshCw className="security-spin"/>Inicializando xterm.js...</div>}
+          {xtermState==='error'&&<div className="xterm-runtime-state is-error"><AlertTriangle/>{xtermError}</div>}
         </div>
-        {terminalPane==='terminal'&&<form className="vscode-terminal-prompt" onSubmit={runTerminal}>
-          <span className="terminal-prompt-prefix">creativezone@devhub:{branch || baseBranch}$</span>
-          <input value={terminalCommand} onChange={e=>setTerminalCommand(e.target.value)} placeholder="git status" autoComplete="off" spellCheck="false"/>
-          <button disabled={busy==='terminal'}>{busy==='terminal'?'...':'Enter'}</button>
-        </form>}
+        {terminalPane==='output'&&<div className="studio-terminal-screen vscode-terminal-screen vscode-log-pane">
+          {terminalLines.filter(line=>line.type==='output'||line.type==='error').map((line,index)=><pre key={index} className={'terminal-'+line.type}>{line.text}</pre>)}
+          {!terminalLines.some(line=>line.type==='output'||line.type==='error')&&<pre className="terminal-system">Nenhuma saída produzida nesta sessão.</pre>}
+        </div>}
+        {terminalPane==='debug'&&<div className="studio-terminal-screen vscode-terminal-screen vscode-debug-pane">
+          <pre className="terminal-system">CreativeZone DevHub Debug Console</pre>
+          <pre className="terminal-output">{'runtime: xterm.js 6.0 + FitAddon 0.11'}</pre>
+          <pre className="terminal-output">{'project: '+(status.repository?.repo_owner||'')+'/'+(status.repository?.repo_name||'')}</pre>
+          <pre className="terminal-output">{'branch: '+(branch||baseBranch)}</pre>
+          <pre className="terminal-output">{'role: '+(status.role||'contributor')}</pre>
+          <pre className="terminal-output">{'workspace: '+(status.enabled?'enabled':'disabled')}</pre>
+          <pre className="terminal-output">{'terminal: '+xtermState}</pre>
+          {xtermError&&<pre className="terminal-error">{xtermError}</pre>}
+          {error&&<pre className="terminal-error">{error}</pre>}
+          {terminalLines.filter(line=>line.type==='error').map((line,index)=><pre key={index} className="terminal-error">{line.text}</pre>)}
+        </div>}
         <footer className="vscode-terminal-status">
-          <span>GitHub-backed workspace</span>
+          <span>{busy==='terminal'?'Executando comando…':'GitHub-backed workspace'}</span>
+          <span>{branch || baseBranch}</span>
           <span>UTF-8</span>
+          <span>xterm.js</span>
           <span>CreativeZone DevHub</span>
         </footer>
       </div>}
