@@ -170,6 +170,7 @@ export function ProjectStudio({ project, canManage = false, notify }) {
   const [busy,setBusy]=useState('')
   const [error,setError]=useState('')
   const uploadRef=useRef(null)
+  const terminalScreenRef=useRef(null)
 
   useEffect(()=>{
     let active=true
@@ -205,6 +206,11 @@ export function ProjectStudio({ project, canManage = false, notify }) {
   },[files,query])
 
   const fileTree=useMemo(()=>buildFileTree(visibleFiles),[visibleFiles])
+
+  useEffect(()=>{
+    const node=terminalScreenRef.current
+    if(node) node.scrollTop=node.scrollHeight
+  },[terminalLines,terminalEditor])
 
   if(!canManage) return null
   if(loading) return <section className="project-studio loading"><RefreshCw className="security-spin"/> Preparando Dev Workspace...</section>
@@ -860,18 +866,46 @@ export function ProjectStudio({ project, canManage = false, notify }) {
         {selectedPull&&<section className="studio-thread"><header><strong>PR #{selectedPull.number} · reviews</strong><button onClick={()=>setSelectedPull(null)}>×</button></header><div>{pullReviews.map(review=><article key={review.id}><strong>@{review.user} · {review.state}</strong><small>{shortDate(review.submitted_at)}</small><p>{review.body}</p></article>)}</div><div className="studio-review-form"><textarea value={reviewBody} onChange={e=>setReviewBody(e.target.value)} placeholder="Comentário da review..."/><div><button className="action" onClick={()=>submitReview('COMMENT')} disabled={!reviewBody.trim()||Boolean(busy)}>Comentar</button><button className="action" onClick={()=>submitReview('REQUEST_CHANGES')} disabled={!reviewBody.trim()||Boolean(busy)}><AlertTriangle/>Solicitar mudanças</button><button className="action primary-action" onClick={()=>submitReview('APPROVE')} disabled={Boolean(busy)}><CheckCircle2/>Aprovar</button></div></div></section>}
       </div>}
 
-      {tab==='terminal'&&<div className="studio-terminal">
-        <header><Terminal/><span><strong>Terminal Git seguro</strong><small>Comandos Git são executados por API no repositório real. O editor terminal abaixo salva e commita sem sair do fórum.</small></span></header>
-        {terminalEditor&&<section className="studio-terminal-editor">
-          <header><span><Terminal/><strong>editor {terminalEditor.path}</strong></span><button type="button" onClick={()=>setTerminalEditor(null)}>Fechar editor</button></header>
-          <textarea spellCheck="false" value={terminalEditor.content} onChange={e=>setTerminalEditor({...terminalEditor,content:e.target.value})}/>
+      {tab==='terminal'&&<div className="studio-terminal vscode-terminal">
+        <div className="vscode-terminal-titlebar">
+          <nav>
+            <button type="button" className="active">TERMINAL</button>
+            <button type="button" disabled>OUTPUT</button>
+            <button type="button" disabled>DEBUG CONSOLE</button>
+          </nav>
+          <div>
+            <span className="vscode-terminal-session"><Terminal/> cz-git</span>
+            <button type="button" title="Limpar terminal" onClick={()=>setTerminalLines([{type:'system',text:'CreativeZone Git Terminal — sessão limpa.'}])}>Limpar</button>
+          </div>
+        </div>
+        <div className="vscode-terminal-context">
+          <span><strong>{status.repository?.repo_owner || ''}/{status.repository?.repo_name || ''}</strong><small>branch {branch || baseBranch}</small></span>
+          <p>Terminal integrado ao GitHub: comandos permitidos são executados pela API do CreativeZone DevHub, sem expor credenciais do servidor.</p>
+        </div>
+        {terminalEditor&&<section className="studio-terminal-editor vscode-terminal-editor">
+          <header>
+            <span><FileCode2/><strong>{terminalEditor.path}</strong><small>EDITOR TERMINAL</small></span>
+            <button type="button" onClick={()=>setTerminalEditor(null)}>×</button>
+          </header>
+          <textarea aria-label={'Editar '+terminalEditor.path} spellCheck="false" value={terminalEditor.content} onChange={e=>setTerminalEditor({...terminalEditor,content:e.target.value})}/>
           <footer>
             <input value={terminalEditorMessage} onChange={e=>setTerminalEditorMessage(e.target.value)} placeholder={'Mensagem do commit para '+terminalEditor.path}/>
-            <button type="button" disabled={busy==='terminal-editor'||terminalEditor.content===terminalEditor.original} onClick={saveTerminalEditor}><GitCommitHorizontal/>{busy==='terminal-editor'?'Salvando...':'Salvar + commit'}</button>
+            <button type="button" disabled={busy==='terminal-editor'||terminalEditor.content===terminalEditor.original} onClick={saveTerminalEditor}><GitCommitHorizontal/>{busy==='terminal-editor'?'Salvando...':'Commit'}</button>
           </footer>
         </section>}
-        <div className="studio-terminal-screen">{terminalLines.map((line,index)=><pre key={index} className={'terminal-'+line.type}>{line.text}</pre>)}</div>
-        <form onSubmit={runTerminal}><span>$</span><input value={terminalCommand} onChange={e=>setTerminalCommand(e.target.value)} placeholder="git status" autoComplete="off"/><button disabled={busy==='terminal'}>Executar</button></form>
+        <div className="studio-terminal-screen vscode-terminal-screen" ref={terminalScreenRef}>
+          {terminalLines.map((line,index)=><pre key={index} className={'terminal-'+line.type}>{line.text}</pre>)}
+        </div>
+        <form className="vscode-terminal-prompt" onSubmit={runTerminal}>
+          <span className="terminal-prompt-prefix">creativezone@devhub:{branch || baseBranch}$</span>
+          <input value={terminalCommand} onChange={e=>setTerminalCommand(e.target.value)} placeholder="git status" autoComplete="off" spellCheck="false"/>
+          <button disabled={busy==='terminal'}>{busy==='terminal'?'...':'Enter'}</button>
+        </form>
+        <footer className="vscode-terminal-status">
+          <span>GitHub-backed workspace</span>
+          <span>UTF-8</span>
+          <span>CreativeZone DevHub</span>
+        </footer>
       </div>}
 
       {tab==='runner'&&<div className="studio-runner studio-panel">
