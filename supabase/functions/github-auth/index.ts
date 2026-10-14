@@ -182,15 +182,24 @@ async function projectForUser(userId: string, projectId: string) {
 }
 
 async function connectionStatus(user: any) {
-  const { data: connection } = await admin.from("github_connections")
-    .select("github_username,github_user_id,avatar_url,profile_url,account_type,scopes,connected_at,last_verified_at")
-    .eq("user_id", user.id)
-    .maybeSingle()
+  const [{ data: connection }, plan, usage] = await Promise.all([
+    admin.from("github_connections")
+      .select("github_username,github_user_id,avatar_url,profile_url,account_type,scopes,connected_at,last_verified_at")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    devHubPlanForUser(user.id),
+    admin.from("github_devhub_repositories")
+      .select("id",{count:"exact",head:true})
+      .eq("user_id",user.id)
+      .eq("status","active"),
+  ])
 
   const githubIdentity = (user.identities || []).find((identity: any) => identity.provider === "github")
   return {
     connected: Boolean(connection?.github_username),
     connection: connection || null,
+    plan,
+    repository_usage: Number(usage.count || 0),
     identity_linked: Boolean(githubIdentity),
     identity: githubIdentity ? {
       id: githubIdentity.id,
