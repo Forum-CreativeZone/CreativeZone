@@ -338,10 +338,23 @@ async function organizationMembership(req: Request) {
       member: membership?.state === "active",
       state: membership?.state || null,
       role: membership?.role || null,
+      authorized: true,
+      error: null,
     }
   } catch (error) {
-    if ((error as any)?.status === 404) {
-      return { organization: COMMUNITY_ORG, member: false, state: null, role: null }
+    const status=(error as any)?.status
+    if (status === 404) {
+      return { organization: COMMUNITY_ORG, member: false, state: null, role: null, authorized:true, error:null }
+    }
+    if (status === 403) {
+      return {
+        organization: COMMUNITY_ORG,
+        member: null,
+        state: null,
+        role: null,
+        authorized: false,
+        error: (error as Error).message || "Autorize read:org para consultar sua organização.",
+      }
     }
     throw error
   }
