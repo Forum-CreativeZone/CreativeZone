@@ -1832,8 +1832,8 @@ function App() {
         description: 'Conheça a CreativeZone, comunidade da Creative Lab para tecnologia, criatividade, projetos e colaboração.',
       },
       '/projetos': {
-        title: 'Projetos da comunidade | CreativeZone',
-        description: 'Projetos criados e compartilhados pelos membros da comunidade CreativeZone.',
+        title: 'DevHub | CreativeZone',
+        description: 'DevHub CreativeZone: projetos, GitHub, equipes, segurança, colaboração e desenvolvimento dentro da comunidade.',
       },
       '/categorias': {
         title: 'Categorias do fórum | CreativeZone',
@@ -3339,7 +3339,7 @@ function App() {
           </button>
           <button className={isProjects ? 'active' : ''} onClick={() => navigate('/projetos')}>
             <Briefcase />
-            Projetos
+            DevHub
           </button>
           <button className={isTeams ? 'active' : ''} onClick={() => navigate('/equipes')}>
             <Users />
