@@ -5,10 +5,23 @@ function requireSupabase() {
   return supabase
 }
 
+async function functionError(error, fallback='Falha na operação.') {
+  const context=error?.context
+  if(context && typeof context.json==='function'){
+    try{
+      const response=typeof context.clone==='function' ? context.clone() : context
+      const body=await response.json()
+      if(body?.error) return new Error(String(body.error))
+      if(body?.message) return new Error(String(body.message))
+    }catch{}
+  }
+  return new Error(error?.message || fallback)
+}
+
 async function invokeStudio(body) {
   const client = requireSupabase()
   const { data, error } = await client.functions.invoke('github-studio', { body })
-  if (error) throw error
+  if (error) throw await functionError(error)
   if (data?.error) throw new Error(data.error)
   return data
 }
