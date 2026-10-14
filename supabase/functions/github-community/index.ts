@@ -198,7 +198,7 @@ async function syncOrganizationTruth(installation:any, fallbackToken="", source=
       }catch(error){
         const message=error instanceof Error?error.message:""
         const status=(error as Error & {status?:number})?.status
-        if(status===403&&/OAuth App access restrictions/i.test(message)){
+        if(status===403){
           await admin.from("github_org_sync_state").upsert({
             organization:ORG,
             installation_id:installationId||null,
@@ -214,11 +214,12 @@ async function syncOrganizationTruth(installation:any, fallbackToken="", source=
             requires_authorization:true,
             authorization_kind:"oauth_app_policy",
             authorization_url:"https://github.com/organizations/"+ORG+"/settings/oauth_application_policy",
-            error:message,
+            error:message || "A política da organização bloqueou o OAuth App.",
             members:[],
             invitations:[],
             member_count:0,
             invitation_count:0,
+            invitations_available:false,
             synced_at:null,
           }
         }
