@@ -162,6 +162,7 @@ export function ProjectStudio({ project, canManage = false, notify }) {
   const [ciRuns,setCiRuns]=useState([])
   const [fixes,setFixes]=useState([])
   const [terminalLines,setTerminalLines]=useState([{type:'system',text:'CreativeZone Git Terminal — digite help para ver os comandos disponíveis.'}])
+  const [terminalPane,setTerminalPane]=useState('terminal')
   const [terminalCommand,setTerminalCommand]=useState('')
   const [runnerSource,setRunnerSource]=useState('')
   const [runnerLanguage,setRunnerLanguage]=useState('javascript')
@@ -869,9 +870,9 @@ export function ProjectStudio({ project, canManage = false, notify }) {
       {tab==='terminal'&&<div className={'studio-terminal vscode-terminal '+(terminalEditor?'has-editor':'')}>
         <div className="vscode-terminal-titlebar">
           <nav>
-            <button type="button" className="active">TERMINAL</button>
-            <button type="button" disabled>OUTPUT</button>
-            <button type="button" disabled>DEBUG CONSOLE</button>
+            <button type="button" className={terminalPane==='terminal'?'active':''} onClick={()=>setTerminalPane('terminal')}>TERMINAL</button>
+            <button type="button" className={terminalPane==='output'?'active':''} onClick={()=>setTerminalPane('output')}>OUTPUT</button>
+            <button type="button" className={terminalPane==='debug'?'active':''} onClick={()=>setTerminalPane('debug')}>DEBUG CONSOLE</button>
           </nav>
           <div>
             <span className="vscode-terminal-session"><Terminal/> cz-git</span>
@@ -894,13 +895,24 @@ export function ProjectStudio({ project, canManage = false, notify }) {
           </footer>
         </section>}
         <div className="studio-terminal-screen vscode-terminal-screen" ref={terminalScreenRef}>
-          {terminalLines.map((line,index)=><pre key={index} className={'terminal-'+line.type}>{line.text}</pre>)}
+          {terminalPane==='terminal' && terminalLines.map((line,index)=><pre key={index} className={'terminal-'+line.type}>{line.text}</pre>)}
+          {terminalPane==='output' && terminalLines.filter(line=>line.type==='output'||line.type==='error').map((line,index)=><pre key={index} className={'terminal-'+line.type}>{line.text}</pre>)}
+          {terminalPane==='output' && !terminalLines.some(line=>line.type==='output'||line.type==='error') && <pre className="terminal-system">Nenhuma saída produzida nesta sessão.</pre>}
+          {terminalPane==='debug' && <>
+            <pre className="terminal-system">CreativeZone DevHub Debug Console</pre>
+            <pre className="terminal-output">{'project: '+(status.repository?.repo_owner||'')+'/'+(status.repository?.repo_name||'')}</pre>
+            <pre className="terminal-output">{'branch: '+(branch||baseBranch)}</pre>
+            <pre className="terminal-output">{'role: '+(status.role||'contributor')}</pre>
+            <pre className="terminal-output">{'workspace: '+(status.enabled?'enabled':'disabled')}</pre>
+            {error&&<pre className="terminal-error">{error}</pre>}
+            {terminalLines.filter(line=>line.type==='error').map((line,index)=><pre key={index} className="terminal-error">{line.text}</pre>)}
+          </>}
         </div>
-        <form className="vscode-terminal-prompt" onSubmit={runTerminal}>
+        {terminalPane==='terminal'&&<form className="vscode-terminal-prompt" onSubmit={runTerminal}>
           <span className="terminal-prompt-prefix">creativezone@devhub:{branch || baseBranch}$</span>
           <input value={terminalCommand} onChange={e=>setTerminalCommand(e.target.value)} placeholder="git status" autoComplete="off" spellCheck="false"/>
           <button disabled={busy==='terminal'}>{busy==='terminal'?'...':'Enter'}</button>
-        </form>
+        </form>}
         <footer className="vscode-terminal-status">
           <span>GitHub-backed workspace</span>
           <span>UTF-8</span>
