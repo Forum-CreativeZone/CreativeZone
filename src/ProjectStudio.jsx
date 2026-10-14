@@ -403,11 +403,6 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     if(node) node.scrollTop=node.scrollHeight
   },[terminalLines,terminalEditor])
 
-  if(!canManage) return null
-  if(loading) return <section className="project-studio loading"><RefreshCw className="security-spin"/> Preparando Dev Workspace...</section>
-  if(!status) return error?<section className="project-studio locked"><p>{error}</p></section>:null
-  if(!status.enabled) return <StudioLocked plan={status.plan}/>
-
   async function refreshTree(nextBranch=branch || baseBranch) {
     setBusy('tree');setError('')
     try{
@@ -1296,6 +1291,11 @@ export function ProjectStudio({ project, canManage = false, notify }) {
       }
     }
   }
+
+  if(!canManage) return null
+  if(loading) return <section className="project-studio loading"><RefreshCw className="security-spin"/> Preparando Dev Workspace...</section>
+  if(!status) return error?<section className="project-studio locked"><p>{error}</p></section>:null
+  if(!status.enabled) return <StudioLocked plan={status.plan}/>
 
   return (
     <section className="project-studio devhub-workspace">
