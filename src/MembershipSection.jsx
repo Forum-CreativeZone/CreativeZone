@@ -44,7 +44,7 @@ const devHubBenefits = [
   ['repository_recognition','Reconhecimento de repositórios GitHub'],
   ['github_card','Card GitHub inteligente'],
   ['basic_repository_data','Linguagem, stars, forks e dados essenciais'],
-  ['readme_summary','README resumido no projeto'],
+  ['readme_summary','README renderizado no projeto como no GitHub'],
   ['latest_release','Última release do repositório'],
   ['osv_basic_check','Verificação OSV de vulnerabilidades'],
   ['public_security_status','Status público 0 / X vulnerabilidades'],
@@ -81,6 +81,13 @@ const benefits = [
   ['ads_free','Experiência sem anúncios'],
 ]
 
+const teamBenefits = [
+  ['private_teams','Criar equipes privadas CreativeZone'],
+  ['team_private_topics','Tópicos exclusivos para a equipe'],
+  ['team_role_management','Funções e permissões por membro'],
+  ['team_public_preview_topics','Tópicos com vitrine pública e conteúdo protegido'],
+]
+
 function PlanCard({ plan, current, onRequest, busy, months, setMonths }) {
   const [detailsOpen,setDetailsOpen] = useState(false)
   const active = current?.plan_id === plan.id
@@ -92,7 +99,7 @@ function PlanCard({ plan, current, onRequest, busy, months, setMonths }) {
   const highlights = {
     free: ['Comunidade completa', 'GitHub Card + OSV básico', '1 repositório por projeto'],
     pro: ['Tudo do FREE', 'SBOM + dependências + OSV completo', 'Até 5 repositórios'],
-    elite: ['Tudo do PRO', 'Privados + scans em push/PR', 'Project Studio + commits pelo fórum'],
+    elite: ['Tudo do PRO', 'Dev Workspace + automações GitHub', 'Equipes privadas + tópicos protegidos'],
   }[plan.id] || []
 
   return (
@@ -142,6 +149,17 @@ function PlanCard({ plan, current, onRequest, busy, months, setMonths }) {
             {devHubBenefits.filter(([key]) => Boolean(e.github_devhub?.[key])).map(([key,label]) => (
               <span key={key}><Check /> {label}</span>
             ))}
+          </div>
+          {teamBenefits.some(([key])=>Boolean(e[key]))&&<div className="membership-devhub-benefits membership-team-benefits">
+            <strong>Equipes privadas</strong>
+            {teamBenefits.filter(([key])=>Boolean(e[key])).map(([key,label])=>(
+              <span key={key}><Check /> {label}</span>
+            ))}
+            <small>O criador da equipe precisa ser ELITE; membros convidados podem usar qualquer plano.</small>
+          </div>}
+          <div className="membership-entitlement-proof">
+            <ShieldCheck/>
+            <span><strong>Benefícios validados no servidor</strong><small>Os limites do plano são verificados pelas APIs do CreativeZone e pelas políticas de acesso do banco — não apenas escondidos na interface.</small></span>
           </div>
         </div>
       )}
