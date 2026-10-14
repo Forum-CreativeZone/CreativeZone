@@ -3,8 +3,13 @@ import {
   AlertTriangle,
   CheckCircle2,
   Code2,
+  ChevronDown,
+  ChevronRight,
   FileCode2,
   FilePlus2,
+  Folder,
+  FolderOpen,
+  FolderPlus,
   GitBranch,
   GitCommitHorizontal,
   GitMerge,
@@ -78,6 +83,44 @@ function shortDate(value) {
   catch{return ''}
 }
 
+function buildFileTree(files=[]) {
+  const root=[]
+  const folderMap=new Map()
+  const ensureFolder=(parts,index,parent,pathPrefix)=>{
+    const name=parts[index]
+    const path=pathPrefix ? pathPrefix+'/'+name : name
+    let folder=folderMap.get(path)
+    if(!folder){
+      folder={type:'folder',name,path,children:[]}
+      folderMap.set(path,folder)
+      parent.push(folder)
+    }
+    return folder
+  }
+  for(const file of files){
+    const path=String(file.path||'')
+    if(!path) continue
+    const parts=path.split('/').filter(Boolean)
+    let parent=root
+    let prefix=''
+    for(let index=0;index<parts.length-1;index++){
+      const folder=ensureFolder(parts,index,parent,prefix)
+      parent=folder.children
+      prefix=folder.path
+    }
+    parent.push({...file,type:'file',name:parts[parts.length-1],path})
+  }
+  const sortNodes=(nodes)=>{
+    nodes.sort((a,b)=>{
+      if(a.type!==b.type) return a.type==='folder'?-1:1
+      return String(a.name).localeCompare(String(b.name),'pt-BR',{sensitivity:'base'})
+    })
+    nodes.forEach(node=>{if(node.type==='folder') sortNodes(node.children)})
+  }
+  sortNodes(root)
+  return root
+}
+
 export function ProjectStudio({ project, canManage = false, notify }) {
   const [status,setStatus]=useState(null)
   const [loading,setLoading]=useState(false)
@@ -93,6 +136,7 @@ export function ProjectStudio({ project, canManage = false, notify }) {
   const [original,setOriginal]=useState('')
   const [message,setMessage]=useState('')
   const [newPath,setNewPath]=useState('')
+  const [expandedFolders,setExpandedFolders]=useState(()=>new Set())
   const [commitInfo,setCommitInfo]=useState(null)
   const [commits,setCommits]=useState([])
   const [issues,setIssues]=useState([])
@@ -136,7 +180,9 @@ export function ProjectStudio({ project, canManage = false, notify }) {
             getProjectStudioBranches(project.id),
           ])
           if(!active) return
-          setFiles(treeResult.files || [])
+          const loadedFiles=treeResult.files || []
+          setFiles(loadedFiles)
+          setExpandedFolders(new Set(loadedFiles.map(item=>String(item.path||'').split('/')[0]).filter((name,index,self)=>name && self.indexOf(name)===index)))
           setBranches(branchResult.branches || [])
         }
       })
@@ -150,6 +196,8 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     return needle?files.filter(item=>String(item.path).toLowerCase().includes(needle)):files
   },[files,query])
 
+  const fileTree=useMemo(()=>buildFileTree(visibleFiles),[visibleFiles])
+
   if(!canManage) return null
   if(loading) return <section className="project-studio loading"><RefreshCw className="security-spin"/> Preparando Dev Workspace...</section>
   if(!status) return error?<section className="project-studio locked"><p>{error}</p></section>:null
@@ -159,7 +207,12 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     setBusy('tree');setError('')
     try{
       const result=await getProjectStudioTree(project.id,nextBranch)
-      setFiles(result.files || [])
+      const loadedFiles=result.files || []
+      setFiles(loadedFiles)
+      setExpandedFolders(current=>{
+        if(current.size) return current
+        return new Set(loadedFiles.map(item=>String(item.path||'').split('/')[0]).filter(Boolean))
+      })
       setBranch(result.branch || nextBranch)
     }catch(next){setError(next?.message || 'Não foi possível listar os arquivos.')}
     finally{setBusy('')}
@@ -199,6 +252,57 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     setContent('')
     setOriginal('__creativezone_new_file__')
     setNewPath('')
+  }
+
+  function createFolderDraft() {
+    const folder=newPath.trim().replace(/^\/+|\/+$/g,'')
+    if(!folder) return notify?.('Informe o caminho da nova pasta.')
+    const path=folder+'/.gitkeep'
+    setExpandedFolders(current=>new Set([...current,folder,...folder.split('/').map((_,index,parts)=>parts.slice(0,index+1).join('/'))]))
+    setSelected(path)
+    setContent('')
+    setOriginal('__creativezone_new_file__')
+    setNewPath('')
+    notify?.('Pasta preparada. Faça o commit para criá-la no GitHub.')
+  }
+
+  function toggleFolder(path) {
+    setExpandedFolders(current=>{
+      const next=new Set(current)
+      if(next.has(path)) next.delete(path)
+      else next.add(path)
+      return next
+    })
+  }
+
+  function renderTree(nodes,depth=0) {
+    return nodes.map(node=>{
+      if(node.type==='folder'){
+        const open=expandedFolders.has(node.path) || Boolean(query.trim())
+        return <React.Fragment key={'folder:'+node.path}>
+          <button
+            type="button"
+            className="studio-tree-folder"
+            style={{'--tree-depth':depth}}
+            onClick={()=>toggleFolder(node.path)}
+            title={open?'Recolher pasta':'Expandir pasta'}
+          >
+            {open?<ChevronDown/>:<ChevronRight/>}
+            {open?<FolderOpen/>:<Folder/>}
+            <span>{node.name}</span>
+          </button>
+          {open&&renderTree(node.children,depth+1)}
+        </React.Fragment>
+      }
+      return <button
+        type="button"
+        key={node.path}
+        className={'studio-tree-file '+(selected===node.path?'active':'')}
+        style={{'--tree-depth':depth}}
+        onClick={()=>openFile(node.path)}
+        title={node.path}
+      ><FileCode2/><span>{node.name}</span></button>
+    })
   }
 
   async function commit() {
@@ -584,11 +688,12 @@ export function ProjectStudio({ project, canManage = false, notify }) {
             <input ref={uploadRef} type="file" multiple hidden onChange={uploadFiles}/>
           </div>
           <div className="studio-new-file">
-            <input value={newPath} onChange={e=>setNewPath(e.target.value)} placeholder="src/novo-arquivo.js"/>
-            <button onClick={createFileDraft} title="Criar arquivo"><FilePlus2/></button>
+            <input value={newPath} onChange={e=>setNewPath(e.target.value)} placeholder="src/novo-arquivo.js ou src/nova-pasta"/>
+            <button type="button" onClick={createFileDraft} title="Criar arquivo"><FilePlus2/></button>
+            <button type="button" onClick={createFolderDraft} title="Criar pasta"><FolderPlus/></button>
           </div>
-          <div className="project-studio-files">
-            {visibleFiles.map(item=><button key={item.path} className={selected===item.path?'active':''} onClick={()=>openFile(item.path)}><FileCode2/>{item.path}</button>)}
+          <div className="project-studio-files studio-file-tree" aria-label="Estrutura do repositório">
+            {renderTree(fileTree)}
             {!visibleFiles.length&&<small>Nenhum arquivo carregado.</small>}
           </div>
         </aside>
