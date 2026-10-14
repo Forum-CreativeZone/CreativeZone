@@ -248,9 +248,26 @@ async function repositoryAccess(req: Request, payload: Record<string, unknown>, 
     const installation = await installationForOwner(ref.owner)
     installationId = Number(installation?.id || 0)
   }
-  if (!installationId) throw new Error("Instale o CreativeZone DevHub na conta proprietária do repositório.")
-  if (!repository) repository = { project_id: projectId, repo_url: repoUrl, default_branch: "main", installation_id: installationId }
-  return { ...ctx, enabled: true, repository, ref, token: await installationToken(installationId) }
+
+  let token = ""
+  let authMode = "github_app"
+  if (installationId) {
+    token = await installationToken(installationId)
+  } else {
+    authMode = "user_oauth"
+    token = await userGithubToken(ctx.user.id)
+    if (!token) {
+      throw new Error("Conecte sua conta GitHub ao CreativeZone ou instale o CreativeZone DevHub na conta proprietária do repositório.")
+    }
+    const repoCheck = await github("/repos/" + encodeURIComponent(ref.owner) + "/" + encodeURIComponent(ref.repo), token)
+    const permissions = repoCheck?.permissions || {}
+    if (!(permissions.push || permissions.maintain || permissions.admin)) {
+      throw new Error("Sua conta GitHub ainda não possui permissão de escrita neste repositório. Solicite participação/acesso pelo CreativeZone.")
+    }
+  }
+
+  if (!repository) repository = { project_id: projectId, repo_url: repoUrl, default_branch: "main", installation_id: installationId || null }
+  return { ...ctx, enabled: true, repository, ref, token, authMode }
 }
 
 async function status(req: Request, payload: Record<string, unknown>) {
@@ -260,6 +277,7 @@ async function status(req: Request, payload: Record<string, unknown>) {
     plan: access.plan,
     role: access.projectRole,
     can_manage: access.canManage,
+    auth_mode: access.authMode || null,
     repository: access.repository ? {
       repo_url: access.repository.repo_url,
       default_branch: access.repository.default_branch || "main",
