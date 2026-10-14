@@ -345,12 +345,21 @@ async function tree(req: Request, payload: Record<string, unknown>) {
   const files = (Array.isArray(data?.tree) ? data.tree : [])
     .filter((item: Record<string, unknown>) =>
       item.type === "blob" &&
-      Number(item.size || 0) <= 750000 &&
-      !binary.test(String(item.path || "")) &&
       !String(item.path || "").includes("node_modules/")
     )
-    .slice(0, 1200)
-    .map((item: Record<string, unknown>) => ({ path: item.path, size: item.size, sha: item.sha }))
+    .slice(0, 5000)
+    .map((item: Record<string, unknown>) => {
+      const path = String(item.path || "")
+      const size = Number(item.size || 0)
+      const isBinary = binary.test(path)
+      return {
+        path,
+        size,
+        sha: item.sha,
+        editable: !isBinary && size <= 750000,
+        binary: isBinary,
+      }
+    })
   return { enabled: true, files, branch, truncated: Boolean(data?.truncated), plan: access.plan }
 }
 
@@ -359,6 +368,8 @@ async function readFile(req: Request, payload: Record<string, unknown>) {
   if (!access.enabled || !access.ref) return status(req, payload)
   const path = safePath(payload.path)
   const branch = String(payload.branch || access.repository?.default_branch || "main")
+  const binary = /\.(png|jpe?g|gif|webp|ico|pdf|zip|gz|tar|7z|woff2?|ttf|otf|mp[34]|mov|avi|exe|dll|so|dylib)$/i
+  if (binary.test(path)) throw new Error("Arquivo binário não pode ser editado como texto. Use Upload para substituí-lo.")
   const data = await github(
     "/repos/" + encodeURIComponent(access.ref.owner) + "/" + encodeURIComponent(access.ref.repo) +
     "/contents/" + path.split("/").map(encodeURIComponent).join("/") + "?ref=" + encodeURIComponent(branch),
