@@ -85,11 +85,13 @@ function permissions(role:string,owner=false,systemOwner=false,writeEnabled=true
     view_private:Boolean(effective),
     team_entitled:canWrite,
     manage_members:canWrite&&["system_owner","owner"].includes(effective),
+    invite_members:canWrite&&["system_owner","owner","lead"].includes(effective),
+    remove_members:canWrite&&["system_owner","owner"].includes(effective),
     manage_team:canWrite&&["system_owner","owner"].includes(effective),
-    manage_topics:canWrite&&["system_owner","owner","maintainer"].includes(effective),
-    create_topics:canWrite&&["system_owner","owner","maintainer","developer","designer","member"].includes(effective),
-    reply:canWrite&&["system_owner","owner","maintainer","developer","reviewer","designer","member"].includes(effective),
-    review:canWrite&&["system_owner","owner","maintainer","reviewer"].includes(effective),
+    manage_topics:canWrite&&["system_owner","owner","lead","maintainer"].includes(effective),
+    create_topics:canWrite&&["system_owner","owner","lead","maintainer","developer","designer","member"].includes(effective),
+    reply:canWrite&&["system_owner","owner","lead","maintainer","developer","reviewer","designer","member"].includes(effective),
+    review:canWrite&&["system_owner","owner","lead","maintainer","reviewer"].includes(effective),
   }
 }
 function ensureTeamEntitled(ctx:any){
@@ -201,7 +203,7 @@ async function getTeam(req:Request,payload:Record<string,unknown>){
       .eq("team_id",team.id).eq("status","active").order("joined_at",{ascending:true})
     members=data||[]
   }
-  if(perms.manage_members){
+  if(perms.invite_members){
     const {data}=await admin.from("creative_team_invites")
       .select("id,team_id,invited_user_id,invited_by,role,message,status,created_at,profile:profiles!creative_team_invites_invited_user_id_fkey(id,username,display_name,avatar_url)")
       .eq("team_id",team.id).eq("status","pending").order("created_at",{ascending:true})
@@ -231,11 +233,11 @@ async function inviteMember(req:Request,payload:Record<string,unknown>){
   const ctx=await teamContext(teamId,user.id)
   ensureTeamEntitled(ctx)
   const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner,ctx.teamEntitled)
-  if(!perms.manage_members) throw new Error("Somente o dono da equipe pode convidar e definir funções.")
+  if(!perms.invite_members) throw new Error("Sua função não permite convidar membros.")
   const username=String(payload.username||"").trim().replace(/^@/,"")
   if(!username) throw new Error("Informe o @username do fórum.")
   const role=String(payload.role||"member")
-  if(!["maintainer","developer","reviewer","designer","member","viewer"].includes(role)) throw new Error("Função inválida.")
+  if(!["lead","maintainer","developer","reviewer","designer","member","viewer"].includes(role)) throw new Error("Função inválida.")
   const {data:target,error:profileError}=await admin.from("profiles")
     .select("id,username,display_name,avatar_url").ilike("username",username).limit(1).maybeSingle()
   if(profileError) throw profileError
@@ -251,7 +253,7 @@ async function inviteMember(req:Request,payload:Record<string,unknown>){
   }).select("*").single()
   if(error) throw error
   await notify(target.id,user.id,"team_invite",{
-    team_id:teamId,team_slug:ctx.team.slug,team_name:ctx.team.name,invite_id:invite.id,role,path:"/equipes/"+ctx.team.slug,
+    team_id:teamId,team_slug:ctx.team.slug,team_name:ctx.team.name,invite_id:invite.id,role,message,path:"/equipes/"+ctx.team.slug,
   })
   return {invite,profile:target}
 }
@@ -291,7 +293,7 @@ async function setMemberRole(req:Request,payload:Record<string,unknown>){
   const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner,ctx.teamEntitled)
   if(!perms.manage_members) throw new Error("Somente o dono da equipe pode definir permissões.")
   if(targetId===ctx.team.owner_id) throw new Error("A função do dono não pode ser alterada.")
-  if(!["maintainer","developer","reviewer","designer","member","viewer"].includes(role)) throw new Error("Função inválida.")
+  if(!["lead","maintainer","developer","reviewer","designer","member","viewer"].includes(role)) throw new Error("Função inválida.")
   const {data,error}=await admin.from("creative_team_members").update({role,updated_at:new Date().toISOString()})
     .eq("team_id",teamId).eq("user_id",targetId).eq("status","active").select("*").maybeSingle()
   if(error) throw error
@@ -307,7 +309,7 @@ async function removeMember(req:Request,payload:Record<string,unknown>){
   const ctx=await teamContext(teamId,user.id)
   ensureTeamEntitled(ctx)
   const perms=permissions(ctx.role,ctx.owner,ctx.systemOwner,ctx.teamEntitled)
-  if(!perms.manage_members) throw new Error("Somente o dono da equipe pode remover membros.")
+  if(!perms.remove_members) throw new Error("Somente o dono da equipe pode remover membros.")
   if(targetId===ctx.team.owner_id) throw new Error("O dono não pode ser removido da própria equipe.")
   const {error}=await admin.from("creative_team_members").update({status:"removed",updated_at:new Date().toISOString()})
     .eq("team_id",teamId).eq("user_id",targetId).eq("status","active")
