@@ -594,6 +594,51 @@ async function createIssue(req: Request, payload: Record<string, unknown>) {
   return { enabled: true, issue: { number: issue.number, title: issue.title, body: issue.body || "", state: issue.state }, plan: access.plan }
 }
 
+
+async function updateIssue(req: Request, payload: Record<string, unknown>) {
+  const access = await repositoryAccess(req, payload)
+  if (!access.enabled || !access.ref) return status(req, payload)
+  const number = Number(payload.number || 0)
+  if (!number) throw new Error("Issue inválida.")
+  const userToken = await userGithubToken(access.user.id)
+  if (!userToken) throw new Error("Conecte sua conta GitHub ao CreativeZone para alterar Issues.")
+  const body: Record<string, unknown> = {}
+  if (payload.title !== undefined) body.title = compact(payload.title,250)
+  if (payload.body !== undefined) body.body = compact(payload.body,60000)
+  if (["open","closed"].includes(String(payload.state || ""))) body.state = String(payload.state)
+  const issue = await github("/repos/" + encodeURIComponent(access.ref.owner) + "/" + encodeURIComponent(access.ref.repo) + "/issues/" + number, userToken, {
+    method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),
+  })
+  await logAction(access,"issue",{number,state:issue.state},"completed",{number:issue.number,state:issue.state})
+  return { enabled:true, issue:{number:issue.number,title:issue.title,body:issue.body||"",state:issue.state}, plan:access.plan }
+}
+
+async function issueComments(req: Request, payload: Record<string, unknown>) {
+  const access = await repositoryAccess(req,payload)
+  if(!access.enabled || !access.ref) return status(req,payload)
+  const number=Number(payload.number||0)
+  if(!number) throw new Error("Issue inválida.")
+  const data=await github("/repos/"+encodeURIComponent(access.ref.owner)+"/"+encodeURIComponent(access.ref.repo)+"/issues/"+number+"/comments?per_page=100",access.token)
+  return {enabled:true,comments:(Array.isArray(data)?data:[]).map((item:any)=>({
+    id:item.id,body:item.body||"",user:item.user?.login||"GitHub",avatar_url:item.user?.avatar_url||null,created_at:item.created_at,updated_at:item.updated_at
+  })),plan:access.plan}
+}
+
+async function addIssueComment(req: Request, payload: Record<string, unknown>) {
+  const access=await repositoryAccess(req,payload)
+  if(!access.enabled || !access.ref) return status(req,payload)
+  const number=Number(payload.number||0)
+  const body=String(payload.body||"").trim()
+  if(!number || !body) throw new Error("Comentário inválido.")
+  const userToken=await userGithubToken(access.user.id)
+  if(!userToken) throw new Error("Conecte sua conta GitHub ao CreativeZone para comentar em Issues.")
+  const comment=await github("/repos/"+encodeURIComponent(access.ref.owner)+"/"+encodeURIComponent(access.ref.repo)+"/issues/"+number+"/comments",userToken,{
+    method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({body:compact(body,60000)})
+  })
+  await logAction(access,"issue_comment",{number},"completed",{comment_id:comment.id})
+  return {enabled:true,comment:{id:comment.id,body:comment.body||"",user:comment.user?.login||null,created_at:comment.created_at},plan:access.plan}
+}
+
 async function listPullRequests(req: Request, payload: Record<string, unknown>) {
   const access = await repositoryAccess(req, payload)
   if (!access.enabled || !access.ref) return status(req, payload)
@@ -618,6 +663,65 @@ async function listPullRequests(req: Request, payload: Record<string, unknown>) 
     can_manage: access.canManage,
     plan: access.plan,
   }
+}
+
+
+async function reviewPullRequest(req: Request, payload: Record<string, unknown>) {
+  const access=await repositoryAccess(req,payload,"branch_pr_workflow")
+  if(!access.enabled || !access.ref) return status(req,payload)
+  const number=Number(payload.number||0)
+  const event=String(payload.event||"COMMENT").toUpperCase()
+  if(!number || !["APPROVE","REQUEST_CHANGES","COMMENT"].includes(event)) throw new Error("Review inválida.")
+  const body=String(payload.body||"").trim()
+  if((event==="REQUEST_CHANGES" || event==="COMMENT") && !body) throw new Error("Escreva um comentário para esta review.")
+  const review=await github("/repos/"+encodeURIComponent(access.ref.owner)+"/"+encodeURIComponent(access.ref.repo)+"/pulls/"+number+"/reviews",access.token,{
+    method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({event,body:compact(body,60000)})
+  })
+  await logAction(access,"review",{number,event},"completed",{review_id:review.id,state:review.state})
+  return {enabled:true,review:{id:review.id,state:review.state,body:review.body||"",user:review.user?.login||null},plan:access.plan}
+}
+
+async function pullRequestReviews(req: Request, payload: Record<string, unknown>) {
+  const access=await repositoryAccess(req,payload)
+  if(!access.enabled || !access.ref) return status(req,payload)
+  const number=Number(payload.number||0)
+  if(!number) throw new Error("Pull Request inválida.")
+  const data=await github("/repos/"+encodeURIComponent(access.ref.owner)+"/"+encodeURIComponent(access.ref.repo)+"/pulls/"+number+"/reviews?per_page=100",access.token)
+  return {enabled:true,reviews:(Array.isArray(data)?data:[]).map((item:any)=>({
+    id:item.id,state:item.state,body:item.body||"",user:item.user?.login||"GitHub",submitted_at:item.submitted_at
+  })),plan:access.plan}
+}
+
+async function repositorySettings(req: Request, payload: Record<string, unknown>) {
+  const access=await repositoryAccess(req,payload)
+  if(!access.enabled || !access.ref) return status(req,payload)
+  const repo=await github("/repos/"+encodeURIComponent(access.ref.owner)+"/"+encodeURIComponent(access.ref.repo),access.token)
+  return {enabled:true,settings:{
+    name:repo.name,full_name:repo.full_name,description:repo.description||"",homepage:repo.homepage||"",
+    private:Boolean(repo.private),visibility:repo.visibility,default_branch:repo.default_branch||"main",
+    has_issues:Boolean(repo.has_issues),has_projects:Boolean(repo.has_projects),has_wiki:Boolean(repo.has_wiki),
+    archived:Boolean(repo.archived)
+  },can_manage:access.canManage,role:access.projectRole,plan:access.plan}
+}
+
+async function updateRepositorySettings(req: Request, payload: Record<string, unknown>) {
+  const access=await repositoryAccess(req,payload)
+  if(!access.enabled || !access.ref) return status(req,payload)
+  if(!access.canManage) throw new Error("Apenas proprietário ou mantenedor pode alterar configurações do repositório.")
+  const userToken=await userGithubToken(access.user.id)
+  if(!userToken) throw new Error("Conecte uma conta GitHub administradora do repositório para alterar configurações.")
+  const body:Record<string,unknown>={}
+  if(payload.description!==undefined) body.description=compact(payload.description,350)
+  if(payload.homepage!==undefined) body.homepage=String(payload.homepage||"").trim()
+  if(payload.has_issues!==undefined) body.has_issues=Boolean(payload.has_issues)
+  if(payload.has_projects!==undefined) body.has_projects=Boolean(payload.has_projects)
+  if(payload.has_wiki!==undefined) body.has_wiki=Boolean(payload.has_wiki)
+  const repo=await github("/repos/"+encodeURIComponent(access.ref.owner)+"/"+encodeURIComponent(access.ref.repo),userToken,{
+    method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)
+  })
+  await admin.from("project_repositories").update({description:repo.description||null,homepage_url:repo.homepage||null,updated_at:new Date().toISOString()}).eq("project_id",access.project.id)
+  await logAction(access,"update_repository",body,"completed",{full_name:repo.full_name})
+  return {enabled:true,settings:{description:repo.description||"",homepage:repo.homepage||"",has_issues:Boolean(repo.has_issues),has_projects:Boolean(repo.has_projects),has_wiki:Boolean(repo.has_wiki)},plan:access.plan}
 }
 
 async function mergePullRequest(req: Request, payload: Record<string, unknown>) {
@@ -779,9 +883,16 @@ Deno.serve(async (req: Request) => {
     if (action === "commits") return reply({ ok: true, ...(await listCommits(req, payload)) })
     if (action === "issues") return reply({ ok: true, ...(await listIssues(req, payload)) })
     if (action === "create_issue") return reply({ ok: true, ...(await createIssue(req, payload)) })
+    if (action === "update_issue") return reply({ ok: true, ...(await updateIssue(req, payload)) })
+    if (action === "issue_comments") return reply({ ok: true, ...(await issueComments(req, payload)) })
+    if (action === "issue_comment") return reply({ ok: true, ...(await addIssueComment(req, payload)) })
     if (action === "pull_requests") return reply({ ok: true, ...(await listPullRequests(req, payload)) })
     if (action === "pull_request") return reply({ ok: true, ...(await createPullRequest(req, payload)) })
+    if (action === "pr_reviews") return reply({ ok: true, ...(await pullRequestReviews(req, payload)) })
+    if (action === "review_pr") return reply({ ok: true, ...(await reviewPullRequest(req, payload)) })
     if (action === "merge_pull_request") return reply({ ok: true, ...(await mergePullRequest(req, payload)) })
+    if (action === "repository_settings") return reply({ ok: true, ...(await repositorySettings(req, payload)) })
+    if (action === "update_repository_settings") return reply({ ok: true, ...(await updateRepositorySettings(req, payload)) })
     if (action === "terminal") return reply({ ok: true, ...(await terminal(req, payload)) })
     if (action === "ci") return reply({ ok: true, ...(await ciCockpit(req, payload)) })
     if (action === "fixes") return reply({ ok: true, ...(await fixes(req, payload)) })
