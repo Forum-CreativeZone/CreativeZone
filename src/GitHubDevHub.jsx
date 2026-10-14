@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import {
   getGitHubRepositoryCard,
+  getGitHubRenderedReadme,
   syncGitHubProject,
   getGitHubCommunityOrganization,
   requestGitHubOrganizationMembership,
@@ -42,6 +43,37 @@ function formatRelative(value) {
   return `há ${days} dia${days === 1 ? '' : 's'}`
 }
 
+function sanitizeReadmeHtml(html='') {
+  if (typeof window === 'undefined' || !html) return ''
+  try {
+    const parser=new DOMParser()
+    const doc=parser.parseFromString('<div id="cz-readme-root">'+html+'</div>','text/html')
+    const root=doc.getElementById('cz-readme-root')
+    if(!root) return ''
+    root.querySelectorAll('script,style,iframe,object,embed,form,input,button,textarea,select,link,meta').forEach(node=>node.remove())
+    root.querySelectorAll('*').forEach(node=>{
+      ;[...node.attributes].forEach(attr=>{
+        const name=attr.name.toLowerCase()
+        const value=String(attr.value||'').trim()
+        if(name.startsWith('on')) node.removeAttribute(attr.name)
+        if(['href','src','xlink:href'].includes(name) && /^(?:javascript|data:text\/html)/i.test(value)) node.removeAttribute(attr.name)
+        if(name==='style') node.removeAttribute(attr.name)
+      })
+      if(node.tagName==='A'){
+        node.setAttribute('target','_blank')
+        node.setAttribute('rel','noreferrer noopener')
+      }
+      if(node.tagName==='IMG'){
+        node.setAttribute('loading','lazy')
+        node.setAttribute('decoding','async')
+      }
+    })
+    return root.innerHTML
+  } catch {
+    return ''
+  }
+}
+
 function topLanguages(languages = {}) {
   const rows = Object.entries(languages || {}).sort((a,b)=>Number(b[1])-Number(a[1])).slice(0,6)
   const total = rows.reduce((sum,[,bytes])=>sum+Number(bytes || 0),0)
@@ -55,6 +87,8 @@ function PlanChip({ plan }) {
 
 export function GitHubRepositoryPanel({ project, canManage = false, notify, onChanged }) {
   const [data,setData] = useState(null)
+  const [readme,setReadme] = useState(null)
+  const [readmeLoading,setReadmeLoading] = useState(false)
   const [loading,setLoading] = useState(Boolean(project?.repo_url))
   const [busy,setBusy] = useState(false)
   const [error,setError] = useState('')
@@ -63,7 +97,21 @@ export function GitHubRepositoryPanel({ project, canManage = false, notify, onCh
     if (!project?.id || !project?.repo_url) return
     setLoading(true)
     setError('')
-    try { setData(await getGitHubRepositoryCard(project.id)) }
+    try {
+      const result=await getGitHubRepositoryCard(project.id)
+      setData(result)
+      setReadme(null)
+      if(result?.repository){
+        setReadmeLoading(true)
+        getGitHubRenderedReadme(project.id)
+          .then((doc)=>setReadme({
+            ...doc,
+            html:sanitizeReadmeHtml(doc?.html || ''),
+          }))
+          .catch(()=>setReadme(null))
+          .finally(()=>setReadmeLoading(false))
+      }
+    }
     catch (nextError) { setError(nextError?.message || 'Não foi possível carregar o GitHub DevHub.') }
     finally { setLoading(false) }
   }
@@ -141,7 +189,17 @@ export function GitHubRepositoryPanel({ project, canManage = false, notify, onCh
       {actions.length > 0 && <section><header><Workflow/> GitHub Actions</header>{actions.slice(0,4).map(item=><div className="devhub-inline-item" key={item.id}><b>{item.name}</b><small>{item.conclusion || item.status}</small></div>)}</section>}
     </div>}
 
-    {repository.readme_excerpt && <details className="devhub-readme"><summary>README do projeto</summary><pre>{repository.readme_excerpt}</pre></details>}
+    {(readmeLoading || readme?.html || repository.readme_excerpt) && <section className="devhub-readme devhub-readme-rendered">
+      <header>
+        <span><Code2/><strong>README</strong><small>{readme?.path || 'README.md'}</small></span>
+        {readmeLoading&&<em><RefreshCw className="security-spin"/>Carregando...</em>}
+      </header>
+      {readme?.html
+        ? <article className="devhub-markdown-body" dangerouslySetInnerHTML={{__html:readme.html}} />
+        : !readmeLoading&&repository.readme_excerpt
+          ? <pre>{repository.readme_excerpt}</pre>
+          : null}
+    </section>}
     {capabilities.release_history && releases.length > 1 && <details className="devhub-release-history"><summary>Histórico de releases ({releases.length})</summary><div>{releases.map(item=><div className="devhub-inline-item" key={item.html_url || item.tag_name}><b>{item.tag_name}</b><span>{item.name || 'Release'}</span></div>)}</div></details>}
 
     {error && <p className="devhub-error">{error}</p>}
