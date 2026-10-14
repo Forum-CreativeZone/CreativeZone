@@ -4,6 +4,8 @@ import { createClient } from "npm:@supabase/supabase-js@2.95.0"
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || ""
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || ""
+const APP_ID = Deno.env.get("GITHUB_APP_ID") || ""
+const PRIVATE_KEY = Deno.env.get("GITHUB_PRIVATE_KEY") || ""
 const ORG = "Creatiive-Zone"
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
@@ -40,6 +42,107 @@ async function github(path: string) {
   })
   if (!response.ok) throw new Error(`github_http_${response.status}`)
   return response.json()
+}
+
+
+function concatBytes(...arrays: Uint8Array[]) {
+  const size = arrays.reduce((sum, item) => sum + item.length, 0)
+  const out = new Uint8Array(size)
+  let offset = 0
+  for (const item of arrays) { out.set(item, offset); offset += item.length }
+  return out
+}
+function derLength(length: number) {
+  if (length < 128) return new Uint8Array([length])
+  const bytes: number[] = []
+  let value = length
+  while (value > 0) { bytes.unshift(value & 255); value >>>= 8 }
+  return new Uint8Array([0x80 | bytes.length, ...bytes])
+}
+function derWrap(tag: number, content: Uint8Array) {
+  return concatBytes(new Uint8Array([tag]), derLength(content.length), content)
+}
+function base64Bytes(value: string) {
+  const binary = atob(value.replace(/\s+/g, ""))
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0))
+}
+function privateKeyDer(pem: string) {
+  const clean = pem.trim()
+  if (clean.includes("BEGIN PRIVATE KEY")) return base64Bytes(clean.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----/g, ""))
+  if (!clean.includes("BEGIN RSA PRIVATE KEY")) throw new Error("Formato da chave privada do GitHub App inválido.")
+  const pkcs1 = base64Bytes(clean.replace(/-----BEGIN RSA PRIVATE KEY-----|-----END RSA PRIVATE KEY-----/g, ""))
+  const version = new Uint8Array([0x02,0x01,0x00])
+  const rsaOid = new Uint8Array([0x30,0x0d,0x06,0x09,0x2a,0x86,0x48,0x86,0xf7,0x0d,0x01,0x01,0x01,0x05,0x00])
+  return derWrap(0x30, concatBytes(version, rsaOid, derWrap(0x04, pkcs1)))
+}
+function b64url(value: Uint8Array | string) {
+  const bytes = typeof value === "string" ? new TextEncoder().encode(value) : value
+  let binary = ""
+  bytes.forEach((item) => { binary += String.fromCharCode(item) })
+  return btoa(binary).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_")
+}
+let appKeyPromise: Promise<CryptoKey> | null = null
+async function appJwt() {
+  if (!APP_ID || !PRIVATE_KEY) throw new Error("GitHub App não configurado.")
+  if (!appKeyPromise) {
+    appKeyPromise = crypto.subtle.importKey("pkcs8",privateKeyDer(PRIVATE_KEY),{name:"RSASSA-PKCS1-v1_5",hash:"SHA-256"},false,["sign"])
+  }
+  const now=Math.floor(Date.now()/1000)
+  const h=b64url(JSON.stringify({alg:"RS256",typ:"JWT"}))
+  const p=b64url(JSON.stringify({iat:now-60,exp:now+540,iss:APP_ID}))
+  const input=h+"."+p
+  const signature=new Uint8Array(await crypto.subtle.sign("RSASSA-PKCS1-v1_5",await appKeyPromise,new TextEncoder().encode(input)))
+  return input+"."+b64url(signature)
+}
+async function appRequest(path: string, init: RequestInit = {}) {
+  const response=await fetch("https://api.github.com"+path,{
+    ...init,
+    headers:{
+      Accept:"application/vnd.github+json",
+      "X-GitHub-Api-Version":"2022-11-28",
+      "User-Agent":"CreativeZone-Community/2.0",
+      Authorization:"Bearer "+await appJwt(),
+      ...(init.headers||{}),
+    },
+  })
+  const data=await response.json().catch(()=>({}))
+  if(!response.ok) throw new Error(compact(data?.message || ("GitHub HTTP "+response.status),400))
+  return data
+}
+async function organizationInstallation() {
+  const list=await appRequest("/app/installations?per_page=100")
+  return (Array.isArray(list)?list:[]).find((item: any)=>String(item?.account?.login||"").toLowerCase()===ORG.toLowerCase()) || null
+}
+async function installationToken(id: number) {
+  const data=await appRequest("/app/installations/"+id+"/access_tokens",{method:"POST"})
+  if(!data?.token) throw new Error("Não foi possível gerar token da instalação da organização.")
+  return String(data.token)
+}
+async function inviteToOrganization(username: string) {
+  const installation=await organizationInstallation()
+  if(!installation?.id) {
+    throw new Error("Instale o CreativeZone DevHub na organização "+ORG+" antes de aprovar membros.")
+  }
+  const token=await installationToken(Number(installation.id))
+  const response=await fetch("https://api.github.com/orgs/"+encodeURIComponent(ORG)+"/memberships/"+encodeURIComponent(username),{
+    method:"PUT",
+    headers:{
+      Accept:"application/vnd.github+json",
+      "X-GitHub-Api-Version":"2022-11-28",
+      "User-Agent":"CreativeZone-Community/2.0",
+      Authorization:"Bearer "+token,
+      "Content-Type":"application/json",
+    },
+    body:JSON.stringify({role:"member"}),
+  })
+  const data=await response.json().catch(()=>({}))
+  if(!response.ok){
+    if(response.status===403){
+      throw new Error("O GitHub App precisa da permissão Organization members: Read and write para enviar o convite automaticamente.")
+    }
+    throw new Error(compact(data?.message || ("GitHub HTTP "+response.status),400))
+  }
+  return data
 }
 
 async function authUser(req: Request) {
