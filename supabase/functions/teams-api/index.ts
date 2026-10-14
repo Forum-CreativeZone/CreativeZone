@@ -238,6 +238,7 @@ async function inviteMember(req:Request,payload:Record<string,unknown>){
   if(!username) throw new Error("Informe o @username do fórum.")
   const role=String(payload.role||"member")
   if(!["lead","maintainer","developer","reviewer","designer","member","viewer"].includes(role)) throw new Error("Função inválida.")
+  if(role==="lead"&&!perms.manage_members) throw new Error("Somente o dono pode conceder a função Administrador.")
   const {data:target,error:profileError}=await admin.from("profiles")
     .select("id,username,display_name,avatar_url").ilike("username",username).limit(1).maybeSingle()
   if(profileError) throw profileError
