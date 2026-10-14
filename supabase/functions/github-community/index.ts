@@ -118,6 +118,53 @@ async function installationToken(id: number) {
   if(!data?.token) throw new Error("Não foi possível gerar token da instalação da organização.")
   return String(data.token)
 }
+async function githubTokenRequest(path: string, token: string, init: RequestInit = {}) {
+  const response=await fetch("https://api.github.com"+path,{
+    ...init,
+    headers:{
+      Accept:"application/vnd.github+json",
+      "X-GitHub-Api-Version":"2022-11-28",
+      "User-Agent":"CreativeZone-Community/2.0",
+      Authorization:"Bearer "+token,
+      ...(init.headers||{}),
+    },
+  })
+  const data=await response.json().catch(()=>({}))
+  if(!response.ok){
+    const error=new Error(compact(data?.message || ("GitHub HTTP "+response.status),400))
+    ;(error as Error & {status?:number}).status=response.status
+    throw error
+  }
+  return data
+}
+
+async function userGithubToken(userId: string) {
+  const { data, error } = await admin.rpc("get_github_user_credential", { p_user_id:userId })
+  if(error) throw error
+  const row=Array.isArray(data)?data[0]:data
+  return row?.access_token?String(row.access_token):""
+}
+
+async function connectedGithubIdentity(userId: string) {
+  const token=await userGithubToken(userId)
+  if(!token) return {token:"",user:null,membership:null}
+  const ghUser=await githubTokenRequest("/user",token).catch(()=>null)
+  let membership=null
+  try{
+    membership=await githubTokenRequest("/user/memberships/orgs/"+encodeURIComponent(ORG),token)
+  }catch(error){
+    const status=(error as Error & {status?:number})?.status
+    if(status!==404) console.warn("github membership check:", error)
+  }
+  return {token,user:ghUser,membership}
+}
+
+async function organizationInvitations(installationId: number) {
+  const token=await installationToken(installationId)
+  const data=await githubTokenRequest("/orgs/"+encodeURIComponent(ORG)+"/invitations?per_page=100",token)
+  return Array.isArray(data)?data:[]
+}
+
 async function inviteToOrganization(username: string) {
   const installation=await organizationInstallation()
   if(!installation?.id) {
@@ -176,19 +223,24 @@ async function organizationPayload(req: Request) {
     github(`/orgs/${encodeURIComponent(ORG)}/repos?type=public&sort=updated&per_page=12`),
   ])
 
-  let request = null
+  let request:any = null
   let staffRequests: Record<string, unknown>[] = []
   let appStatus: Record<string, unknown> | null = null
+  let viewerMembership: Record<string, unknown> | null = null
+  let githubInvitations: Record<string, unknown>[] = []
+  let installation:any=null
 
   if (staff.staff) {
     try {
-      const installation = await organizationInstallation()
+      installation = await organizationInstallation()
       const permissions = (installation?.permissions || {}) as Record<string, unknown>
+      const membersPermission=String(permissions.members || "")
       appStatus = {
         installed: Boolean(installation?.id),
         installation_id: installation?.id || null,
         permissions,
-        members_write: String(permissions.members || "") === "write",
+        members_read: membersPermission === "read" || membersPermission === "write",
+        members_write: membersPermission === "write",
         contents_write: String(permissions.contents || "") === "write",
         pull_requests_write: String(permissions.pull_requests || "") === "write",
         administration_write: String(permissions.administration || "") === "write",
@@ -196,15 +248,54 @@ async function organizationPayload(req: Request) {
           ? "https://github.com/organizations/" + ORG + "/settings/installations/" + installation.id
           : "https://github.com/organizations/" + ORG + "/settings/installations",
       }
+
+      if(appStatus.members_read && installation?.id){
+        try{
+          githubInvitations=await organizationInvitations(Number(installation.id))
+        }catch(error){
+          console.warn("github invitations sync:",error)
+        }
+      }
     } catch (error) {
       appStatus = { installed:false, error: error instanceof Error ? error.message : "Não foi possível verificar o GitHub App." }
     }
   }
 
   if (user?.id) {
+    try{
+      const identity=await connectedGithubIdentity(user.id)
+      const membership=identity.membership as Record<string,unknown> | null
+      if(membership){
+        viewerMembership={
+          state:String(membership.state || ""),
+          role:String(membership.role || "member"),
+          organization:ORG,
+          github_username:String((identity.user as any)?.login || ""),
+          html_url:String(membership.organization?.html_url || ("https://github.com/"+ORG)),
+        }
+      }
+      if(String(membership?.state || "") === "active"){
+        await admin
+          .from("github_org_membership_requests")
+          .update({
+            status:"joined",
+            github_membership_state:"active",
+            github_membership_role:String(membership?.role || "member"),
+            membership_verified_at:new Date().toISOString(),
+            invite_error:null,
+            updated_at:new Date().toISOString(),
+          })
+          .eq("user_id",user.id)
+          .eq("organization",ORG)
+          .in("status",["pending","approved","invited"])
+      }
+    }catch(error){
+      console.warn("viewer github membership sync:",error)
+    }
+
     const { data } = await admin
       .from("github_org_membership_requests")
-      .select("id,github_username,message,status,created_at,reviewed_at,updated_at")
+      .select("id,github_username,message,status,created_at,reviewed_at,updated_at,invite_error,github_membership_state,github_membership_role,membership_verified_at")
       .eq("user_id", user.id)
       .eq("organization", ORG)
       .order("created_at", { ascending: false })
@@ -214,9 +305,29 @@ async function organizationPayload(req: Request) {
   }
 
   if (staff.staff) {
+    if(githubInvitations.length){
+      const pendingLogins=new Set(githubInvitations.map((item:any)=>String(item?.login || item?.invitee?.login || "").toLowerCase()).filter(Boolean))
+      const { data: candidates }=await admin
+        .from("github_org_membership_requests")
+        .select("id,github_username,status")
+        .eq("organization",ORG)
+        .in("status",["pending","approved"])
+      for(const item of candidates || []){
+        if(pendingLogins.has(String(item.github_username||"").toLowerCase())){
+          await admin.from("github_org_membership_requests").update({
+            status:"invited",
+            github_membership_state:"pending",
+            membership_verified_at:new Date().toISOString(),
+            invite_error:null,
+            updated_at:new Date().toISOString(),
+          }).eq("id",item.id)
+        }
+      }
+    }
+
     const { data } = await admin
       .from("github_org_membership_requests")
-      .select("id,user_id,organization,github_username,message,status,created_at,reviewed_at,profile:profiles!github_org_membership_requests_user_id_fkey(id,username,display_name,avatar_url)")
+      .select("id,user_id,organization,github_username,message,status,created_at,reviewed_at,invite_error,github_membership_state,github_membership_role,membership_verified_at,profile:profiles!github_org_membership_requests_user_id_fkey(id,username,display_name,avatar_url)")
       .eq("organization", ORG)
       .in("status", ["pending","approved"])
       .order("created_at", { ascending: true })
@@ -246,8 +357,16 @@ async function organizationPayload(req: Request) {
       updated_at: repo.updated_at,
     })),
     request,
+    viewer_membership:viewerMembership,
     is_staff: staff.staff,
     staff_requests: staffRequests,
+    github_invitations:githubInvitations.map((item:any)=>({
+      id:item.id,
+      login:item.login || item.invitee?.login || null,
+      role:item.role || "direct_member",
+      created_at:item.created_at || null,
+      invitation_teams_url:item.invitation_teams_url || null,
+    })),
     app_status: appStatus,
   }
 }
@@ -256,33 +375,28 @@ async function requestMembership(req: Request, payload: Record<string, unknown>)
   const user = await authUser(req)
   if (!user) throw new Error("Entre na sua conta para solicitar participação na organização.")
 
-  const githubUsername = String(payload.github_username || "").trim().replace(/^@/, "")
   const message = compact(payload.message || "", 1000)
-
-  if (!/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(githubUsername)) {
-    throw new Error("Informe um usuário válido do GitHub.")
+  const identity=await connectedGithubIdentity(user.id)
+  if(!identity.token || !identity.user){
+    throw new Error("Conecte sua conta GitHub ao CreativeZone antes de solicitar participação na organização.")
   }
 
-  let githubUser: Record<string, unknown>
-  try {
-    githubUser = await github(`/users/${encodeURIComponent(githubUsername)}`)
-  } catch {
-    throw new Error("Não encontramos esse usuário no GitHub.")
-  }
+  const githubUsername=String((identity.user as any)?.login || "").trim()
+  if(!githubUsername) throw new Error("Não foi possível identificar sua conta GitHub conectada.")
 
-  if (String(githubUser.type || "").toLowerCase() !== "user") {
-    throw new Error("Use uma conta pessoal do GitHub para solicitar participação.")
+  if(String((identity.membership as any)?.state || "") === "active"){
+    throw new Error("Sua conta GitHub já faz parte da organização CreativeZone.")
   }
 
   const { data: pending } = await admin
     .from("github_org_membership_requests")
-    .select("id")
+    .select("id,status")
     .eq("user_id", user.id)
     .eq("organization", ORG)
-    .eq("status", "pending")
+    .in("status",["pending","approved","invited"])
     .maybeSingle()
 
-  if (pending) throw new Error("Você já possui um pedido aguardando análise.")
+  if (pending) throw new Error("Você já possui um pedido ou convite em andamento.")
 
   const { data: requestRow, error } = await admin
     .from("github_org_membership_requests")
@@ -292,6 +406,7 @@ async function requestMembership(req: Request, payload: Record<string, unknown>)
       github_username: githubUsername,
       message,
       status: "pending",
+      membership_verified_at:new Date().toISOString(),
     })
     .select("id,github_username,message,status,created_at")
     .single()
@@ -305,18 +420,20 @@ async function requestMembership(req: Request, payload: Record<string, unknown>)
 
   if (owners?.length) {
     const { error: notifyError } = await admin.from("notifications").insert(
-      owners.map((owner: Record<string, unknown>) => ({
-        user_id: owner.id,
-        actor_id: user.id,
-        type: "github_org_join_request",
-        data: {
-          request_id: requestRow.id,
-          organization: ORG,
-          github_username: githubUsername,
-          message,
-          path: "/projetos",
-        },
-      })),
+      owners
+        .filter((owner:Record<string,unknown>)=>String(owner.id)!==String(user.id))
+        .map((owner: Record<string, unknown>) => ({
+          user_id: owner.id,
+          actor_id: user.id,
+          type: "github_org_join_request",
+          data: {
+            request_id: requestRow.id,
+            organization: ORG,
+            github_username: githubUsername,
+            message,
+            path: "/projetos",
+          },
+        })),
     )
     if (notifyError) throw notifyError
   }
@@ -324,9 +441,9 @@ async function requestMembership(req: Request, payload: Record<string, unknown>)
   return {
     request: requestRow,
     github_user: {
-      login: githubUser.login,
-      avatar_url: githubUser.avatar_url,
-      html_url: githubUser.html_url,
+      login: (identity.user as any)?.login,
+      avatar_url: (identity.user as any)?.avatar_url,
+      html_url: (identity.user as any)?.html_url,
     },
   }
 }
