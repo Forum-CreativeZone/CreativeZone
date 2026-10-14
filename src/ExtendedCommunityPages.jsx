@@ -405,7 +405,7 @@ export function ProjectsPage({ session, navigate, notify }) {
   }
 
   return (
-    <Shell title="Projetos Creative Lab" onBack={()=>navigate('/')}>
+    <Shell title="CreativeZone DevHub" onBack={()=>navigate('/')}>
       <div className="projects-hero">
         <div>
           <span className="about-kicker">CRIE • COLABORE • APRENDA</span>
