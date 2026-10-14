@@ -132,6 +132,7 @@ export function ProjectStudio({ project, canManage = false, notify }) {
   const [baseBranch,setBaseBranch]=useState('')
   const [newBranch,setNewBranch]=useState('')
   const [selected,setSelected]=useState('')
+  const [selectedMeta,setSelectedMeta]=useState(null)
   const [content,setContent]=useState('')
   const [original,setOriginal]=useState('')
   const [message,setMessage]=useState('')
@@ -229,16 +230,28 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     setBranch(nextBranch)
     setCommitInfo(null)
     setSelected('')
+    setSelectedMeta(null)
     setContent('')
     setOriginal('')
     await refreshTree(nextBranch)
   }
 
-  async function openFile(path) {
-    setBusy('file');setError('')
+  async function openFile(item) {
+    const path=typeof item==='string'?item:item?.path
+    if(!path) return
+    setSelected(path)
+    setSelectedMeta(typeof item==='object'?item:null)
+    setError('')
+    if(typeof item==='object' && item?.editable===false){
+      setContent('')
+      setOriginal('')
+      return
+    }
+    setBusy('file')
     try{
       const result=await readProjectStudioFile(project.id,path,branch || baseBranch)
       setSelected(result.path)
+      setSelectedMeta(current=>current || {path:result.path,editable:true})
       setContent(result.content || '')
       setOriginal(result.content || '')
     }catch(next){setError(next?.message || 'Não foi possível abrir o arquivo.')}
@@ -249,6 +262,7 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     const path=newPath.trim().replace(/^\/+/, '')
     if(!path) return notify?.('Informe o caminho do novo arquivo.')
     setSelected(path)
+    setSelectedMeta({path,editable:true,binary:false,size:0,new:true})
     setContent('')
     setOriginal('__creativezone_new_file__')
     setNewPath('')
@@ -260,6 +274,7 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     const path=folder+'/.gitkeep'
     setExpandedFolders(current=>new Set([...current,folder,...folder.split('/').map((_,index,parts)=>parts.slice(0,index+1).join('/'))]))
     setSelected(path)
+    setSelectedMeta({path,editable:true,binary:false,size:0,new:true})
     setContent('')
     setOriginal('__creativezone_new_file__')
     setNewPath('')
@@ -299,7 +314,7 @@ export function ProjectStudio({ project, canManage = false, notify }) {
         key={node.path}
         className={'studio-tree-file '+(selected===node.path?'active':'')}
         style={{'--tree-depth':depth}}
-        onClick={()=>openFile(node.path)}
+        onClick={()=>openFile(node)}
         title={node.path}
       ><FileCode2/><span>{node.name}</span></button>
     })
@@ -699,13 +714,17 @@ export function ProjectStudio({ project, canManage = false, notify }) {
         </aside>
         <main>
           {selected?<>
-            <div className="project-studio-filebar"><strong>{selected}</strong><span>{content===original?'Sem alterações':original==='__creativezone_new_file__'?'Novo arquivo':'Alterado'}</span>{original!=='__creativezone_new_file__'&&<button title="Renomear ou mover arquivo" onClick={renameCurrentFile} disabled={Boolean(busy)}>Mover</button>}<button title="Excluir arquivo" onClick={removeCurrentFile}><Trash2/></button></div>
-            <textarea className="project-studio-editor" spellCheck="false" value={content} onChange={e=>setContent(e.target.value)}/>
-            <div className="project-studio-commitbar">
-              <input value={message} onChange={e=>setMessage(e.target.value)} placeholder="Mensagem do commit"/>
-              <button className="action primary-action" onClick={commit} disabled={content===original||Boolean(busy)}><GitCommitHorizontal/>{busy==='commit'?'Commitando...':'Commitar'}</button>
-              {(commitInfo?.branch||branch!==baseBranch)&&<button className="action" onClick={createPr} disabled={Boolean(busy)}><GitPullRequest/>Criar PR</button>}
-            </div>
+            <div className="project-studio-filebar"><strong>{selected}</strong><span>{selectedMeta?.editable===false?'Somente visualização':content===original?'Sem alterações':original==='__creativezone_new_file__'?'Novo arquivo':'Alterado'}</span>{selectedMeta?.editable!==false&&original!=='__creativezone_new_file__'&&<button title="Renomear ou mover arquivo" onClick={renameCurrentFile} disabled={Boolean(busy)}>Mover</button>}<button title="Excluir arquivo" onClick={removeCurrentFile}><Trash2/></button></div>
+            {selectedMeta?.editable===false
+              ? <div className="project-studio-binary-file"><FileCode2/><strong>{selectedMeta?.binary?'Arquivo binário':'Arquivo grande demais para o editor de texto'}</strong><p>{selectedMeta?.size?Math.ceil(Number(selectedMeta.size)/1024).toLocaleString('pt-BR')+' KB · ':''}O arquivo faz parte do repositório e aparece na estrutura. Para substituí-lo, use <b>Upload</b>; para excluir, use o botão acima.</p></div>
+              : <>
+                  <textarea className="project-studio-editor" spellCheck="false" value={content} onChange={e=>setContent(e.target.value)}/>
+                  <div className="project-studio-commitbar">
+                    <input value={message} onChange={e=>setMessage(e.target.value)} placeholder="Mensagem do commit"/>
+                    <button className="action primary-action" onClick={commit} disabled={content===original||Boolean(busy)}><GitCommitHorizontal/>{busy==='commit'?'Commitando...':'Commitar'}</button>
+                    {(commitInfo?.branch||branch!==baseBranch)&&<button className="action" onClick={createPr} disabled={Boolean(busy)}><GitPullRequest/>Criar PR</button>}
+                  </div>
+                </>}
           </>:<div className="project-studio-empty"><Code2/><strong>Code Studio</strong><p>Abra, crie, edite, envie ou exclua arquivos. As alterações são gravadas no GitHub sem sair da CreativeZone.</p></div>}
         </main>
       </div>}
