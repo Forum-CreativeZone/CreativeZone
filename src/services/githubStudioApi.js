@@ -32,3 +32,11 @@ export const createProjectStudioIssue = (projectId, payload) => invokeStudio({ a
 export const getProjectStudioPullRequests = (projectId, state='open') => invokeStudio({ action:'pull_requests', project_id:projectId, state })
 export const mergeProjectStudioPullRequest = (projectId, number, mergeMethod='squash') => invokeStudio({ action:'merge_pull_request', project_id:projectId, number, merge_method:mergeMethod })
 export const runProjectStudioTerminal = (projectId, command, branch) => invokeStudio({ action:'terminal', project_id:projectId, command, branch })
+
+export const updateProjectStudioIssue = (projectId, payload) => invokeStudio({ action:'update_issue', project_id:projectId, ...payload })
+export const getProjectStudioIssueComments = (projectId, number) => invokeStudio({ action:'issue_comments', project_id:projectId, number })
+export const addProjectStudioIssueComment = (projectId, number, body) => invokeStudio({ action:'issue_comment', project_id:projectId, number, body })
+export const getProjectStudioPullRequestReviews = (projectId, number) => invokeStudio({ action:'pr_reviews', project_id:projectId, number })
+export const reviewProjectStudioPullRequest = (projectId, number, event, body='') => invokeStudio({ action:'review_pr', project_id:projectId, number, event, body })
+export const getProjectStudioRepositorySettings = (projectId) => invokeStudio({ action:'repository_settings', project_id:projectId })
+export const updateProjectStudioRepositorySettings = (projectId, payload) => invokeStudio({ action:'update_repository_settings', project_id:projectId, ...payload })
