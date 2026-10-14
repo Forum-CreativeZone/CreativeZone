@@ -22,6 +22,7 @@ import {
   Workflow,
 } from 'lucide-react'
 import {
+  commitProjectStudioBatch,
   commitProjectStudioFile,
   createProjectSecurityFix,
   createProjectStudioBranch,
@@ -45,7 +46,6 @@ import {
   readProjectStudioFile,
   runProjectStudioTerminal,
   runProjectStudioCode,
-  uploadProjectStudioFile,
   updateProjectStudioIssue,
   updateProjectStudioRepositorySettings,
 } from './services/githubStudioApi'
@@ -231,6 +231,29 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     return result.branch
   }
 
+  async function renameCurrentFile() {
+    if(!selected || original==='__creativezone_new_file__') return
+    const nextPath=window.prompt('Novo caminho/nome do arquivo:',selected)?.trim().replace(/^\/+/, '')
+    if(!nextPath || nextPath===selected) return
+    setBusy('rename');setError('')
+    try{
+      const workBranch=await ensureWorkBranch()
+      const result=await commitProjectStudioBatch(project.id,{
+        branch:workBranch,
+        message:'Move '+selected+' to '+nextPath+' via CreativeZone',
+        changes:[
+          {path:nextPath,content_text:content},
+          {path:selected,delete:true},
+        ],
+      })
+      setSelected(nextPath)
+      setCommitInfo(result)
+      notify?.('Arquivo movido/renomeado em um único commit.')
+      await refreshTree(workBranch)
+    }catch(next){const msg=next?.message || 'Não foi possível mover o arquivo.';setError(msg);notify?.(msg)}
+    finally{setBusy('')}
+  }
+
   async function removeCurrentFile() {
     if(!selected || !window.confirm('Excluir “'+selected+'” do repositório? A alteração será commitada em uma branch.')) return
     setBusy('delete');setError('')
@@ -252,21 +275,26 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     const selectedFiles=Array.from(event.target.files || [])
     event.target.value=''
     if(!selectedFiles.length) return
+    if(selectedFiles.length>40) return notify?.('Envie no máximo 40 arquivos por commit.')
     setBusy('upload');setError('')
     try{
       let workBranch=branch && branch!==baseBranch?branch:''
       if(!workBranch) workBranch=await ensureWorkBranch()
+      const changes=[]
       for(const file of selectedFiles){
-        const base64=await readFileAsBase64(file)
-        await uploadProjectStudioFile(project.id,{
+        changes.push({
           path:file.webkitRelativePath || file.name,
-          content_base64:base64,
-          branch:workBranch,
-          message:'Upload '+(file.webkitRelativePath || file.name)+' via CreativeZone',
+          content_base64:await readFileAsBase64(file),
         })
       }
-      notify?.(selectedFiles.length+' arquivo(s) enviado(s) e commitado(s) no GitHub.')
-      await refreshTree(workBranch)
+      const result=await commitProjectStudioBatch(project.id,{
+        branch:workBranch,
+        message:'Upload de '+selectedFiles.length+' arquivo(s) via CreativeZone',
+        changes,
+      })
+      setCommitInfo(result)
+      notify?.(selectedFiles.length+' arquivo(s) enviados em um único commit no GitHub.')
+      await Promise.all([refreshTree(workBranch),refreshBranches()])
     }catch(next){const msg=next?.message || 'Falha no upload.';setError(msg);notify?.(msg)}
     finally{setBusy('')}
   }
@@ -566,7 +594,7 @@ export function ProjectStudio({ project, canManage = false, notify }) {
         </aside>
         <main>
           {selected?<>
-            <div className="project-studio-filebar"><strong>{selected}</strong><span>{content===original?'Sem alterações':original==='__creativezone_new_file__'?'Novo arquivo':'Alterado'}</span><button title="Excluir arquivo" onClick={removeCurrentFile}><Trash2/></button></div>
+            <div className="project-studio-filebar"><strong>{selected}</strong><span>{content===original?'Sem alterações':original==='__creativezone_new_file__'?'Novo arquivo':'Alterado'}</span>{original!=='__creativezone_new_file__'&&<button title="Renomear ou mover arquivo" onClick={renameCurrentFile} disabled={Boolean(busy)}>Mover</button>}<button title="Excluir arquivo" onClick={removeCurrentFile}><Trash2/></button></div>
             <textarea className="project-studio-editor" spellCheck="false" value={content} onChange={e=>setContent(e.target.value)}/>
             <div className="project-studio-commitbar">
               <input value={message} onChange={e=>setMessage(e.target.value)} placeholder="Mensagem do commit"/>
