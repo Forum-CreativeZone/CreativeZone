@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { CheckCircle2, Github, Link2, RefreshCw, Unplug } from 'lucide-react'
+import { CheckCircle2, Code2, Link2, RefreshCw, Unplug } from 'lucide-react'
 import {
   captureGitHubProviderToken,
   connectGitHubIdentity,
@@ -69,7 +69,7 @@ export function GitHubAccountConnect({ session, notify, compact = false, onChang
   return (
     <section className={'github-account-connect '+(compact?'compact':'')}>
       <header>
-        <span className="github-account-icon">{connection?.avatar_url?<img src={connection.avatar_url} alt=""/>:<Github/>}</span>
+        <span className="github-account-icon">{connection?.avatar_url?<img src={connection.avatar_url} alt=""/>:<Code2/>}</span>
         <span>
           <small>CONTA GITHUB DO MEMBRO</small>
           <strong>{state?.connected ? '@'+connection.github_username : 'Conecte seu GitHub'}</strong>
@@ -83,7 +83,7 @@ export function GitHubAccountConnect({ session, notify, compact = false, onChang
       </header>
       <div className="github-account-actions">
         {!state?.connected
-          ? <button className="action primary-action" disabled={busy} onClick={connect}><Github/>{busy?'Abrindo GitHub...':'Conectar GitHub'}</button>
+          ? <button className="action primary-action" disabled={busy} onClick={connect}><Code2/>{busy?'Abrindo GitHub...':'Conectar GitHub'}</button>
           : <>
               <button className="action" disabled={busy} onClick={()=>load({capture:true})}><RefreshCw/>Atualizar vínculo</button>
               {!compact&&<button className="action" disabled={busy} onClick={disconnect}><Unplug/>Desconectar DevHub</button>}
