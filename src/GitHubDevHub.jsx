@@ -424,8 +424,8 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
 
       <div className="github-community-metrics">
         <span><Code2/><b>{org.public_repos || repos.length}</b><small>repositórios públicos</small></span>
-        <span><Users/><b>{githubSync?.available ? githubSync.member_count : '—'}</b><small>membros reais no GitHub</small></span>
-        <span><UserPlus/><b>{githubSync?.available ? githubSync.invitation_count : '—'}</b><small>convites pendentes reais</small></span>
+        <span><Users/><b>{githubSync?.available ? githubSync.member_count : '!'}</b><small>{githubSync?.available?'membros reais no GitHub':'autorize o acesso à organização'}</small></span>
+        <span><UserPlus/><b>{githubSync?.available ? githubSync.invitation_count : '!'}</b><small>{githubSync?.available?'convites pendentes reais':'autorização necessária'}</small></span>
       </div>
 
       {data?.is_staff && data?.app_status && (
