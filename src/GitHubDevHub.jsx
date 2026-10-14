@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Rocket,
   Star,
+  ShieldCheck,
   Workflow,
   Users,
   UserPlus,
@@ -405,9 +406,29 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
 
       <div className="github-community-purpose">
         <article><strong>Crie projetos reais</strong><p>Comece o projeto no fórum, reúna colaboradores e conecte o repositório ao CreativeZone DevHub.</p></article>
-        <article><strong>Trabalhe em equipe</strong><p>Use Issues, Pull Requests, branches, revisões, releases e o Project Studio conforme o plano.</p></article>
+        <article><strong>Trabalhe em equipe</strong><p>Use Issues, Pull Requests, branches, revisões, releases e o Dev Workspace conforme o plano.</p></article>
         <article><strong>Segurança integrada</strong><p>Dependências e vulnerabilidades podem ser analisadas por OSV, com histórico e automações nos planos compatíveis.</p></article>
       </div>
+
+      <section className="devhub-how-it-works">
+        <header><Code2/><div><strong>Como o CreativeZone DevHub funciona</strong><small>O GitHub continua sendo a fonte de verdade; o fórum vira a interface de trabalho.</small></div></header>
+        <div>
+          <article><b>1</b><span><strong>Conecte sua conta GitHub</strong><small>Mesmo quem entrou na CreativeZone por Google ou e-mail pode vincular a identidade GitHub.</small></span></article>
+          <article><b>2</b><span><strong>Crie ou conecte o repositório</strong><small>Escolha seu perfil GitHub, a organização CreativeZone ou um repositório existente autorizado.</small></span></article>
+          <article><b>3</b><span><strong>Trabalhe dentro do fórum</strong><small>Arquivos, uploads, branches, commits, Issues, PRs, terminal, CI/CD e segurança ficam no DevHub.</small></span></article>
+          <article><b>4</b><span><strong>GitHub valida e versiona</strong><small>As operações usam GitHub REST/GraphQL/App; webhooks devolvem o estado real para a CreativeZone.</small></span></article>
+        </div>
+      </section>
+
+      <details className="devhub-plan-explainer">
+        <summary><ShieldCheck/> O que realmente muda em FREE, PRO e ELITE?</summary>
+        <div>
+          <article className="free"><strong>FREE</strong><p>Card do repositório, README real, dados públicos, release, OSV básico e até 1 repositório.</p></article>
+          <article className="pro"><strong>PRO</strong><p>Até 5 repositórios, SBOM, dependências diretas/transitivas, OSV completo, deps.dev, histórico e scans periódicos.</p></article>
+          <article className="elite"><strong>ELITE</strong><p>Repositórios privados e ilimitados, Dev Workspace, commits pelo fórum, push/PR scan, Security Gate, AutoFix, CI/CD e equipes privadas.</p></article>
+        </div>
+        <p><ShieldCheck/> Esses limites são verificados pelas Edge Functions e pelo banco. Não são apenas itens escondidos pela interface.</p>
+      </details>
 
       {repos.length > 0 && (
         <div className="github-community-repos">
