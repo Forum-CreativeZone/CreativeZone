@@ -35,6 +35,9 @@ import { LinkPreviewCard } from './LinkPreview'
 import { ProjectSecurityPanel, SecurityScoreBadge } from './SecurityAudit'
 import { GitHubRepositoryPanel, GitHubCommunityOrganization } from './GitHubDevHub'
 import { ProjectStudio } from './ProjectStudio'
+import { GitHubAccountConnect } from './GitHubAccountConnect'
+import { createGitHubRepositoryForProject, getGitHubAccountStatus } from './services/githubAuthApi'
+import { requestGitHubOrganizationMembership } from './services/githubApi'
 import { trackEvent } from './services/analytics'
 
 function Shell({ title, onBack, children }) {
@@ -289,7 +292,10 @@ export function ProjectsPage({ session, navigate, notify }) {
   const [projects,setProjects]=useState([])
   const [open,setOpen]=useState(false)
   const [busy,setBusy]=useState(false)
-  const [form,setForm]=useState({title:'',summary:'',description:'',repo_url:'',website_url:'',tags:'',skills_needed:''})
+  const [form,setForm]=useState({
+    title:'',summary:'',description:'',repo_url:'',website_url:'',tags:'',skills_needed:'',
+    repo_mode:'none',repo_name:'',repo_private:false,gitignore_template:'',license_template:''
+  })
 
   async function load() {
     try { setProjects(await getProjects()) } catch (error) { notify?.(error?.message || 'Não foi possível carregar os projetos.') }
@@ -308,12 +314,46 @@ export function ProjectsPage({ session, navigate, notify }) {
         slug,
         summary:form.summary.trim(),
         description:form.description.trim(),
-        repo_url:form.repo_url.trim() || null,
+        repo_url:form.repo_mode==='existing' ? (form.repo_url.trim() || null) : null,
         website_url:form.website_url.trim() || null,
         tags:form.tags.split(',').map(v=>v.trim()).filter(Boolean).slice(0,12),
         skills_needed:form.skills_needed.split(',').map(v=>v.trim()).filter(Boolean).slice(0,12),
       })
-      notify?.('Projeto criado na CreativeZone.')
+
+      if(['personal','organization'].includes(form.repo_mode)){
+        const account=await getGitHubAccountStatus()
+        if(!account?.connected){
+          notify?.('Projeto criado. Conecte sua conta GitHub para criar o repositório pelo DevHub.')
+          navigate('/projetos/'+created.slug)
+          return
+        }
+
+        const repository=await createGitHubRepositoryForProject(created.id,{
+          target:form.repo_mode,
+          name:(form.repo_name || form.title).trim().replace(/\s+/g,'-'),
+          description:form.summary.trim(),
+          private:Boolean(form.repo_private),
+          auto_init:true,
+          gitignore_template:form.gitignore_template || undefined,
+          license_template:form.license_template || undefined,
+        })
+
+        if(repository?.needs_organization_membership){
+          try{
+            await requestGitHubOrganizationMembership(
+              account.connection?.github_username || '',
+              'Quero participar da organização para criar e colaborar no projeto “'+form.title.trim()+'”.'
+            )
+            notify?.('Projeto criado e pedido para participar da organização enviado. O repositório poderá ser criado após sua entrada na Creatiive-Zone.')
+          }catch{
+            notify?.('Projeto criado. Solicite participação na organização CreativeZone para criar o repositório nela.')
+          }
+          navigate('/projetos/'+created.slug)
+          return
+        }
+      }
+
+      notify?.('Projeto criado na CreativeZone'+(['personal','organization'].includes(form.repo_mode)?' e repositório criado no GitHub.':'.'))
       navigate('/projetos/'+created.slug)
     } catch (error) {
       notify?.(error?.message || 'Não foi possível criar o projeto.')
@@ -334,15 +374,39 @@ export function ProjectsPage({ session, navigate, notify }) {
         </div>
       </div>
 
-      <GitHubCommunityOrganization session={session} navigate={navigate} notify={notify} />
+      <GitHubAccountConnect session={session} notify={notify} />
+            <GitHubCommunityOrganization session={session} navigate={navigate} notify={notify} />
 
       {open && (
         <form className="project-form" onSubmit={submit}>
           <label>Nome do projeto<input required minLength={3} maxLength={120} value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></label>
           <label>Resumo<input required minLength={10} maxLength={280} value={form.summary} onChange={e=>setForm({...form,summary:e.target.value})}/></label>
           <label>Descrição<textarea maxLength={12000} value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></label>
+          <section className="project-repository-creator">
+            <header><GitBranch/><span><strong>GitHub DevHub</strong><small>Escolha onde o repositório será criado. O GitHub fica sincronizado por trás do fórum.</small></span></header>
+            <div className="project-repo-mode-grid">
+              <label className={form.repo_mode==='none'?'selected':''}><input type="radio" name="repo-mode" checked={form.repo_mode==='none'} onChange={()=>setForm({...form,repo_mode:'none'})}/><span><strong>Sem repositório agora</strong><small>Você pode conectar depois.</small></span></label>
+              <label className={form.repo_mode==='personal'?'selected':''}><input type="radio" name="repo-mode" checked={form.repo_mode==='personal'} onChange={()=>setForm({...form,repo_mode:'personal'})}/><span><strong>Meu GitHub</strong><small>Criar no perfil GitHub conectado.</small></span></label>
+              <label className={form.repo_mode==='organization'?'selected':''}><input type="radio" name="repo-mode" checked={form.repo_mode==='organization'} onChange={()=>setForm({...form,repo_mode:'organization'})}/><span><strong>Organização CreativeZone</strong><small>Criar em @Creatiive-Zone. Se ainda não for membro, o fórum abre o pedido de participação.</small></span></label>
+              <label className={form.repo_mode==='existing'?'selected':''}><input type="radio" name="repo-mode" checked={form.repo_mode==='existing'} onChange={()=>setForm({...form,repo_mode:'existing'})}/><span><strong>Repositório existente</strong><small>Conectar um projeto que já existe.</small></span></label>
+            </div>
+            {['personal','organization'].includes(form.repo_mode) && <div className="project-form-grid">
+              <label>Nome do repositório<input value={form.repo_name} onChange={e=>setForm({...form,repo_name:e.target.value})} placeholder={form.title?form.title.trim().replace(/\s+/g,'-'):'meu-projeto'}/></label>
+              <label className="project-private-toggle"><input type="checkbox" checked={form.repo_private} onChange={e=>setForm({...form,repo_private:e.target.checked})}/><span>Repositório privado</span></label>
+              <label>.gitignore
+                <select value={form.gitignore_template} onChange={e=>setForm({...form,gitignore_template:e.target.value})}>
+                  <option value="">Nenhum</option><option value="Node">Node</option><option value="Python">Python</option><option value="VisualStudio">Visual Studio</option><option value="Unity">Unity</option>
+                </select>
+              </label>
+              <label>Licença
+                <select value={form.license_template} onChange={e=>setForm({...form,license_template:e.target.value})} disabled={form.repo_private}>
+                  <option value="">Nenhuma</option><option value="mit">MIT</option><option value="apache-2.0">Apache 2.0</option><option value="gpl-3.0">GPL 3.0</option>
+                </select>
+              </label>
+            </div>}
+            {form.repo_mode==='existing' && <label>URL do repositório GitHub<input type="url" value={form.repo_url} onChange={e=>setForm({...form,repo_url:e.target.value})} placeholder="https://github.com/usuario/repositorio"/></label>}
+          </section>
           <div className="project-form-grid">
-            <label>Repositório GitHub<input type="url" value={form.repo_url} onChange={e=>setForm({...form,repo_url:e.target.value})} placeholder="https://github.com/Creatiive-Zone/..."/></label>
             <label>Site do projeto<input type="url" value={form.website_url} onChange={e=>setForm({...form,website_url:e.target.value})}/></label>
           </div>
           <div className="project-form-grid">
@@ -397,6 +461,7 @@ export function ProjectPage({ slug, session, navigate, notify }) {
   const isOwner=project.owner_id===userId
   const canManage=isOwner || (membership?.status==='active' && membership?.role==='maintainer')
   const canUpdate=isOwner || (membership?.status==='active' && ['maintainer','contributor'].includes(membership?.role))
+  const canStudio=canUpdate
   const activeMembers=(project.project_members||[]).filter(m=>m.status==='active')
   const pending=(project.project_members||[]).filter(m=>m.status==='pending')
 
@@ -443,7 +508,7 @@ export function ProjectPage({ slug, session, navigate, notify }) {
           {project.description && <p className="project-description">{project.description}</p>}
           <div className="project-tags">{(project.tags||[]).map(tag=><span key={tag}>{tag}</span>)}</div>
           <div className="project-links">
-            {project.repo_url && <a className="action" href={project.repo_url} target="_blank" rel="noreferrer"><GitBranch/>Repositório</a>}
+            {project.repo_url && <span className="action project-devhub-connected"><GitBranch/>DevHub conectado</span>}
             {project.website_url && <a className="action" href={project.website_url} target="_blank" rel="noreferrer"><ExternalLink/>Site</a>}
             {!isOwner && session && (
               <ReportButton
@@ -469,7 +534,7 @@ export function ProjectPage({ slug, session, navigate, notify }) {
 
           <ProjectStudio
             project={project}
-            canManage={canManage}
+            canManage={canStudio}
             notify={notify}
           />
 
