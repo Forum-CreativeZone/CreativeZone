@@ -302,6 +302,17 @@ async function renderGithubReadme(owner: string, repo: string, token: string, br
   }
 }
 
+function githubImageMime(path:string){
+  const value=path.toLowerCase()
+  if(value.endsWith(".png")) return "image/png"
+  if(value.endsWith(".jpg")||value.endsWith(".jpeg")) return "image/jpeg"
+  if(value.endsWith(".webp")) return "image/webp"
+  if(value.endsWith(".gif")) return "image/gif"
+  if(value.endsWith(".svg")) return "image/svg+xml"
+  if(value.endsWith(".avif")) return "image/avif"
+  return ""
+}
+
 async function renderedReadme(req: Request, payload: Record<string, unknown>) {
   const user = await authenticatedUser(req)
   const projectId = String(payload.project_id || "")
@@ -576,6 +587,38 @@ async function repoCard(req: Request, projectId: string) {
   return { repository: publicRow(row, plan.capabilities, allowPrivate), plan, can_manage: context.manager }
 }
 
+async function readmeAsset(req: Request, payload: Record<string, unknown>) {
+  const user=await authenticatedUser(req)
+  const projectId=String(payload.project_id||"")
+  let path=String(payload.path||"").trim().replace(/^\/+/, "")
+  if(!projectId||!path||path.includes("..")||path.includes("\\")||path.length>600) throw new Error("Caminho de imagem inválido.")
+  const mime=githubImageMime(path)
+  if(!mime) throw new Error("Formato de imagem não suportado no README.")
+
+  const context=await projectContext(projectId,user?.id||null)
+  if(!context.canView) throw new Error("Você não possui acesso a este projeto.")
+  const {data:row}=await admin.from("project_repositories")
+    .select("repo_owner,repo_name,default_branch,is_private,installation_id")
+    .eq("project_id",projectId).order("updated_at",{ascending:false}).limit(1).maybeSingle()
+  if(!row) throw new Error("Repositório não sincronizado.")
+  if(row.is_private&&!context.participant) throw new Error("Imagem privada disponível apenas para participantes.")
+
+  const installationId=Number(row.installation_id||0)
+  const token=installationId?await installationToken(installationId):""
+  if(row.is_private&&!token) throw new Error("GitHub App necessário para imagens privadas.")
+
+  const data=await githubRest(
+    `/repos/${encodeURIComponent(String(row.repo_owner))}/${encodeURIComponent(String(row.repo_name))}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(String(row.default_branch||"main"))}`,
+    token
+  )
+  const size=Number(data?.size||0)
+  if(size>12_000_000) throw new Error("Imagem do README excede o limite de 12 MB.")
+  if(String(data?.encoding||"").toLowerCase()!=="base64"||!data?.content) throw new Error("GitHub não retornou a imagem em base64.")
+  const content=String(data.content).replace(/\s+/g,"")
+  if(content.length>18_000_000) throw new Error("Imagem do README excede o limite de visualização.")
+  return {path,mime,size,data_url:`data:${mime};base64,${content}`}
+}
+
 async function depsDev(req: Request, payload: Record<string, unknown>) {
   const user = await authenticatedUser(req)
   if (!user) throw new Error("Entre na sua conta para consultar inteligência de dependências.")
@@ -629,6 +672,9 @@ Deno.serve(async (req: Request) => {
     }
     if (action === "readme_rendered") {
       return reply({ ok: true, ...(await renderedReadme(req, payload)) })
+    }
+    if (action === "readme_asset") {
+      return reply({ ok: true, ...(await readmeAsset(req, payload)) })
     }
     if (action === "dependency_intelligence") {
       return reply({ ok: true, ...(await depsDev(req, payload)) })
