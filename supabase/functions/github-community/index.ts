@@ -191,6 +191,7 @@ async function organizationPayload(req: Request) {
         members_write: String(permissions.members || "") === "write",
         contents_write: String(permissions.contents || "") === "write",
         pull_requests_write: String(permissions.pull_requests || "") === "write",
+        administration_write: String(permissions.administration || "") === "write",
       }
     } catch (error) {
       appStatus = { installed:false, error: error instanceof Error ? error.message : "Não foi possível verificar o GitHub App." }
