@@ -36,7 +36,7 @@ import { ProjectSecurityPanel, SecurityScoreBadge } from './SecurityAudit'
 import { GitHubRepositoryPanel, GitHubCommunityOrganization } from './GitHubDevHub'
 import { ProjectStudio } from './ProjectStudio'
 import { GitHubAccountConnect } from './GitHubAccountConnect'
-import { createGitHubRepositoryForProject, getGitHubAccountStatus } from './services/githubAuthApi'
+import { connectExistingGitHubRepository, createGitHubRepositoryForProject, getGitHubAccountStatus } from './services/githubAuthApi'
 import { requestGitHubOrganizationMembership, syncGitHubProject } from './services/githubApi'
 import { trackEvent } from './services/analytics'
 
@@ -292,6 +292,7 @@ export function ProjectsPage({ session, navigate, notify }) {
   const [projects,setProjects]=useState([])
   const [open,setOpen]=useState(false)
   const [busy,setBusy]=useState(false)
+  const [githubState,setGithubState]=useState(null)
   const [form,setForm]=useState({
     title:'',summary:'',description:'',repo_url:'',website_url:'',tags:'',skills_needed:'',
     repo_mode:'none',repo_name:'',repo_private:false,gitignore_template:'',license_template:''
@@ -307,6 +308,22 @@ export function ProjectsPage({ session, navigate, notify }) {
     if (!session?.user) return navigate('/entrar')
     setBusy(true)
     try {
+      let githubAccount=githubState
+      if(['personal','organization','existing'].includes(form.repo_mode)){
+        githubAccount=githubAccount || await getGitHubAccountStatus()
+        if(!githubAccount?.connected){
+          throw new Error('Conecte sua conta GitHub ao CreativeZone antes de criar ou conectar um repositório.')
+        }
+        const capabilities=githubAccount.plan?.capabilities || {}
+        const limit=Number(capabilities.repository_limit ?? 1)
+        if(form.repo_private && !capabilities.private_repository){
+          throw new Error('Repositórios privados fazem parte do plano CreativeZone ELITE.')
+        }
+        if(limit>=0 && Number(githubAccount.repository_usage || 0)>=limit){
+          throw new Error('Seu plano '+String(githubAccount.plan?.plan_id || 'FREE').toUpperCase()+' atingiu o limite de '+limit+' repositório(s) no DevHub.')
+        }
+      }
+
       const slug=form.title.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')+'-'+Date.now().toString(36)
       const created=await createProject({
         owner_id:session.user.id,
@@ -322,22 +339,27 @@ export function ProjectsPage({ session, navigate, notify }) {
 
       if(form.repo_mode==='existing' && form.repo_url.trim()){
         try{
-          await syncGitHubProject(created.id)
-          notify?.('Projeto criado e repositório existente conectado ao CreativeZone DevHub.')
+          const url=new URL(form.repo_url.trim())
+          const parts=url.pathname.split('/').filter(Boolean)
+          if(!/(^|\.)github\.com$/i.test(url.hostname) || parts.length<2) throw new Error('URL GitHub inválida.')
+          const fullName=parts[0]+'/'+parts[1].replace(/\.git$/i,'')
+          await connectExistingGitHubRepository(created.id,fullName)
+          await syncGitHubProject(created.id).catch(()=>null)
+          notify?.('Projeto criado e repositório autorizado no CreativeZone DevHub.')
         }catch(syncError){
-          const account=await getGitHubAccountStatus().catch(()=>null)
+          const account=githubAccount || await getGitHubAccountStatus().catch(()=>null)
           if(form.repo_url.includes('github.com/Creatiive-Zone/') && account?.connected){
             try{
               await requestGitHubOrganizationMembership(
                 account.connection?.github_username || '',
                 'Quero participar da organização para colaborar no repositório '+form.repo_url.trim()+'.'
               )
-              notify?.('Projeto criado. O repositório foi registrado e seu pedido para colaborar na organização foi enviado.')
+              notify?.('Projeto criado. Seu pedido de acesso à organização foi enviado; o Dev Workspace será liberado após a autorização do repositório.')
             }catch{
-              notify?.('Projeto criado. O repositório foi registrado, mas o DevHub ainda precisa de acesso da organização para sincronizá-lo.')
+              notify?.(syncError?.message || 'Projeto criado, mas o repositório ainda precisa de autorização para operações de escrita.')
             }
           }else{
-            notify?.(syncError?.message || 'Projeto criado, mas o repositório existente ainda não pôde ser sincronizado.')
+            notify?.(syncError?.message || 'Projeto criado, mas o repositório ainda não pôde ser autorizado para operações de escrita.')
           }
         }
       }
@@ -396,7 +418,7 @@ export function ProjectsPage({ session, navigate, notify }) {
         </div>
       </div>
 
-      <GitHubAccountConnect session={session} notify={notify} />
+      <GitHubAccountConnect session={session} notify={notify} onChanged={setGithubState} />
       <GitHubCommunityOrganization
         session={session}
         navigate={navigate}
@@ -420,7 +442,7 @@ export function ProjectsPage({ session, navigate, notify }) {
           <label>Resumo<input required minLength={10} maxLength={280} value={form.summary} onChange={e=>setForm({...form,summary:e.target.value})}/></label>
           <label>Descrição<textarea maxLength={12000} value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></label>
           <section className="project-repository-creator">
-            <header><GitBranch/><span><strong>GitHub DevHub</strong><small>Escolha onde o repositório será criado. O GitHub fica sincronizado por trás do fórum.</small></span></header>
+            <header><GitBranch/><span><strong>GitHub DevHub</strong><small>Escolha onde o repositório será criado. O GitHub fica sincronizado por trás do fórum.</small>{githubState?.plan&&<em>Plano {String(githubState.plan.plan_id||'free').toUpperCase()} · {Number(githubState.plan.capabilities?.repository_limit ?? 1)<0?'repositórios ilimitados':(githubState.repository_usage||0)+' / '+Number(githubState.plan.capabilities?.repository_limit ?? 1)+' repositório(s)'}</em>}</span></header>
             <div className="project-repo-mode-grid">
               <label className={form.repo_mode==='none'?'selected':''}><input type="radio" name="repo-mode" checked={form.repo_mode==='none'} onChange={()=>setForm({...form,repo_mode:'none'})}/><span><strong>Sem repositório agora</strong><small>Você pode conectar depois.</small></span></label>
               <label className={form.repo_mode==='personal'?'selected':''}><input type="radio" name="repo-mode" checked={form.repo_mode==='personal'} onChange={()=>setForm({...form,repo_mode:'personal'})}/><span><strong>Meu GitHub</strong><small>Criar no perfil GitHub conectado.</small></span></label>
@@ -429,7 +451,7 @@ export function ProjectsPage({ session, navigate, notify }) {
             </div>
             {['personal','organization'].includes(form.repo_mode) && <div className="project-form-grid">
               <label>Nome do repositório<input value={form.repo_name} onChange={e=>setForm({...form,repo_name:e.target.value})} placeholder={form.title?form.title.trim().replace(/\s+/g,'-'):'meu-projeto'}/></label>
-              <label className="project-private-toggle"><input type="checkbox" checked={form.repo_private} onChange={e=>setForm({...form,repo_private:e.target.checked})}/><span>Repositório privado</span></label>
+              <label className="project-private-toggle"><input type="checkbox" checked={form.repo_private} disabled={!githubState?.plan?.capabilities?.private_repository} onChange={e=>setForm({...form,repo_private:e.target.checked})}/><span>Repositório privado {!githubState?.plan?.capabilities?.private_repository&&<small>ELITE</small>}</span></label>
               <label>.gitignore
                 <select value={form.gitignore_template} onChange={e=>setForm({...form,gitignore_template:e.target.value})}>
                   <option value="">Nenhum</option><option value="Node">Node</option><option value="Python">Python</option><option value="VisualStudio">Visual Studio</option><option value="Unity">Unity</option>
