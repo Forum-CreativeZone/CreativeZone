@@ -245,6 +245,48 @@ async function repositoryAccess(req: Request, payload: Record<string, unknown>, 
   const repoUrl = repository?.repo_url || ctx.project.repo_url
   if (!repoUrl) throw new Error("Adicione um repositório GitHub ao projeto.")
   const ref = parseRepo(repoUrl)
+
+  let { data: operationalLink } = await admin
+    .from("github_devhub_repositories")
+    .select("*")
+    .eq("project_id", projectId)
+    .maybeSingle()
+
+  if (!operationalLink) {
+    if (!ctx.canManage) {
+      throw new Error("O proprietário ou mantenedor precisa autorizar este repositório no DevHub antes que colaboradores possam alterá-lo.")
+    }
+    const userToken = await userGithubToken(ctx.user.id)
+    if (!userToken) {
+      throw new Error("Conecte sua conta GitHub para autorizar operações de escrita neste repositório.")
+    }
+    const repoCheck = await github("/repos/" + encodeURIComponent(ref.owner) + "/" + encodeURIComponent(ref.repo), userToken)
+    const permissions = repoCheck?.permissions || {}
+    if (!(permissions.push || permissions.maintain || permissions.admin)) {
+      throw new Error("Sua conta GitHub não possui permissão de escrita para autorizar este repositório no CreativeZone.")
+    }
+    const { data: createdLink, error: linkError } = await admin
+      .from("github_devhub_repositories")
+      .upsert({
+        user_id: ctx.user.id,
+        project_id: projectId,
+        github_repository_id: Number(repoCheck.id || 0) || null,
+        owner_type: String(repoCheck.owner?.type || "").toLowerCase() === "organization" ? "organization" : "personal",
+        owner_login: repoCheck.owner?.login || ref.owner,
+        repository_name: repoCheck.name || ref.repo,
+        repository_url: repoCheck.html_url || repoUrl,
+        private: Boolean(repoCheck.private),
+        default_branch: repoCheck.default_branch || repository?.default_branch || "main",
+        status: "active",
+        metadata: { authorized_by: ctx.user.id, authorized_at: new Date().toISOString() },
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "project_id" })
+      .select("*")
+      .single()
+    if (linkError) throw linkError
+    operationalLink = createdLink
+  }
+
   let installationId = Number(repository?.installation_id || 0)
   if (!installationId) {
     const installation = await installationForOwner(ref.owner)
