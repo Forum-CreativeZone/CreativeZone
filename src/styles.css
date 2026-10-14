@@ -6884,3 +6884,22 @@ main{
 .community-page-wide{margin-left:20px;margin-right:20px}
 .community-page-wide .community-page-card{width:100%;max-width:1540px}
 @media(max-width:760px){.community-page-wide{margin-left:10px;margin-right:10px}}
+
+/* GitHub-style rendered README inside CreativeZone */
+.devhub-readme-rendered{margin-top:14px;border:1px solid rgba(148,163,184,.14);border-radius:12px;overflow:hidden;background:rgba(15,23,42,.28)}
+.devhub-readme-rendered>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-bottom:1px solid rgba(148,163,184,.12);background:rgba(255,255,255,.025)}
+.devhub-readme-rendered>header>span{display:flex;align-items:center;gap:8px}.devhub-readme-rendered>header svg{width:16px}.devhub-readme-rendered>header small{color:#7f8a98}.devhub-readme-rendered>header em{display:flex;align-items:center;gap:5px;color:#8d99a8;font-style:normal;font-size:11px}
+.devhub-markdown-body{padding:24px 28px;color:#d7dde5;font-size:14px;line-height:1.7;overflow-wrap:anywhere}
+.devhub-markdown-body>:first-child{margin-top:0!important}.devhub-markdown-body>:last-child{margin-bottom:0!important}
+.devhub-markdown-body h1,.devhub-markdown-body h2,.devhub-markdown-body h3,.devhub-markdown-body h4,.devhub-markdown-body h5,.devhub-markdown-body h6{margin:24px 0 12px;line-height:1.25;color:#f2f4f7;font-weight:700}
+.devhub-markdown-body h1{font-size:2em;padding-bottom:.3em;border-bottom:1px solid rgba(148,163,184,.16)}.devhub-markdown-body h2{font-size:1.5em;padding-bottom:.3em;border-bottom:1px solid rgba(148,163,184,.13)}.devhub-markdown-body h3{font-size:1.25em}
+.devhub-markdown-body p,.devhub-markdown-body ul,.devhub-markdown-body ol,.devhub-markdown-body blockquote,.devhub-markdown-body table,.devhub-markdown-body pre{margin:0 0 16px}
+.devhub-markdown-body ul,.devhub-markdown-body ol{padding-left:2em}.devhub-markdown-body li+li{margin-top:.25em}
+.devhub-markdown-body a{color:#58a6ff;text-decoration:none}.devhub-markdown-body a:hover{text-decoration:underline}
+.devhub-markdown-body img{display:block;max-width:100%;height:auto;margin:16px auto;border-radius:8px}.devhub-markdown-body img[align="left"]{margin-left:0;margin-right:16px}.devhub-markdown-body img[align="right"]{margin-right:0;margin-left:16px}
+.devhub-markdown-body code{padding:.18em .4em;border-radius:6px;background:rgba(110,118,129,.18);font:500 .88em ui-monospace,SFMono-Regular,Consolas,monospace}.devhub-markdown-body pre{overflow:auto;padding:14px 16px;border-radius:8px;background:#0d1117}.devhub-markdown-body pre code{padding:0;background:transparent;color:#e6edf3}
+.devhub-markdown-body blockquote{padding:0 1em;color:#8b949e;border-left:.25em solid #30363d}.devhub-markdown-body hr{height:.25em;padding:0;margin:24px 0;background:#30363d;border:0}
+.devhub-markdown-body table{display:block;width:max-content;max-width:100%;overflow:auto;border-collapse:collapse}.devhub-markdown-body th,.devhub-markdown-body td{padding:6px 13px;border:1px solid #30363d}.devhub-markdown-body tr:nth-child(2n){background:rgba(255,255,255,.025)}
+.devhub-markdown-body details{margin:12px 0}.devhub-markdown-body summary{cursor:pointer;font-weight:700}
+:root[data-theme="light"] .devhub-readme-rendered{background:#fff;border-color:#e4d9d6}:root[data-theme="light"] .devhub-readme-rendered>header{background:#faf8f7;border-color:#e4d9d6}:root[data-theme="light"] .devhub-markdown-body{color:#24292f}:root[data-theme="light"] .devhub-markdown-body h1,:root[data-theme="light"] .devhub-markdown-body h2,:root[data-theme="light"] .devhub-markdown-body h3,:root[data-theme="light"] .devhub-markdown-body h4{color:#1f2328}:root[data-theme="light"] .devhub-markdown-body code{background:rgba(175,184,193,.2)}:root[data-theme="light"] .devhub-markdown-body pre{background:#f6f8fa}:root[data-theme="light"] .devhub-markdown-body pre code{color:#24292f}
+@media(max-width:760px){.devhub-markdown-body{padding:18px 15px;font-size:13px}}
