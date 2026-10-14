@@ -85,3 +85,8 @@ export function sendGitHubOrganizationInvitation(requestId) {
 export function getGitHubRenderedReadme(projectId) {
   return invokeGithub({ action: 'readme_rendered', project_id: projectId })
 }
+
+
+export function getGitHubReadmeAsset(projectId,path) {
+  return invokeGithub({ action:'readme_asset', project_id:projectId, path })
+}
