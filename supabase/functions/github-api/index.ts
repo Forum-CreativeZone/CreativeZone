@@ -617,8 +617,29 @@ async function readmeAsset(req: Request, payload: Record<string, unknown>) {
   )
   const size=Number(data?.size||0)
   if(size>12_000_000) throw new Error("Imagem do README excede o limite de 12 MB.")
-  if(String(data?.encoding||"").toLowerCase()!=="base64"||!data?.content) throw new Error("GitHub não retornou a imagem em base64.")
-  const content=String(data.content).replace(/\s+/g,"")
+  let content=""
+  if(String(data?.encoding||"").toLowerCase()==="base64"&&data?.content){
+    content=String(data.content).replace(/\s+/g,"")
+  }else{
+    const rawResponse=await fetch(
+      `https://api.github.com/repos/${encodeURIComponent(String(row.repo_owner))}/${encodeURIComponent(String(row.repo_name))}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(String(row.default_branch||"main"))}`,
+      {headers:{
+        Accept:"application/vnd.github.raw+json",
+        "X-GitHub-Api-Version":"2026-03-10",
+        "User-Agent":"CreativeZone-DevHub/1.0 (+https://forum.creativezone.pro/)",
+        ...(token?{Authorization:`Bearer ${token}`}:{}),
+      }}
+    )
+    if(!rawResponse.ok) throw new Error("GitHub não retornou a imagem do README.")
+    const bytes=new Uint8Array(await rawResponse.arrayBuffer())
+    if(bytes.byteLength>12_000_000) throw new Error("Imagem do README excede o limite de 12 MB.")
+    let binary=""
+    const chunk=0x8000
+    for(let offset=0;offset<bytes.length;offset+=chunk){
+      binary+=String.fromCharCode(...bytes.subarray(offset,Math.min(offset+chunk,bytes.length)))
+    }
+    content=btoa(binary)
+  }
   if(content.length>18_000_000) throw new Error("Imagem do README excede o limite de visualização.")
   return {path,mime,size,data_url:`data:${mime};base64,${content}`}
 }
