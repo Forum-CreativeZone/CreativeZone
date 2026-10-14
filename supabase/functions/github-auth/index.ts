@@ -347,13 +347,18 @@ async function organizationMembership(req: Request) {
       return { organization: COMMUNITY_ORG, member: false, state: null, role: null, authorized:true, error:null }
     }
     if (status === 403) {
+      const message=(error as Error).message || "A organização bloqueou o acesso do OAuth App."
+      const oauthRestricted=/OAuth App access restrictions|third-part|access restriction|do not have access to this organization membership/i.test(message)
       return {
         organization: COMMUNITY_ORG,
         member: null,
         state: null,
         role: null,
         authorized: false,
-        error: (error as Error).message || "Autorize read:org para consultar sua organização.",
+        scope_authorized: true,
+        restriction_type: oauthRestricted ? "oauth_app_access_restriction" : "organization_access_denied",
+        authorization_url: "https://github.com/organizations/"+COMMUNITY_ORG+"/settings/oauth_application_policy",
+        error: message,
       }
     }
     throw error
