@@ -40,3 +40,5 @@ export const getProjectStudioPullRequestReviews = (projectId, number) => invokeS
 export const reviewProjectStudioPullRequest = (projectId, number, event, body='') => invokeStudio({ action:'review_pr', project_id:projectId, number, event, body })
 export const getProjectStudioRepositorySettings = (projectId) => invokeStudio({ action:'repository_settings', project_id:projectId })
 export const updateProjectStudioRepositorySettings = (projectId, payload) => invokeStudio({ action:'update_repository_settings', project_id:projectId, ...payload })
+
+export const runProjectStudioCode = (projectId, payload) => invokeStudio({ action:'run_code', project_id:projectId, ...payload })
