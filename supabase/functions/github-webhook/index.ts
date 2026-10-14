@@ -178,17 +178,21 @@ async function syncOrganizationWebhook(payload:Record<string,unknown>,action:str
       :action==="member_added"
         ?"github_org_joined"
         :"github_org_removed"
-    await admin.from("notifications").insert({
-      user_id:targetUserId,
-      actor_id:null,
-      type,
-      data:{
-        organization:"Creatiive-Zone",
-        github_username:githubUsername,
-        github_action:action,
-        path:"/projetos",
-      },
-    }).catch(()=>null)
+    try{
+      await admin.from("notifications").insert({
+        user_id:targetUserId,
+        actor_id:null,
+        type,
+        data:{
+          organization:"Creatiive-Zone",
+          github_username:githubUsername,
+          github_action:action,
+          path:"/projetos",
+        },
+      })
+    }catch(error){
+      console.warn("organization member notification:",error)
+    }
   }
 
   if(action==="member_invited"){
@@ -206,7 +210,10 @@ async function syncOrganizationWebhook(payload:Record<string,unknown>,action:str
           path:"/projetos",
         },
       }))
-    if(ownerRows.length) await admin.from("notifications").insert(ownerRows).catch(()=>null)
+    if(ownerRows.length){
+      try{await admin.from("notifications").insert(ownerRows)}
+      catch(error){console.warn("organization owner notification:",error)}
+    }
   }
 }
 
