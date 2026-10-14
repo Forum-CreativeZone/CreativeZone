@@ -30,6 +30,7 @@ import {
   getGitHubReadmeAsset,
   syncGitHubProject,
   getGitHubCommunityOrganization,
+  syncGitHubCommunityOrganization,
   requestGitHubOrganizationMembership,
   reviewGitHubOrganizationMembership,
   sendGitHubOrganizationInvitation,
@@ -294,6 +295,7 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
   const [data,setData] = useState(null)
   const [loading,setLoading] = useState(true)
   const [busy,setBusy] = useState(false)
+  const [syncing,setSyncing] = useState(false)
   const [message,setMessage] = useState('')
   const [selectedRepo,setSelectedRepo] = useState(null)
 
@@ -324,6 +326,20 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
   }
 
   useEffect(()=>{ load() },[session?.user?.id])
+
+
+  async function syncOrganization() {
+    setSyncing(true)
+    try{
+      const result=await syncGitHubCommunityOrganization()
+      setData(result)
+      notify?.('Membros e convites sincronizados diretamente com o GitHub.')
+    }catch(error){
+      notify?.(error?.message || 'Não foi possível sincronizar a organização GitHub.')
+    }finally{
+      setSyncing(false)
+    }
+  }
 
   async function submit(event) {
     event.preventDefault()
@@ -388,6 +404,8 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
   const membership=data?.viewer_membership
   const pending=data?.staff_requests || []
   const githubInvitations=data?.github_invitations || []
+  const githubMembers=data?.github_members || []
+  const githubSync=data?.github_sync || null
 
   return (
     <section className="github-community-hub">
@@ -406,13 +424,16 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
 
       <div className="github-community-metrics">
         <span><Code2/><b>{org.public_repos || repos.length}</b><small>repositórios públicos</small></span>
-        <span><Users/><b>{org.followers || 0}</b><small>seguidores</small></span>
-        <span><GitBranch/><b>{repos.length}</b><small>projetos em destaque</small></span>
+        <span><Users/><b>{githubSync?.available ? githubSync.member_count : '—'}</b><small>membros reais no GitHub</small></span>
+        <span><UserPlus/><b>{githubSync?.available ? githubSync.invitation_count : '—'}</b><small>convites pendentes reais</small></span>
       </div>
 
       {data?.is_staff && data?.app_status && (
         <div className={'github-community-app-status '+(data.app_status.installed && data.app_status.members_write ? 'ready' : 'needs-action')}>
-          <strong>CreativeZone DevHub GitHub App</strong>
+          <div className="github-community-app-status-head">
+            <strong>CreativeZone DevHub GitHub App</strong>
+            {data.app_status.members_read&&<button type="button" className="action github-org-sync-button" disabled={syncing} onClick={syncOrganization}><RefreshCw className={syncing?'security-spin':''}/>{syncing?'Sincronizando...':'Sincronizar GitHub'}</button>}
+          </div>
           {!data.app_status.installed
             ? <span>Instale o GitHub App na organização <b>Creatiive-Zone</b> para que colaboradores aprovados usem o workspace através da organização.</span>
             : data.app_status.members_write && data.app_status.administration_write
@@ -423,6 +444,10 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
                 </>}
         </div>
       )}
+      {data?.is_staff&&githubSync?.available&&<div className="github-org-truth-status">
+        <CheckCircle2/>
+        <span><strong>Fonte de verdade: GitHub</strong><small>{githubSync.synced_at?'Última sincronização '+formatRelative(githubSync.synced_at):'Sincronização ativa'} · {githubSync.member_count} membro(s) · {githubSync.invitation_count} convite(s) pendente(s)</small></span>
+      </div>}
 
       <div className="github-community-purpose">
         <article><strong>Crie projetos reais</strong><p>Comece o projeto no fórum, reúna colaboradores e conecte o repositório ao CreativeZone DevHub.</p></article>
@@ -501,6 +526,8 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
           <div className="github-community-request-state joined"><ShieldCheck/><span><strong>Você administra o CreativeZone DevHub</strong><small>Pedidos de participação aparecem abaixo somente quando pertencem a outros membros e exigem sua ação.</small></span></div>
         ) : membership?.state === 'active' || request?.status === 'joined' ? (
           <div className="github-community-request-state joined"><CheckCircle2/><span><strong>Você já faz parte da organização</strong><small>@{membership?.github_username || request?.github_username} · função GitHub: {membership?.role || request?.github_membership_role || 'member'}</small></span></div>
+        ) : membership?.state === 'pending' ? (
+          <div className="github-community-request-state invited"><Clock3/><span><strong>Convite pendente no GitHub</strong><small>@{membership?.github_username || request?.github_username || 'GitHub'} · convite detectado diretamente na organização.</small></span></div>
         ) : request?.status === 'pending' ? (
           <div className="github-community-request-state pending"><Clock3/><span><strong>Pedido feito pelo fórum</strong><small>@{request.github_username} · enviado {formatRelative(request.created_at)}</small></span></div>
         ) : request?.status === 'approved' ? (
@@ -541,6 +568,24 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
           <p className="github-community-admin-note">{data?.app_status?.members_write
             ? 'O CreativeZone envia o convite automaticamente pela organização assim que o pedido é aprovado e continua sincronizando o estado real do GitHub.'
             : 'Estes são pedidos feitos no CreativeZone, não uma lista inventada de convites do GitHub. Com Organization members habilitado, o fórum também compara os convites reais da organização.'}</p>
+        </section>
+      )}
+
+      {data?.is_staff && data?.app_status?.members_read && (
+        <section className="github-community-github-members">
+          <div className="github-community-section-title"><strong>Membros reais da organização no GitHub</strong><small>{githubMembers.length} sincronizado(s)</small></div>
+          <div className="github-community-member-grid">
+            {githubMembers.map(item=><article key={item.id || item.login}>
+              {item.avatar_url?<img src={item.avatar_url} alt=""/>:<Users/>}
+              <span>
+                <strong>@{item.login}</strong>
+                <small>{item.role ? 'GitHub: '+item.role : 'Membro da organização'}{item.forum_profile?.username?' · fórum @'+item.forum_profile.username:''}</small>
+              </span>
+              {item.forum_profile?.system_owner&&<em>Arquiteto</em>}
+              <a href={item.html_url} target="_blank" rel="noreferrer" aria-label={'Abrir @'+item.login+' no GitHub'}><ExternalLink/></a>
+            </article>)}
+            {!githubMembers.length&&<p className="github-community-empty-truth">Nenhum membro retornado pelo GitHub nesta sincronização.</p>}
+          </div>
         </section>
       )}
 
