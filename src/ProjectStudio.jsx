@@ -951,7 +951,8 @@ export function ProjectStudio({ project, canManage = false, notify }) {
           terminalPrompt(terminal,terminalBranchRef.current)
           return
         }
-        const printable=data.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g,'').replace(/[\r\n]/g,'')
+        if(data.charCodeAt(0)===27) return
+        const printable=[...data].filter(char=>{const code=char.charCodeAt(0);return code>=32&&code!==127}).join('')
         if(printable){
           xtermInputRef.current+=printable
           terminal.write(printable)
