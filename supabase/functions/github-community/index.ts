@@ -191,15 +191,25 @@ async function syncOrganizationTruth(installation:any, fallbackToken="", source=
   try{
     const token=appCanRead&&installationId?await installationToken(installationId):fallbackToken
     const effectiveSource=appCanRead&&installationId?"github_app":source
-    const [members,invitations,{data:connections},{data:requests}]=await Promise.all([
+    const [membersResult,{data:connections},{data:requests}]=await Promise.all([
       githubTokenPages("/orgs/"+encodeURIComponent(ORG)+"/members?filter=all&role=all",token),
-      githubTokenPages("/orgs/"+encodeURIComponent(ORG)+"/invitations",token),
       admin.from("github_connections").select("user_id,github_username,github_user_id,avatar_url,profile_url").not("github_username","is",null),
       admin.from("github_org_membership_requests")
         .select("id,user_id,github_username,status,github_membership_role")
         .eq("organization",ORG)
         .in("status",["pending","approved","invited","joined"]),
     ])
+    const members=Array.isArray(membersResult)?membersResult:[]
+    let invitations:any[]=[]
+    let invitationsAvailable=true
+    let invitationsError:string|null=null
+    try{
+      invitations=await githubTokenPages("/orgs/"+encodeURIComponent(ORG)+"/invitations",token)
+    }catch(error){
+      invitationsAvailable=false
+      invitationsError=error instanceof Error?error.message:"Convites da organização não disponíveis."
+      console.warn("github invitations truth sync:",invitationsError)
+    }
 
     const activeLogins=new Set(members.map((item:any)=>String(item?.login||"").toLowerCase()).filter(Boolean))
     const inviteByLogin=new Map<string,any>()
@@ -297,7 +307,7 @@ async function syncOrganizationTruth(installation:any, fallbackToken="", source=
       members_count:members.length,
       invitations_count:invitations.length,
       sync_status:"ok",
-      last_error:null,
+      last_error:invitationsError,
       last_synced_at:now,
       updated_at:now,
     },{onConflict:"organization"})
@@ -306,6 +316,8 @@ async function syncOrganizationTruth(installation:any, fallbackToken="", source=
       available:true,
       source:effectiveSource,
       requires_authorization:false,
+      invitations_available:invitationsAvailable,
+      invitations_error:invitationsError,
       members:members.map((item:any)=>{
         const login=String(item?.login||"")
         const key=login.toLowerCase()
