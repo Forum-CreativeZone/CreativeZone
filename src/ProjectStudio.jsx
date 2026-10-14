@@ -15,7 +15,7 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
-  TerminalSquare,
+  Terminal,
   Trash2,
   Upload,
   Wrench,
@@ -397,7 +397,7 @@ export function ProjectStudio({ project, canManage = false, notify }) {
         <button className={tab==='prs'?'active':''} onClick={()=>changeTab('prs')}><GitPullRequest/>Pull Requests</button>
         <button className={tab==='branches'?'active':''} onClick={()=>changeTab('branches')}><GitBranch/>Branches</button>
         <button className={tab==='commits'?'active':''} onClick={()=>changeTab('commits')}><GitCommitHorizontal/>Commits</button>
-        <button className={tab==='terminal'?'active':''} onClick={()=>changeTab('terminal')}><TerminalSquare/>Terminal</button>
+        <button className={tab==='terminal'?'active':''} onClick={()=>changeTab('terminal')}><Terminal/>Terminal</button>
         <button className={tab==='ci'?'active':''} onClick={()=>changeTab('ci')}><Workflow/>CI/CD</button>
         <button className={tab==='security'?'active':''} onClick={()=>changeTab('security')}><ShieldCheck/>Segurança</button>
       </nav>
@@ -457,7 +457,7 @@ export function ProjectStudio({ project, canManage = false, notify }) {
       </div>}
 
       {tab==='terminal'&&<div className="studio-terminal">
-        <header><TerminalSquare/><span><strong>Terminal Git seguro</strong><small>Comandos Git são executados por API no repositório real. Não é um shell Linux arbitrário.</small></span></header>
+        <header><Terminal/><span><strong>Terminal Git seguro</strong><small>Comandos Git são executados por API no repositório real. Não é um shell Linux arbitrário.</small></span></header>
         <div className="studio-terminal-screen">{terminalLines.map((line,index)=><pre key={index} className={'terminal-'+line.type}>{line.text}</pre>)}</div>
         <form onSubmit={runTerminal}><span>$</span><input value={terminalCommand} onChange={e=>setTerminalCommand(e.target.value)} placeholder="git status" autoComplete="off"/><button disabled={busy==='terminal'}>Executar</button></form>
       </div>}
