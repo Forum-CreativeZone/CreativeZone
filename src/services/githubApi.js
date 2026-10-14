@@ -80,3 +80,8 @@ export function sendGitHubOrganizationInvitation(requestId) {
     request_id: requestId,
   })
 }
+
+
+export function getGitHubRenderedReadme(projectId) {
+  return invokeGithub({ action: 'readme_rendered', project_id: projectId })
+}
