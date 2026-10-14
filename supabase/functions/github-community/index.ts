@@ -795,12 +795,6 @@ async function forceOrganizationSync(req:Request){
   if(!user) throw new Error("Autenticação necessária.")
   const staff=await staffState(user.id)
   if(!staff.staff) throw new Error("Apenas a equipe CreativeZone pode sincronizar a organização.")
-  const installation=await organizationInstallation()
-  if(!installation?.id) throw new Error("GitHub App não instalado na organização.")
-  const permissions=(installation.permissions||{}) as Record<string,unknown>
-  const membersPermission=String(permissions.members||"")
-  if(!["read","write"].includes(membersPermission)) throw new Error("O GitHub App precisa da permissão Organization members: Read.")
-  await syncOrganizationTruth(installation)
   return organizationPayload(req)
 }
 
