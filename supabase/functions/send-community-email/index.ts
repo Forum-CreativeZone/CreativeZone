@@ -109,6 +109,14 @@ function copyFor(job: any) {
       excerpt,
       cta: "Abrir CreativeZone",
     },
+    team_invite: {
+      subject: `Convite para ${job.notification_data?.team_name || "uma equipe"} — CreativeZone`,
+      eyebrow: "CONVITE DE EQUIPE",
+      title: `${actor} quer você na equipe`,
+      message: `Você foi convidado para colaborar em “${job.notification_data?.team_name || "uma equipe CreativeZone"}” como ${job.notification_data?.role || "membro"}.`,
+      excerpt: compact(job.notification_data?.message || "Você foi convidado para colaborar.", 240),
+      cta: "Ver convite",
+    },
     github_org_join_request: {
       subject: `Novo pedido para entrar na organização ${job.notification_data?.organization || "CreativeZone"} — CreativeZone`,
       eyebrow: "GITHUB • NOVO PEDIDO",
