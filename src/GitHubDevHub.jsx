@@ -444,9 +444,13 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
                 </>}
         </div>
       )}
+      {data?.is_staff&&!githubSync?.available&&<div className="github-org-truth-status needs-auth">
+        <Clock3/>
+        <span><strong>Autorize a leitura da organização</strong><small>Use o botão “Autorizar organização” na conta GitHub acima. Isso libera read:org para consultar membros privados e convites reais.</small></span>
+      </div>}
       {data?.is_staff&&githubSync?.available&&<div className="github-org-truth-status">
         <CheckCircle2/>
-        <span><strong>Fonte de verdade: GitHub</strong><small>{githubSync.synced_at?'Última sincronização '+formatRelative(githubSync.synced_at):'Sincronização ativa'} · {githubSync.member_count} membro(s) · {githubSync.invitation_count} convite(s) pendente(s)</small></span>
+        <span><strong>Fonte de verdade: GitHub</strong><small>{githubSync.synced_at?'Última sincronização '+formatRelative(githubSync.synced_at):'Sincronização ativa'} · {githubSync.member_count} membro(s) · {githubSync.invitation_count} convite(s) pendente(s){githubSync.source==='owner_oauth'?' · via autorização do proprietário':' · via GitHub App'}</small></span>
       </div>}
 
       <div className="github-community-purpose">
