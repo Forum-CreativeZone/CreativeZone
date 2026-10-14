@@ -6972,3 +6972,35 @@ main{
 .vscode-terminal.has-editor .vscode-terminal-prompt{position:relative;z-index:2}
 .vscode-terminal-status{position:relative;z-index:2}
 @media(max-width:760px){.vscode-terminal.has-editor .vscode-terminal-editor>textarea{height:260px!important;min-height:200px!important}.vscode-terminal.has-editor .vscode-terminal-screen{min-height:140px;max-height:200px}}
+
+
+/* Real xterm.js terminal runtime — VS Code inspired */
+.xterm-terminal-panel{position:relative;overflow:hidden!important;background:#1e1e1e!important;border:1px solid #2b2b2b;border-radius:0 0 12px 12px}
+.vscode-terminal-toolbar{display:flex;align-items:center;gap:3px!important}
+.vscode-terminal-toolbar>button{width:28px;height:28px;display:grid;place-items:center;padding:0!important}
+.vscode-terminal-toolbar>button svg{width:15px;height:15px}
+.vscode-terminal-session>svg:last-child{width:11px;height:11px;color:#8f8f8f}
+.vscode-runtime-badge{display:inline-flex!important;align-items:center!important;white-space:nowrap;padding:3px 7px;border:1px solid #3a3a3a;border-radius:3px;background:#252526;color:#b7b7b7!important;font:10px/1.4 "DM Sans",sans-serif!important}
+.creativezone-xterm-pane{position:relative;background:#1e1e1e;min-height:340px}
+.creativezone-xterm-pane.is-hidden{position:absolute!important;left:-100000px!important;top:0!important;width:1px!important;height:1px!important;min-height:0!important;overflow:hidden!important;visibility:hidden!important;pointer-events:none!important}
+.creativezone-xterm-host{height:360px;min-height:300px;box-sizing:border-box;padding:9px 0 8px 12px;background:#1e1e1e;overflow:hidden}
+.creativezone-xterm-host .xterm{height:100%;padding-right:2px}
+.creativezone-xterm-host .xterm-screen{height:100%}
+.creativezone-xterm-host .xterm-viewport{background:#1e1e1e!important;scrollbar-width:thin;scrollbar-color:#5a5a5a #1e1e1e}
+.creativezone-xterm-host .xterm-viewport::-webkit-scrollbar{width:10px}.creativezone-xterm-host .xterm-viewport::-webkit-scrollbar-track{background:#1e1e1e}.creativezone-xterm-host .xterm-viewport::-webkit-scrollbar-thumb{background:#424242}.creativezone-xterm-host .xterm-viewport::-webkit-scrollbar-thumb:hover{background:#555}
+.creativezone-xterm-host .xterm-helper-textarea{opacity:0}
+.xterm-runtime-state{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(30,30,30,.86);color:#a8a8a8;font-size:11px;z-index:3}.xterm-runtime-state svg{width:16px}.xterm-runtime-state.is-error{color:#f48771}
+.vscode-log-pane,.vscode-debug-pane{min-height:340px!important;max-height:440px!important;border:0!important;padding:14px 16px!important}
+.vscode-debug-pane .terminal-output{color:#cccccc}.vscode-debug-pane .terminal-system{color:#9cdcfe}
+.xterm-terminal-panel .vscode-terminal-status{justify-content:flex-start;min-height:22px;padding:2px 9px;gap:16px}.xterm-terminal-panel .vscode-terminal-status span:first-child{margin-right:auto}
+.xterm-terminal-panel.has-editor .creativezone-xterm-host{height:230px;min-height:190px}
+.xterm-terminal-panel.has-editor .creativezone-xterm-pane{min-height:230px}
+:root[data-theme="light"] .xterm-terminal-panel,:root[data-theme="light"] .creativezone-xterm-pane,:root[data-theme="light"] .creativezone-xterm-host{background:#1e1e1e!important}
+@media(max-width:760px){
+  .creativezone-xterm-host{height:300px;min-height:250px;padding-left:8px}
+  .creativezone-xterm-pane{min-height:300px}
+  .xterm-terminal-panel.has-editor .creativezone-xterm-host{height:210px;min-height:180px}
+  .xterm-terminal-panel.has-editor .creativezone-xterm-pane{min-height:210px}
+  .vscode-runtime-badge{display:none!important}
+  .xterm-terminal-panel .vscode-terminal-status{overflow-x:auto;white-space:nowrap}
+}
