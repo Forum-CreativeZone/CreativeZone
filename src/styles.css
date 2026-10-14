@@ -7004,3 +7004,29 @@ main{
   .vscode-runtime-badge{display:none!important}
   .xterm-terminal-panel .vscode-terminal-status{overflow-x:auto;white-space:nowrap}
 }
+
+
+/* Monaco Editor — VS Code Code Studio */
+.studio-monaco-shell{display:flex;flex:1;min-height:430px;flex-direction:column;background:#1e1e1e;color:#d4d4d4;border-top:1px solid #2a2a2a}
+.studio-monaco-tabs{height:36px;display:flex;align-items:stretch;justify-content:space-between;background:#181818;border-bottom:1px solid #252525;overflow:hidden}
+.studio-monaco-tab{position:relative;min-width:170px;max-width:420px;display:flex;align-items:center;gap:7px;padding:0 12px;background:#2d2d2d;border-right:1px solid #252525;color:#bdbdbd;font:12px/36px "DM Sans",sans-serif}
+.studio-monaco-tab.active{background:#1e1e1e;color:#fff}.studio-monaco-tab.active:before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:#007acc}
+.studio-monaco-tab svg{width:14px;height:14px;color:#dcb67a;flex:none}.studio-monaco-tab span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.studio-monaco-tab em{margin-left:auto;color:#d4d4d4;font-style:normal;font-size:11px}
+.studio-monaco-actions{display:flex;align-items:center;gap:4px;padding:0 7px;background:#181818}.studio-monaco-actions button{border:0;background:transparent;color:#999;padding:4px 7px;border-radius:3px;font:10px "DM Sans",sans-serif;cursor:pointer}.studio-monaco-actions button:hover,.studio-monaco-actions button.active{background:#2a2d2e;color:#f0f0f0}.studio-monaco-runtime{white-space:nowrap;color:#777;font-size:9px;padding-left:4px}
+.studio-monaco-breadcrumbs{min-height:30px;display:flex;align-items:center;gap:2px;padding:0 12px;background:#1e1e1e;border-bottom:1px solid #252525;color:#a0a0a0;font:11px/30px "DM Sans",sans-serif;overflow-x:auto;white-space:nowrap}.studio-monaco-breadcrumbs span:last-of-type{color:#d4d4d4}.studio-monaco-breadcrumbs svg{width:12px;height:12px;color:#626262;flex:none}
+.studio-monaco-editor-wrap{position:relative;flex:1;min-height:390px;background:#1e1e1e;overflow:hidden}.studio-monaco-editor{position:absolute;inset:0}
+.studio-monaco-editor .monaco-editor,.studio-monaco-editor .overflow-guard{border:0!important}
+.studio-monaco-state{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;gap:8px;background:#1e1e1e;color:#9b9b9b;font-size:11px}.studio-monaco-state svg{width:16px}
+.studio-monaco-fallback{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;background:#1e1e1e}.studio-monaco-fallback>div{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-bottom:1px solid #3a2b2b;background:#271d1d;color:#f48771}.studio-monaco-fallback>div>svg{width:17px;flex:none}.studio-monaco-fallback>div>span{display:grid;gap:2px}.studio-monaco-fallback>div small{color:#cfa9a1;font-size:10px}.studio-monaco-fallback .project-studio-editor{flex:1;min-height:0;resize:none;background:#1e1e1e!important;color:#d4d4d4!important;padding:12px 14px!important}
+.studio-monaco-status{height:22px;display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 9px;background:#007acc;color:#fff;font:10px/22px "DM Sans",sans-serif;white-space:nowrap;overflow-x:auto}.studio-monaco-status span:first-child{margin-left:auto}
+.project-studio-commitbar{background:#181818!important;border-top:1px solid #252525!important}.project-studio-commitbar input{background:#1e1e1e!important;border-color:#3c3c3c!important;color:#d4d4d4!important;border-radius:2px!important}.project-studio-commitbar input:focus{outline:1px solid #007acc}
+.project-studio-commitbar .primary-action{border-radius:2px!important;background:#0e639c!important;border-color:#1177bb!important}.project-studio-commitbar .primary-action:hover:not(:disabled){background:#1177bb!important}
+:root[data-theme="light"] .studio-monaco-shell,:root[data-theme="light"] .studio-monaco-tabs,:root[data-theme="light"] .studio-monaco-actions,:root[data-theme="light"] .studio-monaco-breadcrumbs,:root[data-theme="light"] .studio-monaco-editor-wrap{background:#1e1e1e!important;color:#d4d4d4!important}
+@media(max-width:760px){
+  .studio-monaco-shell{min-height:410px}
+  .studio-monaco-editor-wrap{min-height:350px}
+  .studio-monaco-runtime{display:none}
+  .studio-monaco-actions button{padding:4px 5px;font-size:9px}
+  .studio-monaco-tab{min-width:120px;max-width:230px;padding:0 8px}
+  .studio-monaco-status{justify-content:flex-start;gap:10px}.studio-monaco-status span:first-child{margin-left:0}
+}
