@@ -24,8 +24,9 @@ export function GitHubAccountConnect({ session, notify, compact = false, onChang
       setState(next)
       if(next?.connected){
         try{
-          setMembership(await getCreativeZoneGitHubMembership())
-          setMembershipError('')
+          const nextMembership=await getCreativeZoneGitHubMembership()
+          setMembership(nextMembership)
+          setMembershipError(nextMembership?.authorized===false ? (nextMembership?.error || 'Autorize read:org para consultar a organização.') : '')
         }catch(error){
           setMembership(null)
           setMembershipError(error?.message || 'O GitHub não autorizou a leitura da organização.')
@@ -96,6 +97,7 @@ export function GitHubAccountConnect({ session, notify, compact = false, onChang
   const connection=state?.connection
   const needsOrgAuthorization=Boolean(state?.connected && (
     membershipError ||
+    membership?.authorized===false ||
     state?.organization_access?.scope_authorized===false
   ))
   return (
