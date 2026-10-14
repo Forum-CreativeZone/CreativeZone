@@ -21,6 +21,8 @@ import {
   Clock3,
   CheckCircle2,
   XCircle,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import {
   getGitHubRepositoryCard,
@@ -102,6 +104,18 @@ async function prepareReadmeHtml(readmeDoc,projectId){
       const src=String(img.getAttribute('src')||'').trim()
       if(!src||/^(?:https?:|data:|blob:)/i.test(src)) return
       if(src.startsWith('/')){
+        const rawMatch=src.match(/^\/([^/]+)\/([^/]+)\/raw\/([^/]+)\/(.+)$/)
+        if(rawMatch){
+          const [,srcOwner,srcRepo,srcBranch,srcPath]=rawMatch
+          if(srcOwner.toLowerCase()===owner.toLowerCase()&&srcRepo.toLowerCase()===repo.toLowerCase()){
+            try{
+              const asset=await getGitHubReadmeAsset(projectId,decodeURIComponent(srcPath))
+              if(asset?.data_url){ img.setAttribute('src',asset.data_url); return }
+            }catch{}
+          }
+          img.setAttribute('src',`https://raw.githubusercontent.com/${encodeURIComponent(srcOwner)}/${encodeURIComponent(srcRepo)}/${encodeURIComponent(srcBranch)}/${srcPath.split('/').map(encodeURIComponent).join('/')}`)
+          return
+        }
         img.setAttribute('src','https://github.com'+src)
         return
       }
@@ -245,16 +259,21 @@ export function GitHubRepositoryPanel({ project, canManage = false, notify, onCh
       {actions.length > 0 && <section><header><Workflow/> GitHub Actions</header>{actions.slice(0,4).map(item=><div className="devhub-inline-item" key={item.id}><b>{item.name}</b><small>{item.conclusion || item.status}</small></div>)}</section>}
     </div>}
 
-    {(readmeLoading || readme?.html || repository.readme_excerpt) && <section className="devhub-readme devhub-readme-rendered">
+    {(readmeLoading || readme?.html || repository.readme_excerpt) && <section className={'devhub-readme devhub-readme-rendered '+(readmeExpanded?'is-expanded':'is-collapsed')}>
       <header>
         <span><Code2/><strong>README</strong><small>{readme?.path || 'README.md'}</small></span>
-        {readmeLoading&&<em><RefreshCw className="security-spin"/>Carregando...</em>}
+        <div className="devhub-readme-actions">
+          {readmeLoading&&<em><RefreshCw className="security-spin"/>Carregando...</em>}
+          <button type="button" className="action devhub-readme-toggle" onClick={()=>setReadmeExpanded(value=>!value)} aria-expanded={readmeExpanded}>
+            {readmeExpanded?<><ChevronUp/>Minimizar</>:<><ChevronDown/>Expandir</>}
+          </button>
+        </div>
       </header>
-      {readme?.html
+      {readmeExpanded && (readme?.html
         ? <article className="devhub-markdown-body" dangerouslySetInnerHTML={{__html:readme.html}} />
         : !readmeLoading&&repository.readme_excerpt
           ? <pre>{repository.readme_excerpt}</pre>
-          : null}
+          : null)}
     </section>}
     {capabilities.release_history && releases.length > 1 && <details className="devhub-release-history"><summary>Histórico de releases ({releases.length})</summary><div>{releases.map(item=><div className="devhub-inline-item" key={item.html_url || item.tag_name}><b>{item.tag_name}</b><span>{item.name || 'Release'}</span></div>)}</div></details>}
 
