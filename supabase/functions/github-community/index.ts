@@ -165,6 +165,195 @@ async function organizationInvitations(installationId: number) {
   return Array.isArray(data)?data:[]
 }
 
+
+async function githubTokenPages(path: string, token: string, maxPages=10) {
+  const items:any[]=[]
+  for(let page=1;page<=maxPages;page++){
+    const separator=path.includes("?")?"&":"?"
+    const data=await githubTokenRequest(path+separator+"per_page=100&page="+page,token)
+    if(!Array.isArray(data)) break
+    items.push(...data)
+    if(data.length<100) break
+  }
+  return items
+}
+
+async function syncOrganizationTruth(installation:any) {
+  const now=new Date().toISOString()
+  const installationId=Number(installation?.id||0)
+  const permissions=(installation?.permissions||{}) as Record<string,unknown>
+  const membersPermission=String(permissions.members||"")
+  const canRead=membersPermission==="read"||membersPermission==="write"
+  if(!installationId||!canRead){
+    return {available:false,members:[],invitations:[],member_count:0,invitation_count:0,synced_at:null}
+  }
+
+  try{
+    const token=await installationToken(installationId)
+    const [members,invitations,{data:connections},{data:requests}]=await Promise.all([
+      githubTokenPages("/orgs/"+encodeURIComponent(ORG)+"/members?filter=all&role=all",token),
+      githubTokenPages("/orgs/"+encodeURIComponent(ORG)+"/invitations",token),
+      admin.from("github_connections").select("user_id,github_username,github_user_id,avatar_url,profile_url").not("github_username","is",null),
+      admin.from("github_org_membership_requests")
+        .select("id,user_id,github_username,status,github_membership_role")
+        .eq("organization",ORG)
+        .in("status",["pending","approved","invited","joined"]),
+    ])
+
+    const activeLogins=new Set(members.map((item:any)=>String(item?.login||"").toLowerCase()).filter(Boolean))
+    const inviteByLogin=new Map<string,any>()
+    for(const item of invitations){
+      const login=String(item?.login||item?.invitee?.login||"").toLowerCase()
+      if(login) inviteByLogin.set(login,item)
+    }
+
+    const connectedByLogin=new Map<string,any>()
+    for(const item of connections||[]){
+      const login=String(item.github_username||"").toLowerCase()
+      if(login) connectedByLogin.set(login,item)
+    }
+
+    const profileIds=[...new Set((connections||[]).map((item:any)=>String(item.user_id||"")).filter(Boolean))]
+    let profiles:any[]=[]
+    if(profileIds.length){
+      const result=await admin.from("profiles").select("id,username,display_name,avatar_url,system_owner").in("id",profileIds)
+      profiles=result.data||[]
+    }
+    const profileById=new Map(profiles.map((item:any)=>[String(item.id),item]))
+
+    const roleTargets=new Set<string>()
+    for(const item of connections||[]){
+      const login=String(item.github_username||"").toLowerCase()
+      if(login&&activeLogins.has(login)) roleTargets.add(login)
+    }
+    for(const item of requests||[]){
+      const login=String(item.github_username||"").toLowerCase()
+      if(login&&activeLogins.has(login)) roleTargets.add(login)
+    }
+
+    const roleByLogin=new Map<string,string>()
+    for(const login of [...roleTargets].slice(0,100)){
+      try{
+        const membership=await githubTokenRequest("/orgs/"+encodeURIComponent(ORG)+"/memberships/"+encodeURIComponent(login),token)
+        if(String(membership?.state||"")==="active") roleByLogin.set(login,String(membership?.role||"member"))
+      }catch(error){
+        console.warn("github member role sync:",login,error)
+      }
+    }
+
+    for(const item of requests||[]){
+      const login=String(item.github_username||"").toLowerCase()
+      if(!login) continue
+      if(activeLogins.has(login)){
+        await admin.from("github_org_membership_requests").update({
+          status:"joined",
+          github_membership_state:"active",
+          github_membership_role:roleByLogin.get(login)||item.github_membership_role||"member",
+          github_invitation_id:null,
+          github_invitation_created_at:null,
+          membership_verified_at:now,
+          last_github_sync_at:now,
+          invite_error:null,
+          updated_at:now,
+        }).eq("id",item.id)
+      }else if(inviteByLogin.has(login)){
+        const invite=inviteByLogin.get(login)
+        await admin.from("github_org_membership_requests").update({
+          status:"invited",
+          github_membership_state:"pending",
+          github_invitation_id:Number(invite?.id||0)||null,
+          github_invitation_created_at:invite?.created_at||null,
+          membership_verified_at:now,
+          last_github_sync_at:now,
+          invite_error:null,
+          updated_at:now,
+        }).eq("id",item.id)
+      }else if(item.status==="invited"||item.status==="joined"){
+        await admin.from("github_org_membership_requests").update({
+          status:"cancelled",
+          github_membership_state:null,
+          github_invitation_id:null,
+          github_invitation_created_at:null,
+          membership_verified_at:now,
+          last_github_sync_at:now,
+          invite_error:item.status==="joined"
+            ?"A conta não aparece mais como membro da organização no GitHub."
+            :"O convite não está mais pendente no GitHub.",
+          updated_at:now,
+        }).eq("id",item.id)
+      }else{
+        await admin.from("github_org_membership_requests").update({
+          membership_verified_at:now,
+          last_github_sync_at:now,
+          updated_at:now,
+        }).eq("id",item.id)
+      }
+    }
+
+    await admin.from("github_org_sync_state").upsert({
+      organization:ORG,
+      installation_id:installationId,
+      members_count:members.length,
+      invitations_count:invitations.length,
+      sync_status:"ok",
+      last_error:null,
+      last_synced_at:now,
+      updated_at:now,
+    },{onConflict:"organization"})
+
+    return {
+      available:true,
+      members:members.map((item:any)=>{
+        const login=String(item?.login||"")
+        const key=login.toLowerCase()
+        const connection=connectedByLogin.get(key)
+        const profile=connection?profileById.get(String(connection.user_id)):null
+        return {
+          id:item?.id||null,
+          login,
+          avatar_url:item?.avatar_url||"",
+          html_url:item?.html_url||("https://github.com/"+login),
+          role:roleByLogin.get(key)||null,
+          forum_profile:profile?{
+            id:profile.id,
+            username:profile.username,
+            display_name:profile.display_name,
+            avatar_url:profile.avatar_url,
+            system_owner:Boolean(profile.system_owner),
+          }:null,
+        }
+      }),
+      invitations:invitations.map((item:any)=>({
+        id:item?.id||null,
+        login:item?.login||item?.invitee?.login||null,
+        avatar_url:item?.invitee?.avatar_url||null,
+        html_url:item?.invitee?.html_url||null,
+        role:item?.role||"direct_member",
+        created_at:item?.created_at||null,
+        invitation_teams_url:item?.invitation_teams_url||null,
+        forum_profile:(()=>{
+          const connection=connectedByLogin.get(String(item?.login||item?.invitee?.login||"").toLowerCase())
+          const profile=connection?profileById.get(String(connection.user_id)):null
+          return profile?{id:profile.id,username:profile.username,display_name:profile.display_name,avatar_url:profile.avatar_url}:null
+        })(),
+      })),
+      member_count:members.length,
+      invitation_count:invitations.length,
+      synced_at:now,
+    }
+  }catch(error){
+    const message=error instanceof Error?error.message:"Falha ao sincronizar a organização GitHub."
+    await admin.from("github_org_sync_state").upsert({
+      organization:ORG,
+      installation_id:installationId||null,
+      sync_status:"error",
+      last_error:compact(message,800),
+      updated_at:now,
+    },{onConflict:"organization"})
+    throw error
+  }
+}
+
 async function inviteToOrganization(username: string) {
   const installation=await organizationInstallation()
   if(!installation?.id) {
@@ -228,6 +417,8 @@ async function organizationPayload(req: Request) {
   let appStatus: Record<string, unknown> | null = null
   let viewerMembership: Record<string, unknown> | null = null
   let githubInvitations: Record<string, unknown>[] = []
+  let githubMembers: Record<string, unknown>[] = []
+  let githubSync:any={available:false,member_count:0,invitation_count:0,synced_at:null}
   let installation:any=null
 
   if (staff.staff) {
@@ -251,9 +442,12 @@ async function organizationPayload(req: Request) {
 
       if(appStatus.members_read && installation?.id){
         try{
-          githubInvitations=await organizationInvitations(Number(installation.id))
+          githubSync=await syncOrganizationTruth(installation)
+          githubInvitations=githubSync.invitations||[]
+          githubMembers=githubSync.members||[]
         }catch(error){
-          console.warn("github invitations sync:",error)
+          appStatus.sync_error=error instanceof Error?error.message:"Falha ao sincronizar membros e convites."
+          console.warn("github organization truth sync:",error)
         }
       }
     } catch (error) {
@@ -295,7 +489,7 @@ async function organizationPayload(req: Request) {
 
     const { data } = await admin
       .from("github_org_membership_requests")
-      .select("id,github_username,message,status,created_at,reviewed_at,updated_at,invite_error,github_membership_state,github_membership_role,membership_verified_at")
+      .select("id,github_username,message,status,created_at,reviewed_at,updated_at,invite_error,github_membership_state,github_membership_role,membership_verified_at,github_invitation_id,github_invitation_created_at,last_github_sync_at")
       .eq("user_id", user.id)
       .eq("organization", ORG)
       .order("created_at", { ascending: false })
@@ -305,29 +499,9 @@ async function organizationPayload(req: Request) {
   }
 
   if (staff.staff) {
-    if(githubInvitations.length){
-      const pendingLogins=new Set(githubInvitations.map((item:any)=>String(item?.login || item?.invitee?.login || "").toLowerCase()).filter(Boolean))
-      const { data: candidates }=await admin
-        .from("github_org_membership_requests")
-        .select("id,github_username,status")
-        .eq("organization",ORG)
-        .in("status",["pending","approved"])
-      for(const item of candidates || []){
-        if(pendingLogins.has(String(item.github_username||"").toLowerCase())){
-          await admin.from("github_org_membership_requests").update({
-            status:"invited",
-            github_membership_state:"pending",
-            membership_verified_at:new Date().toISOString(),
-            invite_error:null,
-            updated_at:new Date().toISOString(),
-          }).eq("id",item.id)
-        }
-      }
-    }
-
     let staffQuery = admin
       .from("github_org_membership_requests")
-      .select("id,user_id,organization,github_username,message,status,created_at,reviewed_at,invite_error,github_membership_state,github_membership_role,membership_verified_at,profile:profiles!github_org_membership_requests_user_id_fkey(id,username,display_name,avatar_url)")
+      .select("id,user_id,organization,github_username,message,status,created_at,reviewed_at,invite_error,github_membership_state,github_membership_role,membership_verified_at,github_invitation_id,github_invitation_created_at,last_github_sync_at,profile:profiles!github_org_membership_requests_user_id_fkey(id,username,display_name,avatar_url)")
       .eq("organization", ORG)
       .in("status", ["pending","approved"])
       .order("created_at", { ascending: true })
@@ -363,13 +537,9 @@ async function organizationPayload(req: Request) {
     is_staff: staff.staff,
     is_system_owner: staff.system_owner,
     staff_requests: staffRequests,
-    github_invitations:githubInvitations.map((item:any)=>({
-      id:item.id,
-      login:item.login || item.invitee?.login || null,
-      role:item.role || "direct_member",
-      created_at:item.created_at || null,
-      invitation_teams_url:item.invitation_teams_url || null,
-    })),
+    github_members:staff.staff?githubMembers:[],
+    github_invitations:staff.staff?githubInvitations:[],
+    github_sync:staff.staff?githubSync:null,
     app_status: appStatus,
   }
 }
@@ -620,6 +790,20 @@ async function sendMembershipInvite(req: Request, payload: Record<string, unknow
   }
 }
 
+async function forceOrganizationSync(req:Request){
+  const user=await authUser(req)
+  if(!user) throw new Error("Autenticação necessária.")
+  const staff=await staffState(user.id)
+  if(!staff.staff) throw new Error("Apenas a equipe CreativeZone pode sincronizar a organização.")
+  const installation=await organizationInstallation()
+  if(!installation?.id) throw new Error("GitHub App não instalado na organização.")
+  const permissions=(installation.permissions||{}) as Record<string,unknown>
+  const membersPermission=String(permissions.members||"")
+  if(!["read","write"].includes(membersPermission)) throw new Error("O GitHub App precisa da permissão Organization members: Read.")
+  await syncOrganizationTruth(installation)
+  return organizationPayload(req)
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS })
   if (req.method !== "POST") return reply({ error: "method_not_allowed" }, 405)
@@ -630,6 +814,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     if (action === "organization") return reply({ ok: true, ...(await organizationPayload(req)) })
+    if (action === "sync_organization") return reply({ ok: true, ...(await forceOrganizationSync(req)) })
     if (action === "request_membership") return reply({ ok: true, ...(await requestMembership(req, payload)) })
     if (action === "review_membership") return reply({ ok: true, ...(await reviewMembership(req, payload)) })
     if (action === "send_membership_invite") return reply({ ok: true, ...(await sendMembershipInvite(req, payload)) })
