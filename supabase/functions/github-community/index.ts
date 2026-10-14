@@ -192,6 +192,9 @@ async function organizationPayload(req: Request) {
         contents_write: String(permissions.contents || "") === "write",
         pull_requests_write: String(permissions.pull_requests || "") === "write",
         administration_write: String(permissions.administration || "") === "write",
+        settings_url: installation?.id
+          ? "https://github.com/organizations/" + ORG + "/settings/installations/" + installation.id
+          : "https://github.com/organizations/" + ORG + "/settings/installations",
       }
     } catch (error) {
       appStatus = { installed:false, error: error instanceof Error ? error.message : "Não foi possível verificar o GitHub App." }
@@ -215,7 +218,7 @@ async function organizationPayload(req: Request) {
       .from("github_org_membership_requests")
       .select("id,user_id,organization,github_username,message,status,created_at,reviewed_at,profile:profiles!github_org_membership_requests_user_id_fkey(id,username,display_name,avatar_url)")
       .eq("organization", ORG)
-      .eq("status", "pending")
+      .in("status", ["pending","approved"])
       .order("created_at", { ascending: true })
       .limit(50)
     staffRequests = data || []
@@ -336,38 +339,52 @@ async function reviewMembership(req: Request, payload: Record<string, unknown>) 
   if (!staff.staff) throw new Error("Apenas a equipe CreativeZone pode revisar estes pedidos.")
 
   const requestId = String(payload.request_id || "")
-  const status = String(payload.status || "")
-  if (!requestId || !["invited","declined"].includes(status)) throw new Error("Revisão inválida.")
+  const requestedStatus = String(payload.status || "")
+  if (!requestId || !["invited","declined"].includes(requestedStatus)) throw new Error("Revisão inválida.")
 
   const { data: pendingRow, error: pendingError } = await admin
     .from("github_org_membership_requests")
     .select("id,user_id,github_username,status")
     .eq("id", requestId)
     .eq("organization", ORG)
-    .eq("status", "pending")
+    .in("status", ["pending","approved"])
     .maybeSingle()
 
   if (pendingError) throw pendingError
   if (!pendingRow) throw new Error("Pedido não encontrado ou já revisado.")
 
+  let finalStatus = requestedStatus
   let githubMembership: Record<string, unknown> | null = null
-  if (status === "invited") {
-    githubMembership = await inviteToOrganization(String(pendingRow.github_username))
+  let inviteError: string | null = null
+  const attemptedAt = requestedStatus === "invited" ? new Date().toISOString() : null
+
+  if (requestedStatus === "invited") {
+    try {
+      githubMembership = await inviteToOrganization(String(pendingRow.github_username))
+      finalStatus = "invited"
+    } catch (error) {
+      inviteError = error instanceof Error ? error.message : "O GitHub não aceitou o convite."
+      finalStatus = "approved"
+      console.warn("github organization invite deferred:", inviteError)
+    }
   }
 
   const reviewedAt = new Date().toISOString()
   const { data: row, error } = await admin
     .from("github_org_membership_requests")
     .update({
-      status,
+      status: finalStatus,
       reviewed_by: user.id,
       reviewed_at: reviewedAt,
       updated_at: reviewedAt,
+      invite_attempted_at: attemptedAt,
+      invite_error: inviteError,
+      github_membership_state: githubMembership?.state || null,
     })
     .eq("id", requestId)
     .eq("organization", ORG)
-    .eq("status", "pending")
-    .select("id,user_id,github_username,status")
+    .in("status", ["pending","approved"])
+    .select("id,user_id,github_username,status,invite_error,invite_attempted_at,github_membership_state")
     .maybeSingle()
 
   if (error) throw error
@@ -381,18 +398,105 @@ async function reviewMembership(req: Request, payload: Record<string, unknown>) 
       request_id: row.id,
       organization: ORG,
       github_username: row.github_username,
-      status,
+      status: finalStatus,
       github_membership_state: githubMembership?.state || null,
+      invite_pending: finalStatus === "approved",
+      invite_error: inviteError,
       path: "/projetos",
     },
   })
 
   return {
     request: row,
+    invite_pending: finalStatus === "approved",
+    invite_error: inviteError,
     github_membership: githubMembership ? {
       state: githubMembership.state || null,
       role: githubMembership.role || "member",
     } : null,
+  }
+}
+
+async function sendMembershipInvite(req: Request, payload: Record<string, unknown>) {
+  const user = await authUser(req)
+  if (!user) throw new Error("Autenticação necessária.")
+
+  const staff = await staffState(user.id)
+  if (!staff.staff) throw new Error("Apenas a equipe CreativeZone pode enviar convites.")
+
+  const requestId = String(payload.request_id || "")
+  if (!requestId) throw new Error("Pedido inválido.")
+
+  const { data: row, error } = await admin
+    .from("github_org_membership_requests")
+    .select("id,user_id,github_username,status")
+    .eq("id", requestId)
+    .eq("organization", ORG)
+    .in("status", ["pending","approved"])
+    .maybeSingle()
+  if (error) throw error
+  if (!row) throw new Error("Pedido não encontrado ou convite já processado.")
+
+  let membership: Record<string, unknown>
+  try {
+    membership = await inviteToOrganization(String(row.github_username))
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "O GitHub não aceitou o convite."
+    await admin.from("github_org_membership_requests").update({
+      status: "approved",
+      reviewed_by: user.id,
+      reviewed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      invite_attempted_at: new Date().toISOString(),
+      invite_error: message,
+    }).eq("id", requestId)
+    return {
+      sent: false,
+      invite_pending: true,
+      invite_error: message,
+      request: { ...row, status: "approved" },
+    }
+  }
+
+  const now = new Date().toISOString()
+  const { data: updated, error: updateError } = await admin
+    .from("github_org_membership_requests")
+    .update({
+      status: "invited",
+      reviewed_by: user.id,
+      reviewed_at: now,
+      updated_at: now,
+      invite_attempted_at: now,
+      invite_error: null,
+      github_membership_state: membership?.state || "pending",
+    })
+    .eq("id", requestId)
+    .select("id,user_id,github_username,status,github_membership_state")
+    .single()
+  if (updateError) throw updateError
+
+  await admin.from("notifications").insert({
+    user_id: updated.user_id,
+    actor_id: user.id,
+    type: "github_org_join_request_updated",
+    data: {
+      request_id: updated.id,
+      organization: ORG,
+      github_username: updated.github_username,
+      status: "invited",
+      github_membership_state: membership?.state || "pending",
+      path: "/projetos",
+    },
+  })
+
+  return {
+    sent: true,
+    invite_pending: false,
+    request: updated,
+    github_membership: {
+      state: membership?.state || "pending",
+      role: membership?.role || "member",
+    },
   }
 }
 
@@ -408,6 +512,7 @@ Deno.serve(async (req: Request) => {
     if (action === "organization") return reply({ ok: true, ...(await organizationPayload(req)) })
     if (action === "request_membership") return reply({ ok: true, ...(await requestMembership(req, payload)) })
     if (action === "review_membership") return reply({ ok: true, ...(await reviewMembership(req, payload)) })
+    if (action === "send_membership_invite") return reply({ ok: true, ...(await sendMembershipInvite(req, payload)) })
     return reply({ error: "unsupported_action" }, 400)
   } catch (error) {
     console.error("github-community:", error)
