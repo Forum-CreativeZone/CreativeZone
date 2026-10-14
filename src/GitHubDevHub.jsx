@@ -254,6 +254,17 @@ export function GitHubCommunityOrganization({ session, navigate, notify, onUseRe
         <span><GitBranch/><b>{repos.length}</b><small>projetos em destaque</small></span>
       </div>
 
+      {data?.is_staff && data?.app_status && (
+        <div className={'github-community-app-status '+(data.app_status.installed && data.app_status.members_write ? 'ready' : 'needs-action')}>
+          <strong>CreativeZone DevHub GitHub App</strong>
+          {!data.app_status.installed
+            ? <span>Instale o GitHub App na organização <b>Creatiive-Zone</b> para que colaboradores aprovados usem o workspace através da organização.</span>
+            : data.app_status.members_write
+              ? <span><CheckCircle2/> Instalação ativa e permissão de membros pronta para convites automáticos.</span>
+              : <span><Clock3/> Instalação encontrada. Falta habilitar <b>Organization members: Read and write</b> para o botão “Aprovar e enviar convite”.</span>}
+        </div>
+      )}
+
       <div className="github-community-purpose">
         <article><strong>Crie projetos reais</strong><p>Comece o projeto no fórum, reúna colaboradores e conecte o repositório ao CreativeZone DevHub.</p></article>
         <article><strong>Trabalhe em equipe</strong><p>Use Issues, Pull Requests, branches, revisões, releases e o Project Studio conforme o plano.</p></article>
