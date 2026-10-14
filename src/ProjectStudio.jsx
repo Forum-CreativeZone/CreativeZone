@@ -1,137 +1,336 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  AlertTriangle,
+  CheckCircle2,
   Code2,
-  ExternalLink,
   FileCode2,
+  FilePlus2,
   GitBranch,
   GitCommitHorizontal,
+  GitMerge,
   GitPullRequest,
   LockKeyhole,
+  MessageSquarePlus,
+  Plus,
   RefreshCw,
   Search,
   ShieldCheck,
+  TerminalSquare,
+  Trash2,
+  Upload,
   Wrench,
   Workflow,
 } from 'lucide-react'
 import {
   commitProjectStudioFile,
   createProjectSecurityFix,
+  createProjectStudioBranch,
+  createProjectStudioIssue,
   createProjectStudioPullRequest,
+  deleteProjectStudioFile,
   getProjectSecurityFixes,
+  getProjectStudioBranches,
   getProjectStudioCi,
+  getProjectStudioCommits,
+  getProjectStudioIssues,
+  getProjectStudioPullRequests,
   getProjectStudioStatus,
   getProjectStudioTree,
+  mergeProjectStudioPullRequest,
   readProjectStudioFile,
+  runProjectStudioTerminal,
+  uploadProjectStudioFile,
 } from './services/githubStudioApi'
 
 function StudioLocked({ plan }) {
   return (
     <section className="project-studio locked">
-      <header><Code2/><span><small>CREATIVEZONE DEVHUB · ELITE</small><strong>Project Studio</strong></span><LockKeyhole/></header>
-      <p>Edite arquivos, faça commits, abra Pull Requests, acompanhe CI/CD e use AutoFix sem sair do CreativeZone.</p>
-      <small>Plano atual: {(plan?.plan_id || 'free').toUpperCase()} · disponível no ELITE.</small>
+      <header><Code2/><span><small>CREATIVEZONE DEVHUB · ELITE</small><strong>Dev Workspace</strong></span><LockKeyhole/></header>
+      <p>O Dev Workspace coloca código, branches, commits, Issues, Pull Requests, CI/CD, segurança e Git dentro do fórum.</p>
+      <small>Plano atual: {(plan?.plan_id || 'free').toUpperCase()} · o workspace completo está disponível no ELITE.</small>
     </section>
   )
 }
 
+function readFileAsBase64(file) {
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader()
+    reader.onerror=()=>reject(reader.error || new Error('Falha ao ler o arquivo.'))
+    reader.onload=()=>{
+      const value=String(reader.result || '')
+      resolve(value.includes(',') ? value.slice(value.indexOf(',')+1) : value)
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
+function shortDate(value) {
+  if(!value) return ''
+  try{return new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(value))}
+  catch{return ''}
+}
+
 export function ProjectStudio({ project, canManage = false, notify }) {
-  const [status,setStatus] = useState(null)
-  const [loading,setLoading] = useState(false)
-  const [tab,setTab] = useState('code')
-  const [files,setFiles] = useState([])
-  const [query,setQuery] = useState('')
-  const [branch,setBranch] = useState('')
-  const [baseBranch,setBaseBranch] = useState('')
-  const [selected,setSelected] = useState('')
-  const [content,setContent] = useState('')
-  const [original,setOriginal] = useState('')
-  const [message,setMessage] = useState('')
-  const [commitInfo,setCommitInfo] = useState(null)
-  const [ciRuns,setCiRuns] = useState([])
-  const [fixes,setFixes] = useState([])
-  const [busy,setBusy] = useState('')
-  const [error,setError] = useState('')
+  const [status,setStatus]=useState(null)
+  const [loading,setLoading]=useState(false)
+  const [tab,setTab]=useState('code')
+  const [files,setFiles]=useState([])
+  const [query,setQuery]=useState('')
+  const [branches,setBranches]=useState([])
+  const [branch,setBranch]=useState('')
+  const [baseBranch,setBaseBranch]=useState('')
+  const [newBranch,setNewBranch]=useState('')
+  const [selected,setSelected]=useState('')
+  const [content,setContent]=useState('')
+  const [original,setOriginal]=useState('')
+  const [message,setMessage]=useState('')
+  const [newPath,setNewPath]=useState('')
+  const [commitInfo,setCommitInfo]=useState(null)
+  const [commits,setCommits]=useState([])
+  const [issues,setIssues]=useState([])
+  const [issueTitle,setIssueTitle]=useState('')
+  const [issueBody,setIssueBody]=useState('')
+  const [pulls,setPulls]=useState([])
+  const [ciRuns,setCiRuns]=useState([])
+  const [fixes,setFixes]=useState([])
+  const [terminalLines,setTerminalLines]=useState([{type:'system',text:'CreativeZone Git Terminal — digite help para ver os comandos disponíveis.'}])
+  const [terminalCommand,setTerminalCommand]=useState('')
+  const [busy,setBusy]=useState('')
+  const [error,setError]=useState('')
+  const uploadRef=useRef(null)
 
   useEffect(()=>{
     let active=true
-    if (!project?.id || !canManage) return undefined
+    if(!project?.id || !canManage) return undefined
     setLoading(true)
     getProjectStudioStatus(project.id)
-      .then((result)=>{ if(active){ setStatus(result); setBaseBranch(result?.repository?.default_branch || 'main'); setBranch(result?.repository?.default_branch || 'main') }})
-      .catch((next)=>active && setError(next?.message || 'Não foi possível abrir o Project Studio.'))
+      .then(async(result)=>{
+        if(!active) return
+        setStatus(result)
+        const base=result?.repository?.default_branch || 'main'
+        setBaseBranch(base)
+        setBranch(base)
+        if(result?.enabled){
+          const [treeResult,branchResult]=await Promise.all([
+            getProjectStudioTree(project.id,base),
+            getProjectStudioBranches(project.id),
+          ])
+          if(!active) return
+          setFiles(treeResult.files || [])
+          setBranches(branchResult.branches || [])
+        }
+      })
+      .catch((next)=>active && setError(next?.message || 'Não foi possível abrir o Dev Workspace.'))
       .finally(()=>active && setLoading(false))
-    return ()=>{active=false}
+    return()=>{active=false}
   },[project?.id,canManage])
 
-  const visibleFiles = useMemo(()=>{
+  const visibleFiles=useMemo(()=>{
     const needle=query.trim().toLowerCase()
-    return needle ? files.filter((item)=>String(item.path).toLowerCase().includes(needle)) : files
+    return needle?files.filter(item=>String(item.path).toLowerCase().includes(needle)):files
   },[files,query])
 
-  if (!canManage) return null
-  if (loading) return <section className="project-studio loading"><RefreshCw className="security-spin"/> Preparando Project Studio...</section>
-  if (!status) return error ? <section className="project-studio locked"><p>{error}</p></section> : null
-  if (!status.enabled) return <StudioLocked plan={status.plan}/>
+  if(!canManage) return null
+  if(loading) return <section className="project-studio loading"><RefreshCw className="security-spin"/> Preparando Dev Workspace...</section>
+  if(!status) return error?<section className="project-studio locked"><p>{error}</p></section>:null
+  if(!status.enabled) return <StudioLocked plan={status.plan}/>
 
-  async function loadTree(nextBranch=branch || baseBranch) {
-    setBusy('tree'); setError('')
-    try {
+  async function refreshTree(nextBranch=branch || baseBranch) {
+    setBusy('tree');setError('')
+    try{
       const result=await getProjectStudioTree(project.id,nextBranch)
       setFiles(result.files || [])
       setBranch(result.branch || nextBranch)
-    } catch(next){setError(next?.message || 'Não foi possível listar os arquivos.')}
+    }catch(next){setError(next?.message || 'Não foi possível listar os arquivos.')}
     finally{setBusy('')}
   }
 
+  async function refreshBranches() {
+    setBusy('branches');setError('')
+    try{const result=await getProjectStudioBranches(project.id);setBranches(result.branches || [])}
+    catch(next){setError(next?.message || 'Não foi possível carregar as branches.')}
+    finally{setBusy('')}
+  }
+
+  async function chooseBranch(nextBranch) {
+    setBranch(nextBranch)
+    setCommitInfo(null)
+    setSelected('')
+    setContent('')
+    setOriginal('')
+    await refreshTree(nextBranch)
+  }
+
   async function openFile(path) {
-    setBusy('file'); setError('')
-    try {
+    setBusy('file');setError('')
+    try{
       const result=await readProjectStudioFile(project.id,path,branch || baseBranch)
       setSelected(result.path)
       setContent(result.content || '')
       setOriginal(result.content || '')
-    } catch(next){setError(next?.message || 'Não foi possível abrir o arquivo.')}
+    }catch(next){setError(next?.message || 'Não foi possível abrir o arquivo.')}
     finally{setBusy('')}
+  }
+
+  function createFileDraft() {
+    const path=newPath.trim().replace(/^\/+/, '')
+    if(!path) return notify?.('Informe o caminho do novo arquivo.')
+    setSelected(path)
+    setContent('')
+    setOriginal('__creativezone_new_file__')
+    setNewPath('')
   }
 
   async function commit() {
     if(!selected || content===original) return
-    setBusy('commit'); setError('')
-    try {
+    setBusy('commit');setError('')
+    try{
+      const requestedBranch=commitInfo?.branch || (branch && branch!==baseBranch?branch:undefined)
       const result=await commitProjectStudioFile(project.id,{
         path:selected,
         content,
-        message:message || ('Update '+selected+' via CreativeZone'),
-        branch:commitInfo?.branch || undefined,
+        message:message || ((original==='__creativezone_new_file__'?'Create ':'Update ')+selected+' via CreativeZone'),
+        branch:requestedBranch,
       })
       setCommitInfo(result)
       setBranch(result.branch)
       setOriginal(content)
       setMessage('')
-      notify?.('Commit criado no GitHub pelo CreativeZone.')
-      await loadTree(result.branch)
-    } catch(next){const msg=next?.message || 'Falha ao criar commit.';setError(msg);notify?.(msg)}
+      notify?.('Commit criado diretamente pelo CreativeZone.')
+      await Promise.all([refreshTree(result.branch),refreshBranches()])
+    }catch(next){const msg=next?.message || 'Falha ao criar commit.';setError(msg);notify?.(msg)}
+    finally{setBusy('')}
+  }
+
+  async function ensureWorkBranch() {
+    if(branch && branch!==baseBranch) return branch
+    const next=('creativezone/'+Date.now()).slice(0,80)
+    const result=await createProjectStudioBranch(project.id,{branch:next,base_branch:baseBranch})
+    setBranch(result.branch)
+    await refreshBranches()
+    return result.branch
+  }
+
+  async function removeCurrentFile() {
+    if(!selected || !window.confirm('Excluir “'+selected+'” do repositório? A alteração será commitada em uma branch.')) return
+    setBusy('delete');setError('')
+    try{
+      const workBranch=await ensureWorkBranch()
+      await deleteProjectStudioFile(project.id,{
+        path:selected,
+        branch:workBranch,
+        message:'Delete '+selected+' via CreativeZone',
+      })
+      setSelected('');setContent('');setOriginal('')
+      notify?.('Arquivo excluído e commitado pelo CreativeZone.')
+      await refreshTree(workBranch)
+    }catch(next){const msg=next?.message || 'Não foi possível excluir o arquivo.';setError(msg);notify?.(msg)}
+    finally{setBusy('')}
+  }
+
+  async function uploadFiles(event) {
+    const selectedFiles=Array.from(event.target.files || [])
+    event.target.value=''
+    if(!selectedFiles.length) return
+    setBusy('upload');setError('')
+    try{
+      let workBranch=branch && branch!==baseBranch?branch:''
+      if(!workBranch) workBranch=await ensureWorkBranch()
+      for(const file of selectedFiles){
+        const base64=await readFileAsBase64(file)
+        await uploadProjectStudioFile(project.id,{
+          path:file.webkitRelativePath || file.name,
+          content_base64:base64,
+          branch:workBranch,
+          message:'Upload '+(file.webkitRelativePath || file.name)+' via CreativeZone',
+        })
+      }
+      notify?.(selectedFiles.length+' arquivo(s) enviado(s) e commitado(s) no GitHub.')
+      await refreshTree(workBranch)
+    }catch(next){const msg=next?.message || 'Falha no upload.';setError(msg);notify?.(msg)}
+    finally{setBusy('')}
+  }
+
+  async function createBranch() {
+    if(!newBranch.trim()) return
+    setBusy('new-branch');setError('')
+    try{
+      const result=await createProjectStudioBranch(project.id,{branch:newBranch.trim(),base_branch:branch || baseBranch})
+      setNewBranch('')
+      setBranch(result.branch)
+      setCommitInfo(null)
+      await Promise.all([refreshBranches(),refreshTree(result.branch)])
+      notify?.('Branch '+result.branch+' criada.')
+    }catch(next){setError(next?.message || 'Não foi possível criar a branch.')}
+    finally{setBusy('')}
+  }
+
+  async function loadCommits() {
+    setBusy('commits');setError('')
+    try{const result=await getProjectStudioCommits(project.id,branch || baseBranch);setCommits(result.commits || [])}
+    catch(next){setError(next?.message || 'Não foi possível carregar commits.')}
+    finally{setBusy('')}
+  }
+
+  async function loadIssues() {
+    setBusy('issues');setError('')
+    try{const result=await getProjectStudioIssues(project.id,'all');setIssues(result.issues || [])}
+    catch(next){setError(next?.message || 'Não foi possível carregar Issues.')}
+    finally{setBusy('')}
+  }
+
+  async function createIssue(event) {
+    event.preventDefault()
+    if(!issueTitle.trim()) return
+    setBusy('new-issue');setError('')
+    try{
+      await createProjectStudioIssue(project.id,{title:issueTitle.trim(),body:issueBody.trim()})
+      setIssueTitle('');setIssueBody('')
+      notify?.('Issue criada no GitHub sem sair do fórum.')
+      await loadIssues()
+    }catch(next){const msg=next?.message || 'Não foi possível criar a Issue.';setError(msg);notify?.(msg)}
+    finally{setBusy('')}
+  }
+
+  async function loadPulls() {
+    setBusy('prs');setError('')
+    try{const result=await getProjectStudioPullRequests(project.id,'all');setPulls(result.pull_requests || [])}
+    catch(next){setError(next?.message || 'Não foi possível carregar Pull Requests.')}
     finally{setBusy('')}
   }
 
   async function createPr() {
-    if(!commitInfo?.branch) return
+    const source=commitInfo?.branch || (branch!==baseBranch?branch:'')
+    if(!source) return notify?.('Crie uma branch ou faça uma alteração antes de abrir a Pull Request.')
     setBusy('pr');setError('')
     try{
       const result=await createProjectStudioPullRequest(project.id,{
-        branch:commitInfo.branch,
-        base_branch:commitInfo.base_branch || baseBranch,
-        title:'CreativeZone: '+(message || selected || 'Project Studio changes'),
+        branch:source,
+        base_branch:commitInfo?.base_branch || baseBranch,
+        title:'CreativeZone: '+(selected || source),
       })
-      setCommitInfo((current)=>({...current,pull_request:result.pull_request}))
-      notify?.('Pull Request criada no GitHub.')
+      setCommitInfo(current=>({...current,pull_request:result.pull_request}))
+      notify?.('Pull Request criada pelo CreativeZone.')
+      setTab('prs')
+      await loadPulls()
     }catch(next){const msg=next?.message || 'Falha ao criar Pull Request.';setError(msg);notify?.(msg)}
+    finally{setBusy('')}
+  }
+
+  async function mergePr(number) {
+    if(!window.confirm('Fazer merge da Pull Request #'+number+'?')) return
+    setBusy('merge:'+number);setError('')
+    try{
+      const result=await mergeProjectStudioPullRequest(project.id,number,'squash')
+      notify?.(result.merged?'Pull Request integrada com sucesso.':(result.message || 'O GitHub não permitiu o merge.'))
+      await loadPulls()
+    }catch(next){const msg=next?.message || 'Não foi possível fazer merge.';setError(msg);notify?.(msg)}
     finally{setBusy('')}
   }
 
   async function loadCi() {
     setBusy('ci');setError('')
-    try{const result=await getProjectStudioCi(project.id,commitInfo?.branch || branch || baseBranch);setCiRuns(result.runs || [])}
+    try{const result=await getProjectStudioCi(project.id,branch || baseBranch);setCiRuns(result.runs || [])}
     catch(next){setError(next?.message || 'Não foi possível carregar CI/CD.')}
     finally{setBusy('')}
   }
@@ -147,68 +346,135 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     setBusy('autofix:'+id);setError('')
     try{
       const result=await createProjectSecurityFix(project.id,id)
-      notify?.('AutoFix criou uma Pull Request para revisão.')
-      if(result.pull_request?.html_url) window.open(result.pull_request.html_url,'_blank','noopener,noreferrer')
+      notify?.('AutoFix criou uma Pull Request para revisão dentro do DevHub.')
+      if(result?.pull_request){setTab('prs');await loadPulls()}
     }catch(next){const msg=next?.message || 'Não foi possível criar a correção.';setError(msg);notify?.(msg)}
     finally{setBusy('')}
   }
 
+  async function runTerminal(event) {
+    event.preventDefault()
+    const command=terminalCommand.trim()
+    if(!command) return
+    setTerminalCommand('')
+    setTerminalLines(lines=>[...lines,{type:'command',text:'$ '+command}])
+    setBusy('terminal');setError('')
+    try{
+      const result=await runProjectStudioTerminal(project.id,command,branch || baseBranch)
+      if(result.branch && result.branch!==branch){
+        setBranch(result.branch)
+        await Promise.all([refreshBranches(),refreshTree(result.branch)])
+      }
+      setTerminalLines(lines=>[...lines,{type:'output',text:result.output || ''}])
+    }catch(next){
+      const msg=next?.message || 'Comando não executado.'
+      setTerminalLines(lines=>[...lines,{type:'error',text:msg}])
+    }finally{setBusy('')}
+  }
+
+  function changeTab(next) {
+    setTab(next)
+    if(next==='branches'&&!branches.length) refreshBranches()
+    if(next==='commits') loadCommits()
+    if(next==='issues') loadIssues()
+    if(next==='prs') loadPulls()
+    if(next==='ci') loadCi()
+    if(next==='security'&&!fixes.length) loadFixes()
+  }
+
   return (
-    <section className="project-studio">
+    <section className="project-studio devhub-workspace">
       <header className="project-studio-head">
         <Code2/>
-        <span><small>CREATIVEZONE DEVHUB · ELITE</small><strong>Project Studio</strong></span>
-        <em><GitBranch/>{commitInfo?.branch || branch || baseBranch}</em>
+        <span><small>CREATIVEZONE DEVHUB · {String(status.plan?.plan_id || 'elite').toUpperCase()}</small><strong>Dev Workspace</strong></span>
+        <em><GitBranch/>{branch || baseBranch}</em>
+        <small className="studio-role">permissão: {status.role || 'contributor'}</small>
       </header>
-      <nav className="project-studio-tabs">
-        <button className={tab==='code'?'active':''} onClick={()=>setTab('code')}><FileCode2/> Código</button>
-        <button className={tab==='security'?'active':''} onClick={()=>{setTab('security');if(!fixes.length)loadFixes()}}><ShieldCheck/> AutoFix</button>
-        <button className={tab==='ci'?'active':''} onClick={()=>{setTab('ci');loadCi()}}><Workflow/> CI/CD</button>
+
+      <nav className="project-studio-tabs devhub-tabs">
+        <button className={tab==='code'?'active':''} onClick={()=>changeTab('code')}><FileCode2/>Código</button>
+        <button className={tab==='issues'?'active':''} onClick={()=>changeTab('issues')}><MessageSquarePlus/>Issues</button>
+        <button className={tab==='prs'?'active':''} onClick={()=>changeTab('prs')}><GitPullRequest/>Pull Requests</button>
+        <button className={tab==='branches'?'active':''} onClick={()=>changeTab('branches')}><GitBranch/>Branches</button>
+        <button className={tab==='commits'?'active':''} onClick={()=>changeTab('commits')}><GitCommitHorizontal/>Commits</button>
+        <button className={tab==='terminal'?'active':''} onClick={()=>changeTab('terminal')}><TerminalSquare/>Terminal</button>
+        <button className={tab==='ci'?'active':''} onClick={()=>changeTab('ci')}><Workflow/>CI/CD</button>
+        <button className={tab==='security'?'active':''} onClick={()=>changeTab('security')}><ShieldCheck/>Segurança</button>
       </nav>
 
-      {error && <p className="project-studio-error">{error}</p>}
+      {error&&<p className="project-studio-error"><AlertTriangle/>{error}</p>}
 
-      {tab==='code' && (
-        <div className="project-studio-workspace">
-          <aside>
-            <div className="project-studio-search"><Search/><input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Buscar arquivo"/></div>
-            <button className="action studio-load" onClick={()=>loadTree()} disabled={busy==='tree'}><RefreshCw/>{files.length?'Atualizar':'Carregar arquivos'}</button>
-            <div className="project-studio-files">
-              {visibleFiles.map((item)=><button key={item.path} className={selected===item.path?'active':''} onClick={()=>openFile(item.path)}><FileCode2/>{item.path}</button>)}
+      {tab==='code'&&<div className="project-studio-workspace">
+        <aside>
+          <div className="project-studio-search"><Search/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar arquivo"/></div>
+          <div className="studio-code-tools">
+            <button className="action" onClick={()=>refreshTree()} disabled={Boolean(busy)}><RefreshCw/>Atualizar</button>
+            <button className="action" onClick={()=>uploadRef.current?.click()} disabled={Boolean(busy)}><Upload/>Upload</button>
+            <input ref={uploadRef} type="file" multiple hidden onChange={uploadFiles}/>
+          </div>
+          <div className="studio-new-file">
+            <input value={newPath} onChange={e=>setNewPath(e.target.value)} placeholder="src/novo-arquivo.js"/>
+            <button onClick={createFileDraft} title="Criar arquivo"><FilePlus2/></button>
+          </div>
+          <div className="project-studio-files">
+            {visibleFiles.map(item=><button key={item.path} className={selected===item.path?'active':''} onClick={()=>openFile(item.path)}><FileCode2/>{item.path}</button>)}
+            {!visibleFiles.length&&<small>Nenhum arquivo carregado.</small>}
+          </div>
+        </aside>
+        <main>
+          {selected?<>
+            <div className="project-studio-filebar"><strong>{selected}</strong><span>{content===original?'Sem alterações':original==='__creativezone_new_file__'?'Novo arquivo':'Alterado'}</span><button title="Excluir arquivo" onClick={removeCurrentFile}><Trash2/></button></div>
+            <textarea className="project-studio-editor" spellCheck="false" value={content} onChange={e=>setContent(e.target.value)}/>
+            <div className="project-studio-commitbar">
+              <input value={message} onChange={e=>setMessage(e.target.value)} placeholder="Mensagem do commit"/>
+              <button className="action primary-action" onClick={commit} disabled={content===original||Boolean(busy)}><GitCommitHorizontal/>{busy==='commit'?'Commitando...':'Commitar'}</button>
+              {(commitInfo?.branch||branch!==baseBranch)&&<button className="action" onClick={createPr} disabled={Boolean(busy)}><GitPullRequest/>Criar PR</button>}
             </div>
-          </aside>
-          <main>
-            {selected ? (
-              <>
-                <div className="project-studio-filebar"><strong>{selected}</strong><span>{content===original?'Sem alterações':'Alterado'}</span></div>
-                <textarea className="project-studio-editor" spellCheck="false" value={content} onChange={(e)=>setContent(e.target.value)}/>
-                <div className="project-studio-commitbar">
-                  <input value={message} onChange={(e)=>setMessage(e.target.value)} placeholder="Mensagem do commit"/>
-                  <button className="action primary-action" onClick={commit} disabled={content===original || Boolean(busy)}><GitCommitHorizontal/>{busy==='commit'?'Commitando...':'Commitar no GitHub'}</button>
-                  {commitInfo?.branch && !commitInfo?.pull_request && <button className="action" onClick={createPr} disabled={Boolean(busy)}><GitPullRequest/> Criar Pull Request</button>}
-                  {commitInfo?.pull_request?.html_url && <a className="action" href={commitInfo.pull_request.html_url} target="_blank" rel="noreferrer"><GitPullRequest/> PR #{commitInfo.pull_request.number}<ExternalLink/></a>}
-                </div>
-              </>
-            ) : <div className="project-studio-empty"><Code2/><strong>Selecione um arquivo</strong><p>As alterações são commitadas em uma branch CreativeZone e podem virar Pull Request sem sair do fórum.</p></div>}
-          </main>
-        </div>
-      )}
+          </>:<div className="project-studio-empty"><Code2/><strong>Code Studio</strong><p>Abra, crie, edite, envie ou exclua arquivos. As alterações são gravadas no GitHub sem sair da CreativeZone.</p></div>}
+        </main>
+      </div>}
 
-      {tab==='security' && (
-        <div className="project-studio-security">
-          <header><span><ShieldCheck/><strong>AutoFix assistido</strong></span><button className="action" onClick={loadFixes}><RefreshCw/> Atualizar</button></header>
-          {!fixes.length && !busy && <p>Nenhuma vulnerabilidade com versão corrigida disponível no último relatório.</p>}
-          {fixes.map((item)=><article key={item.id}><span><b>{item.package_name}</b><small>{item.osv_id} · {item.severity} · {item.version} → {item.fixed_versions?.[0]}</small></span><button className="action" onClick={()=>autoFix(item.id)} disabled={Boolean(busy)}><Wrench/>{busy==='autofix:'+item.id?'Criando PR...':'Criar correção'}</button></article>)}
-        </div>
-      )}
+      {tab==='branches'&&<div className="studio-panel">
+        <header><span><GitBranch/><strong>Branches</strong></span><button className="action" onClick={refreshBranches}><RefreshCw/>Atualizar</button></header>
+        <div className="studio-create-row"><input value={newBranch} onChange={e=>setNewBranch(e.target.value)} placeholder="feature/minha-alteracao"/><button className="action primary-action" onClick={createBranch} disabled={!newBranch.trim()||Boolean(busy)}><Plus/>Criar branch</button></div>
+        <div className="studio-list">{branches.map(item=><button key={item.name} className={item.name===branch?'active':''} onClick={()=>chooseBranch(item.name)}><GitBranch/><span><strong>{item.name}</strong><small>{item.sha?String(item.sha).slice(0,10):''}{item.protected?' · protegida':''}</small></span>{item.name===baseBranch&&<em>padrão</em>}</button>)}</div>
+      </div>}
 
-      {tab==='ci' && (
-        <div className="project-studio-ci">
-          <header><span><Workflow/><strong>CI/CD Cockpit</strong></span><button className="action" onClick={loadCi}><RefreshCw/> Atualizar</button></header>
-          {ciRuns.map((run)=><a key={run.id} href={run.html_url} target="_blank" rel="noreferrer"><span><b>{run.name}</b><small>{run.event} · {String(run.head_sha||'').slice(0,7)}</small></span><em className={'ci-'+(run.conclusion || run.status)}>{run.conclusion || run.status}</em><ExternalLink/></a>)}
-          {!ciRuns.length && !busy && <p>Nenhuma execução encontrada nesta branch.</p>}
-        </div>
-      )}
+      {tab==='commits'&&<div className="studio-panel">
+        <header><span><GitCommitHorizontal/><strong>Commits · {branch}</strong></span><button className="action" onClick={loadCommits}><RefreshCw/>Atualizar</button></header>
+        <div className="studio-list">{commits.map(item=><article key={item.sha}><GitCommitHorizontal/><span><strong>{item.message?.split('\n')[0]}</strong><small>{item.sha?.slice(0,8)} · {item.author} · {shortDate(item.date)}</small></span></article>)}</div>
+      </div>}
+
+      {tab==='issues'&&<div className="studio-panel">
+        <header><span><MessageSquarePlus/><strong>Issues</strong></span><button className="action" onClick={loadIssues}><RefreshCw/>Atualizar</button></header>
+        <form className="studio-issue-form" onSubmit={createIssue}><input value={issueTitle} onChange={e=>setIssueTitle(e.target.value)} placeholder="Título da nova Issue"/><textarea value={issueBody} onChange={e=>setIssueBody(e.target.value)} placeholder="Descreva a tarefa, bug ou melhoria..."/><button className="action primary-action" disabled={!issueTitle.trim()||Boolean(busy)}><Plus/>Criar Issue</button></form>
+        <div className="studio-list">{issues.map(item=><article key={item.number}><span className={'studio-state '+item.state}>{item.state}</span><span><strong>#{item.number} {item.title}</strong><small>{item.user||'GitHub'} · {item.comments||0} comentário(s) · {shortDate(item.updated_at)}</small><p>{item.body}</p></span></article>)}</div>
+      </div>}
+
+      {tab==='prs'&&<div className="studio-panel">
+        <header><span><GitPullRequest/><strong>Pull Requests</strong></span><div><button className="action" onClick={createPr}><Plus/>Nova PR da branch atual</button><button className="action" onClick={loadPulls}><RefreshCw/>Atualizar</button></div></header>
+        <div className="studio-list">{pulls.map(item=><article key={item.number}><GitPullRequest/><span><strong>#{item.number} {item.title}</strong><small>{item.head} → {item.base} · {item.user||'GitHub'} · {item.state}{item.draft?' · draft':''}</small><p>{item.body}</p></span>{status.can_manage&&item.state==='open'&&<button className="action primary-action" onClick={()=>mergePr(item.number)} disabled={Boolean(busy)}><GitMerge/>{busy==='merge:'+item.number?'Integrando...':'Merge'}</button>}</article>)}</div>
+      </div>}
+
+      {tab==='terminal'&&<div className="studio-terminal">
+        <header><TerminalSquare/><span><strong>Terminal Git seguro</strong><small>Comandos Git são executados por API no repositório real. Não é um shell Linux arbitrário.</small></span></header>
+        <div className="studio-terminal-screen">{terminalLines.map((line,index)=><pre key={index} className={'terminal-'+line.type}>{line.text}</pre>)}</div>
+        <form onSubmit={runTerminal}><span>$</span><input value={terminalCommand} onChange={e=>setTerminalCommand(e.target.value)} placeholder="git status" autoComplete="off"/><button disabled={busy==='terminal'}>Executar</button></form>
+      </div>}
+
+      {tab==='ci'&&<div className="project-studio-ci studio-panel">
+        <header><span><Workflow/><strong>CI/CD Cockpit</strong></span><button className="action" onClick={loadCi}><RefreshCw/>Atualizar</button></header>
+        {ciRuns.map(run=><article key={run.id}><Workflow/><span><b>{run.name}</b><small>{run.event} · {String(run.head_sha||'').slice(0,7)} · {shortDate(run.created_at)}</small></span><em className={'ci-'+(run.conclusion||run.status)}>{run.conclusion||run.status}</em></article>)}
+        {!ciRuns.length&&!busy&&<p>Nenhuma execução encontrada nesta branch.</p>}
+      </div>}
+
+      {tab==='security'&&<div className="project-studio-security studio-panel">
+        <header><span><ShieldCheck/><strong>CreativeZone Security + AutoFix</strong></span><button className="action" onClick={loadFixes}><RefreshCw/>Atualizar</button></header>
+        {!fixes.length&&!busy&&<p>Nenhuma vulnerabilidade com versão corrigida disponível no último relatório.</p>}
+        {fixes.map(item=><article key={item.id}><span><b>{item.package_name}</b><small>{item.osv_id} · {item.severity} · {item.version} → {item.fixed_versions?.[0]}</small></span><button className="action" onClick={()=>autoFix(item.id)} disabled={Boolean(busy)}><Wrench/>{busy==='autofix:'+item.id?'Criando PR...':'Criar correção'}</button></article>)}
+      </div>}
+
+      <footer className="studio-footer-note"><CheckCircle2/>GitHub é a infraestrutura de versionamento; o trabalho cotidiano pode ser feito dentro da CreativeZone.</footer>
     </section>
   )
 }
