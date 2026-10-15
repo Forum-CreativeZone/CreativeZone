@@ -38,6 +38,7 @@ import { ProjectStudio } from './ProjectStudio'
 import { ProjectActivityFeed } from './ProjectActivityFeed'
 import { ProjectPassport } from './ProjectPassport'
 import { ProjectKanban } from './ProjectKanban'
+import { ProjectRecruiting } from './ProjectRecruiting'
 import { GitHubAccountConnect } from './GitHubAccountConnect'
 import { connectExistingGitHubRepository, createGitHubRepositoryForProject, getGitHubAccountStatus } from './services/githubAuthApi'
 import { requestGitHubOrganizationMembership, syncGitHubProject } from './services/githubApi'
@@ -616,6 +617,13 @@ export function ProjectPage({ slug, session, navigate, notify }) {
 
           <ProjectPassport
             project={project}
+            notify={notify}
+          />
+
+          <ProjectRecruiting
+            project={project}
+            session={session}
+            navigate={navigate}
             notify={notify}
           />
 
