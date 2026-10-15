@@ -160,9 +160,9 @@ export function ContributionPassport({userId,navigate,notify}){
 
     <div className="contribution-passport__metrics">
       <article><GitCommitHorizontal/><span><strong>{metrics.commits??0}</strong><small>Commits</small></span></article>
-      <article><GitPullRequest/><span><strong>{metrics.pull_request_events??0}</strong><small>Eventos de PR</small></span></article>
+      <article><GitPullRequest/><span><strong>{metrics.pull_requests_opened??0}</strong><small>PRs abertos · {metrics.merged_pull_requests??0} mergeados</small></span></article>
       <article><BadgeCheck/><span><strong>{metrics.reviews??0}</strong><small>Reviews</small></span></article>
-      <article><CircleDot/><span><strong>{metrics.issues??0}</strong><small>Issues</small></span></article>
+      <article><CircleDot/><span><strong>{metrics.issues_opened??0}</strong><small>Issues abertas · {metrics.issues_closed??0} encerradas</small></span></article>
       <article><Rocket/><span><strong>{metrics.releases??0}</strong><small>Releases</small></span></article>
       <article><MessageSquare/><span><strong>{metrics.project_updates??0}</strong><small>Updates</small></span></article>
     </div>
@@ -216,6 +216,10 @@ export function ContributionPassport({userId,navigate,notify}){
         <span><b>{internal.kanban_comments??0}</b><small>Comentários no Kanban</small></span>
         <span><b>{internal.private_project_memberships??0}</b><small>Projetos privados</small></span>
       </div>
+      {(internal.top_labels||[]).length>0&&<div className="contribution-passport__internal-labels">
+        <strong>Áreas internas verificadas</strong>
+        <span>{internal.top_labels.map(item=><em key={item.name}>{item.name}<small>{item.count}</small></em>)}</span>
+      </div>}
     </section>}
 
     <details className="contribution-passport__methodology">
