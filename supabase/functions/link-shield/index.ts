@@ -316,8 +316,14 @@ async function reportAction(req:Request,body:Record<string,unknown>){
 
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS") return new Response(null,{status:204,headers:CORS})
-  if(req.method!=="POST") return json({error:"method_not_allowed"},405)
   if(!SUPABASE_URL||!SERVICE_KEY) return json({error:"link_shield_unavailable"},503)
+  if(req.method==="GET") return json({
+    ok:true,
+    service:"creativezone-link-shield",
+    providers:{urlhaus:{configured:Boolean(URLHAUS_AUTH_KEY)}},
+    core_protection:"free",
+  })
+  if(req.method!=="POST") return json({error:"method_not_allowed"},405)
 
   let body:Record<string,unknown>
   try{body=await req.json()}catch{return json({error:"invalid_json"},400)}
