@@ -530,11 +530,22 @@ export function ProjectPage({ slug, session, navigate, notify }) {
     } catch (error) { notify?.(error?.message || 'Não foi possível carregar o projeto.') }
     finally { setLoading(false) }
   }
-  useEffect(()=>{ load() },[slug])
+  useEffect(()=>{ load() },[slug,session?.user?.id])
 
   useEffect(()=>{
     try{localStorage.setItem('creativezone-devhub-section-'+slug,activeSection)}catch{}
   },[slug,activeSection])
+
+  useEffect(()=>{
+    const caps=projectPermissions?.capabilities
+    if(!caps) return
+    const required={
+      code:'code_read',issues:'issues_read',prs:'prs_read',projects:'kanban_read',team:'team_view',
+      releases:'code_read',actions:'actions_read',security:'security_read',terminal:'terminal',
+      settings:'settings_read','team-chat':'team_view','security-score':'security_read',osv:'security_read',
+    }[activeSection]
+    if(required&&!caps[required]) setActiveSection('overview')
+  },[projectPermissions,activeSection])
 
   if (loading) return <Shell title={devhubLanguage==='pt'?'Projeto':'Project'} onBack={()=>navigate('/projetos')}><p className="community-empty">{devhubLanguage==='pt'?'Carregando...':'Loading...'}</p></Shell>
   if (!project) return <Shell title={devhubLanguage==='pt'?'Projeto':'Project'} onBack={()=>navigate('/projetos')}><p className="community-empty">{devhubLanguage==='pt'?'Projeto não encontrado.':'Project not found.'}</p></Shell>
