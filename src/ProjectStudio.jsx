@@ -1512,7 +1512,7 @@ export function ProjectStudio({ project, canManage = false, notify, initialTab =
           <pre className="terminal-output">{'runtime: xterm.js 6.0 + FitAddon 0.11'}</pre>
           <pre className="terminal-output">{'project: '+(status.repository?.repo_owner||'')+'/'+(status.repository?.repo_name||'')}</pre>
           <pre className="terminal-output">{'branch: '+(branch||baseBranch)}</pre>
-          <pre className="terminal-output">{'role: '+(status.role||'contributor')}</pre>
+          <pre className="terminal-output">{'role: '+(status.role||'member')}</pre>
           <pre className="terminal-output">{'workspace: '+(status.enabled?'enabled':'disabled')}</pre>
           <pre className="terminal-output">{'terminal: '+xtermState}</pre>
           {xtermError&&<pre className="terminal-error">{xtermError}</pre>}
