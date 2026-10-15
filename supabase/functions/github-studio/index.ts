@@ -225,18 +225,111 @@ async function context(req: Request, projectId: string) {
     .eq("id", projectId)
     .maybeSingle()
   if (!project) throw new Error("Projeto não encontrado.")
+
   const [{ data: profile }, { data: member }] = await Promise.all([
     admin.from("profiles").select("role,system_owner").eq("id", user.id).maybeSingle(),
-    admin.from("project_members").select("role,status").eq("project_id", projectId).eq("user_id", user.id).maybeSingle(),
+    admin.from("project_members")
+      .select("role,status,operational_access,allowed_paths")
+      .eq("project_id", projectId)
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ])
-  const staff = Boolean(profile?.system_owner || ["admin", "moderator"].includes(String(profile?.role || "")))
-  const memberRole = member?.status === "active" ? String(member?.role || "") : ""
-  const projectRole = project.owner_id === user.id ? "owner" : staff ? "maintainer" : memberRole
-  const participant = ["owner","maintainer","contributor"].includes(projectRole)
-  if (!participant) throw new Error("Você não possui permissão para trabalhar neste projeto.")
-  const canManage = projectRole === "owner" || projectRole === "maintainer"
+
+  const systemOwner = Boolean(profile?.system_owner)
+  const staff = Boolean(systemOwner || ["admin", "moderator"].includes(String(profile?.role || "")))
+  const activeMember = member?.status === "active"
+  const rawRole = project.owner_id === user.id || systemOwner
+    ? "owner"
+    : staff
+      ? "maintainer"
+      : activeMember
+        ? String(member?.role || "")
+        : ""
+
+  if (!rawRole || rawRole === "interested") {
+    throw new Error("Você não possui permissão para trabalhar neste projeto.")
+  }
+
+  const operationalAccess = Boolean(member?.operational_access) && rawRole !== "owner"
+  const effectiveRole = operationalAccess ? "maintainer" : rawRole
+  const { data: roleRow } = await admin
+    .from("project_role_permissions")
+    .select("capabilities")
+    .eq("role", effectiveRole)
+    .maybeSingle()
+
+  const permissions = (roleRow?.capabilities || {}) as Record<string, boolean>
+  const allowedPaths = Array.isArray(member?.allowed_paths) ? member.allowed_paths.map(String) : []
+  const canManage = Boolean(permissions.settings_manage)
+  const participant = true
   const plan = await planFor(project.owner_id)
-  return { user, project, plan, projectRole, canManage, staff }
+
+  return {
+    user, project, plan, projectRole: rawRole, effectiveRole, operationalAccess,
+    allowedPaths, permissions, canManage, participant, staff,
+  }
+}
+
+const ACTION_CAPABILITIES: Record<string,string> = {
+  status:"code_read",
+  tree:"code_read",
+  read:"code_read",
+  preview:"code_read",
+  branches:"code_read",
+  commits:"code_read",
+  commit:"code_write",
+  commit_batch:"code_write",
+  upload:"code_write",
+  delete_file:"code_write",
+  create_branch:"code_write",
+  issues:"issues_read",
+  create_issue:"issues_create",
+  update_issue:"issues_manage",
+  issue_comments:"issues_read",
+  issue_comment:"issues_comment",
+  pull_requests:"prs_read",
+  pull_request:"prs_create",
+  pr_reviews:"prs_read",
+  review_pr:"prs_review",
+  merge_pull_request:"prs_merge",
+  repository_settings:"settings_read",
+  update_repository_settings:"settings_manage",
+  terminal:"terminal",
+  run_code:"run_code",
+  ci:"actions_read",
+  fixes:"security_read",
+  autofix:"security_manage",
+}
+
+function pathAllowedForDesigner(ctx: Awaited<ReturnType<typeof context>>, pathValue: unknown) {
+  if (ctx.projectRole !== "designer" || ctx.operationalAccess) return true
+  const path = String(pathValue || "").trim().replace(/^\/+|\/+$/g, "")
+  if (!path) return false
+  return ctx.allowedPaths.some((raw:string) => {
+    const allowed = String(raw || "").trim().replace(/^\/+|\/+$/g, "")
+    return Boolean(allowed) && (path === allowed || path.startsWith(allowed + "/"))
+  })
+}
+
+async function authorizeStudioAction(req: Request, payload: Record<string, unknown>, action: string) {
+  const projectId = String(payload.project_id || "")
+  if (!projectId) throw new Error("Projeto não informado.")
+  const ctx = await context(req, projectId)
+  const capability = ACTION_CAPABILITIES[action]
+  if (capability && !ctx.permissions?.[capability]) {
+    throw new Error("Sua função no projeto não permite esta operação.")
+  }
+
+  if (["commit","upload","delete_file"].includes(action) && !pathAllowedForDesigner(ctx,payload.path)) {
+    throw new Error("Designer pode editar somente arquivos e pastas autorizados pelo responsável do projeto.")
+  }
+  if (action === "commit_batch" && ctx.projectRole === "designer" && !ctx.operationalAccess) {
+    const changes = Array.isArray(payload.changes) ? payload.changes : []
+    if (!changes.length || changes.some((item:any)=>!pathAllowedForDesigner(ctx,item?.path))) {
+      throw new Error("Este lote contém arquivos fora dos caminhos autorizados para Designer.")
+    }
+  }
+  return ctx
 }
 
 async function repositoryAccess(req: Request, payload: Record<string, unknown>, capability = "project_studio") {
@@ -332,6 +425,10 @@ async function status(req: Request, payload: Record<string, unknown>) {
     plan: access.plan,
     role: access.projectRole,
     can_manage: access.canManage,
+    permissions: access.permissions || {},
+    operational_access: Boolean(access.operationalAccess),
+    allowed_paths: access.allowedPaths || [],
+    effective_role: access.effectiveRole || access.projectRole,
     auth_mode: access.authMode || null,
     repository: access.repository ? {
       repo_url: access.repository.repo_url,
@@ -1135,6 +1232,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const action = String(payload.action || "status")
+    await authorizeStudioAction(req,payload,action)
     if (action === "status") return reply({ ok: true, ...(await status(req, payload)) })
     if (action === "tree") return reply({ ok: true, ...(await tree(req, payload)) })
     if (action === "read") return reply({ ok: true, ...(await readFile(req, payload)) })
