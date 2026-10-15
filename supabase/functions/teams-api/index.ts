@@ -483,7 +483,13 @@ async function updateTopic(req:Request,payload:Record<string,unknown>){
     changes.visibility=value
   }
   if(payload.public_summary!==undefined) changes.public_summary=compact(payload.public_summary,3000)
-  if(payload.locked!==undefined&&perms.manage_topics) changes.locked=Boolean(payload.locked)
+  if(payload.locked!==undefined){
+    if(!perms.manage_topics) throw new Error("Sua função não pode abrir ou fechar tópicos da equipe.")
+    changes.locked=Boolean(payload.locked)
+  }
+  const nextVisibility=String(changes.visibility ?? topic.visibility)
+  const nextSummary=String(changes.public_summary ?? topic.public_summary ?? "").trim()
+  if(nextVisibility==="public_preview"&&!nextSummary) throw new Error("Uma vitrine pública precisa de um resumo público.")
   const {data:updated,error:updateError}=await admin.from("creative_team_topics").update(changes).eq("id",topicId).select("*").single()
   if(updateError) throw updateError
   if(payload.content!==undefined){
