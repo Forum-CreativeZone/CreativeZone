@@ -39,6 +39,7 @@ import { ProjectActivityFeed } from './ProjectActivityFeed'
 import { ProjectPassport } from './ProjectPassport'
 import { ProjectKanban } from './ProjectKanban'
 import { ProjectRecruiting } from './ProjectRecruiting'
+import { ProjectRoadmapNav, useDevHubLanguage } from './ProjectRoadmap'
 import { GitHubAccountConnect } from './GitHubAccountConnect'
 import { connectExistingGitHubRepository, createGitHubRepositoryForProject, getGitHubAccountStatus } from './services/githubAuthApi'
 import { requestGitHubOrganizationMembership, syncGitHubProject } from './services/githubApi'
@@ -509,6 +510,7 @@ export function ProjectPage({ slug, session, navigate, notify }) {
   const [loading,setLoading]=useState(true)
   const [message,setMessage]=useState('')
   const [updateText,setUpdateText]=useState('')
+  const [devhubLanguage]=useDevHubLanguage()
 
   async function load() {
     setLoading(true)
@@ -563,17 +565,46 @@ export function ProjectPage({ slug, session, navigate, notify }) {
     catch (error) { notify?.(error?.message || 'Não foi possível alterar o status.') }
   }
 
+  function openRoadmapSection(key){
+    const selectors={
+      overview:'.project-overview',
+      code:'.project-studio',
+      issues:'.project-studio',
+      prs:'.project-studio',
+      projects:'.project-kanban',
+      team:'.project-members-strip',
+      discussions:'.project-updates',
+      releases:'.devhub-repository-panel',
+      actions:'.project-activity-feed',
+      security:'.project-security-panel',
+      terminal:'.project-studio',
+      settings:'.project-studio',
+      community:'.project-updates',
+      mentors:'.project-recruiting',
+      recruiting:'.project-recruiting',
+      reputation:'.project-passport-card',
+      'team-chat':'.project-members-strip',
+      'security-score':'.project-security-panel',
+      osv:'.project-security-panel',
+      learning:'.project-updates',
+    }
+    const node=document.querySelector(selectors[key]||'.project-overview')
+    node?.scrollIntoView({behavior:'smooth',block:'start'})
+    try{window.dispatchEvent(new CustomEvent('creativezone-devhub-open',{detail:key}))}catch{}
+  }
+
   return (
     <Shell title={project.title} onBack={()=>navigate('/projetos')}>
       <div className="project-detail">
-        <section className="project-overview">
+        <ProjectRoadmapNav active="overview" onSelect={openRoadmapSection}/>
+        <section className="project-overview project-roadmap-anchor">
           <div className="project-title-row"><ProjectStatus value={project.status}/><span>por {project.owner?.display_name || project.owner?.username || 'Comunidade'}</span></div>
           <p className="project-summary">{project.summary}</p>
           {project.description && <p className="project-description">{project.description}</p>}
           <div className="project-tags">{(project.tags||[]).map(tag=><span key={tag}>{tag}</span>)}</div>
           <div className="project-links">
             {project.repo_url && <span className="action project-devhub-connected"><GitBranch/>DevHub conectado</span>}
-            {canManage && <button type="button" className="action project-recruiting-jump" onClick={()=>document.querySelector('.project-recruiting')?.scrollIntoView({behavior:'smooth',block:'start'})}><UserPlus/>Preciso de ajuda</button>}
+            {canManage && <button type="button" className="action project-recruiting-jump" onClick={()=>document.querySelector('.project-recruiting')?.scrollIntoView({behavior:'smooth',block:'start'})}><UserPlus/>{devhubLanguage==='pt'?'Preciso de ajuda':'Need help'}</button>}
             {project.website_url && <a className="action" href={project.website_url} target="_blank" rel="noreferrer"><ExternalLink/>Site</a>}
             {!isOwner && session && (
               <ReportButton
@@ -610,12 +641,12 @@ export function ProjectPage({ slug, session, navigate, notify }) {
             {membership?.status==='pending' && <small className="project-members-note">Seu pedido está aguardando análise.</small>}
             {membership?.status==='active' && membership.role!=='owner' && <button className="action project-leave-button" onClick={leave}>Sair do projeto</button>}
           </div>
-          <ProjectRecruiting
+          <div className="project-roadmap-anchor" data-devhub-section="recruiting"><ProjectRecruiting
             project={project}
             session={session}
             navigate={navigate}
             notify={notify}
-          />
+          /></div>
 
           {project.website_url && (
             <div className="project-website-preview">
@@ -623,41 +654,41 @@ export function ProjectPage({ slug, session, navigate, notify }) {
             </div>
           )}
 
-          <ProjectPassport
+          <div className="project-roadmap-anchor" data-devhub-section="reputation"><ProjectPassport
             project={project}
             notify={notify}
-          />
+          /></div>
 
-          <GitHubRepositoryPanel
+          <div className="project-roadmap-anchor" data-devhub-section="releases"><GitHubRepositoryPanel
             project={project}
             canManage={canManage}
             notify={notify}
             onChanged={load}
-          />
+          /></div>
 
-          <ProjectKanban
+          <div className="project-roadmap-anchor" data-devhub-section="projects"><ProjectKanban
             project={project}
             session={session}
             notify={notify}
-          />
+          /></div>
 
-          <ProjectActivityFeed
+          <div className="project-roadmap-anchor" data-devhub-section="actions"><ProjectActivityFeed
             projectId={project.id}
             notify={notify}
-          />
+          /></div>
 
-          <ProjectStudio
+          <div className="project-roadmap-anchor" data-devhub-section="code"><ProjectStudio
             project={project}
             canManage={canStudio}
             notify={notify}
-          />
+          /></div>
 
-          <ProjectSecurityPanel
+          <div className="project-roadmap-anchor" data-devhub-section="security"><ProjectSecurityPanel
             project={{ ...project, project_security_state: projectSecurityState(project) }}
             canManage={canManage}
             notify={notify}
             onChanged={load}
-          />
+          /></div>
 
           {canManage && <div className="project-status-controls">
             {['idea','planning','active','paused','completed'].map(value=><button className="action" key={value} onClick={()=>changeStatus(value)}>{value}</button>)}
