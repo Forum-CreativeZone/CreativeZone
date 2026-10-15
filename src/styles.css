@@ -7086,3 +7086,29 @@ main{
 
 .project-activity-toggle{font-weight:700!important}
 .project-activity-feed.is-collapsed .project-activity-toggle{border-color:rgba(232,48,37,.55)!important;color:#ff8a82!important}
+
+
+/* Bilingual DevHub roadmap content */
+.project-roadmap-content-card{
+  margin:18px 0;padding:14px;border:1px solid rgba(232,48,37,.24);border-radius:13px;
+  background:linear-gradient(180deg,#0d0f12,#090a0c);box-shadow:0 14px 34px rgba(0,0,0,.16)
+}
+.project-roadmap-content-card>header,.project-roadmap-card-head{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.project-roadmap-content-card>header>svg,.project-roadmap-card-head>svg{width:17px;color:#ff7067;flex:none}
+.project-roadmap-content-card>header>span,.project-roadmap-card-head>span{display:grid;gap:2px}
+.project-roadmap-content-card>header strong,.project-roadmap-card-head strong{font-size:12px}
+.project-roadmap-content-card>header small,.project-roadmap-card-head small{font-size:9px;color:#788491}
+.project-overview-team-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0;padding:10px 12px;border:1px solid #2d3036;border-radius:9px;background:#111317}
+.project-overview-team-summary>span{display:flex;align-items:center;gap:6px;color:#929ba5;font-size:10px}.project-overview-team-summary svg{width:14px;color:#ff7067}
+.roadmap-team-strip{margin:0!important}
+.roadmap-pending{margin-top:12px!important}
+.project-roadmap-people{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.project-roadmap-people>button{display:flex;align-items:center;gap:9px;padding:9px;border:1px solid #2e3238;border-radius:9px;background:#121418;color:inherit;text-align:left;cursor:pointer}
+.project-roadmap-people>button:hover{border-color:rgba(232,48,37,.38);background:rgba(232,48,37,.045)}
+.project-roadmap-people>button>span{display:grid;gap:2px}.project-roadmap-people strong{font-size:10px}.project-roadmap-people small{font-size:8px;color:#74808c}
+.project-roadmap-learning{display:flex;flex-wrap:wrap;gap:7px}
+.project-roadmap-learning>span{padding:5px 8px;border:1px solid rgba(232,48,37,.22);border-radius:999px;background:rgba(232,48,37,.045);color:#caa5a2;font-size:9px}
+.project-roadmap-anchor{scroll-margin-top:150px}
+:root[data-theme="light"] .project-roadmap-content-card{background:#fff;border-color:rgba(190,35,27,.22)}
+:root[data-theme="light"] .project-overview-team-summary,:root[data-theme="light"] .project-roadmap-people>button{background:#fafafa;border-color:#e4dedb}
+@media(max-width:680px){.project-overview-team-summary{align-items:flex-start;flex-direction:column}.project-overview-team-summary .action{width:100%;justify-content:center}}
