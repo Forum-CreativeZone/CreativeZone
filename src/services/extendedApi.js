@@ -156,6 +156,13 @@ export async function getProjects() {
   return data ?? []
 }
 
+export async function getProjectPassport(projectId) {
+  const client=requireSupabase()
+  const {data,error}=await client.rpc('get_project_passport',{p_project_id:projectId})
+  if(error) throw error
+  return data || null
+}
+
 export async function getProjectActivity(projectId, limit = 50) {
   const client=requireSupabase()
   const safeLimit=Math.max(1,Math.min(Number(limit)||50,100))
