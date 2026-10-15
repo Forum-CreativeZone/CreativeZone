@@ -48,3 +48,20 @@
   background:#effaf2;
   color:#1f7a3c;
 }
+
+.cz-link-preview-chat-shield-ok{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  margin-top:2px;
+  color:#78d99a;
+  font-size:9px;
+  font-weight:800;
+}
+.cz-link-preview-chat-shield-ok svg{
+  width:11px;
+  height:11px;
+}
+:root[data-theme="light"] .cz-link-preview-chat-shield-ok{
+  color:#237a40;
+}
