@@ -11,6 +11,8 @@ import {
   getCreativeTeamTopic,
   inviteCreativeTeamMember,
   removeCreativeTeamMember,
+  updateCreativeTeam,
+  cancelCreativeTeamInvite,
   replyCreativeTeamTopic,
   respondCreativeTeamInvite,
   setCreativeTeamMemberRole,
@@ -29,6 +31,17 @@ const ROLE_LABELS={
   viewer:'Viewer',
 }
 const ROLE_OPTIONS=['lead','maintainer','developer','reviewer','designer','member','viewer']
+
+const ROLE_SUMMARIES=[
+  ['owner','Dono','Controle total, incluindo privacidade, funções e remoção de membros.'],
+  ['lead','Administrador','Gestão operacional ampla sem ações destrutivas; não remove membros nem concede Administrador.'],
+  ['maintainer','Maintainer','Gerencia tópicos, publica vitrines, convida membros e altera configuração limitada.'],
+  ['developer','Developer','Cria tópicos privados e participa das discussões da equipe.'],
+  ['reviewer','Reviewer','Lê, comenta e revisa; não administra equipe nem publica vitrines.'],
+  ['designer','Designer','Cria tópicos privados e colabora no conteúdo autorizado.'],
+  ['member','Membro','Lê, cria tópicos privados e participa das discussões.'],
+  ['viewer','Viewer','Acesso somente leitura ao conteúdo privado da equipe.'],
+]
 
 function avatar(profile,size=38){
   const name=profile?.display_name||profile?.username||'Membro'
@@ -147,10 +160,20 @@ export function TeamPage({slug,session,navigate,notify}){
   const [invite,setInvite]=useState({username:'',role:'member',message:''})
   const [topicOpen,setTopicOpen]=useState(false)
   const [topic,setTopic]=useState({title:'',visibility:'team_only',public_summary:'',content:''})
+  const [settingsOpen,setSettingsOpen]=useState(false)
+  const [settings,setSettings]=useState({name:'',description:'',public_profile:false})
 
   async function load(){
     setLoading(true)
-    try{setData(await getCreativeTeam(slug))}
+    try{
+      const result=await getCreativeTeam(slug)
+      setData(result)
+      if(result?.team) setSettings({
+        name:result.team.name||'',
+        description:result.team.description||'',
+        public_profile:Boolean(result.team.public_profile),
+      })
+    }
     catch(error){notify?.(error?.message||'Não foi possível carregar a equipe.')}
     finally{setLoading(false)}
   }
@@ -178,6 +201,32 @@ export function TeamPage({slug,session,navigate,notify}){
     catch(error){notify?.(error?.message||'Não foi possível remover.')}
     finally{setBusy(false)}
   }
+  async function saveSettings(event){
+    event.preventDefault();setBusy(true)
+    try{
+      await updateCreativeTeam(data.team.id,{
+        ...(data.permissions?.edit_team_identity?{name:settings.name}:{}),
+        description:settings.description,
+        ...(data.permissions?.manage_team?{public_profile:settings.public_profile}:{}),
+      })
+      notify?.('Configurações da equipe atualizadas.')
+      setSettingsOpen(false)
+      await load()
+    }catch(error){notify?.(error?.message||'Não foi possível atualizar a equipe.')}
+    finally{setBusy(false)}
+  }
+
+  async function cancelInvite(inviteId){
+    if(!window.confirm('Cancelar este convite pendente?')) return
+    setBusy(true)
+    try{
+      await cancelCreativeTeamInvite(data.team.id,inviteId)
+      notify?.('Convite cancelado.')
+      await load()
+    }catch(error){notify?.(error?.message||'Não foi possível cancelar o convite.')}
+    finally{setBusy(false)}
+  }
+
   async function createTopic(event){
     event.preventDefault();setBusy(true)
     try{
@@ -192,6 +241,7 @@ export function TeamPage({slug,session,navigate,notify}){
   if(loading) return <TeamShell title="Equipe" onBack={()=>navigate('/equipes')}><p className="community-empty">Carregando equipe...</p></TeamShell>
   if(!data?.team) return <TeamShell title="Equipe" onBack={()=>navigate('/equipes')}><p className="community-empty">Equipe indisponível.</p></TeamShell>
   const perms=data.permissions||{}
+  const assignableRoles=Array.isArray(perms.assignable_roles)&&perms.assignable_roles.length?perms.assignable_roles:ROLE_OPTIONS
 
   return <TeamShell title={data.team.name} onBack={()=>navigate('/equipes')}>
     <section className="team-profile-head">
