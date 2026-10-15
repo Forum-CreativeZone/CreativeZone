@@ -1461,8 +1461,8 @@ export function ProjectStudio({ project, canManage = false, notify, initialTab =
         <div className="vscode-terminal-titlebar">
           <nav>
             <button type="button" className={terminalPane==='terminal'?'active':''} onClick={()=>setTerminalPane('terminal')}>TERMINAL</button>
-            <button type="button" className={terminalPane==='output'?'active':''} onClick={()=>setTerminalPane('output')}>OUTPUT</button>
-            <button type="button" className={terminalPane==='debug'?'active':''} onClick={()=>setTerminalPane('debug')}>DEBUG CONSOLE</button>
+            <button type="button" className={terminalPane==='output'?'active':''} onClick={()=>setTerminalPane('output')}>{devhubLanguage==='pt'?'SAÍDA':'OUTPUT'}</button>
+            <button type="button" className={terminalPane==='debug'?'active':''} onClick={()=>setTerminalPane('debug')}>{devhubLanguage==='pt'?'CONSOLE DE DEPURAÇÃO':'DEBUG CONSOLE'}</button>
           </nav>
           <div className="vscode-terminal-toolbar">
             <span className="vscode-terminal-session"><Terminal/> cz-git <ChevronDown/></span>
