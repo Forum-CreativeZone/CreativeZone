@@ -37,6 +37,9 @@ jobs:
       - name: Validate migrations
         run: npm run check:migrations
 
+      - name: Audit DevHub plan gates
+        run: npm run check:devhub-plans
+
       - name: Build Vite app
         run: npm run build
 

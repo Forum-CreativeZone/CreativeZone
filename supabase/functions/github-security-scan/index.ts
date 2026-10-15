@@ -60,6 +60,22 @@ function compact(value: unknown, max = 500) {
   return text.length > max ? text.slice(0, max - 1).trimEnd() + "…" : text
 }
 
+function errorMessage(error: unknown, fallback = "Falha na auditoria.", max = 1000) {
+  if (error instanceof Error) return compact(error.message || fallback, max) || fallback
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>
+    const details = [record.message, record.details, record.hint, record.code]
+      .map((value) => compact(value, 400))
+      .filter(Boolean)
+    if (details.length) return compact(details.join(" | "), max)
+    try {
+      const serialized = JSON.stringify(record)
+      if (serialized) return compact(serialized, max)
+    } catch {}
+  }
+  return compact(error, max) || fallback
+}
+
 function clientKey(req: Request) {
   return (
     req.headers.get("cf-connecting-ip") ||
@@ -1086,16 +1102,31 @@ async function tokenForRepository(ref: RepoRef, projectId: string) {
 
 async function writeRows(table: string, rows: Record<string, unknown>[], chunkSize = 400) {
   for (let index = 0; index < rows.length; index += chunkSize) {
-    const { error } = await admin.from(table).insert(rows.slice(index, index + chunkSize))
-    if (error) throw error
+    const chunk = rows.slice(index, index + chunkSize)
+    let lastError: unknown = null
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const { error } = await admin.from(table).insert(chunk)
+      if (!error) {
+        lastError = null
+        break
+      }
+      lastError = error
+      if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 250))
+    }
+    if (lastError) {
+      throw new Error(`Falha ao persistir ${table}: ${errorMessage(lastError, "erro de banco", 800)}`)
+    }
   }
 }
 
 async function persistNormalizedSecurity(projectId: string, repositoryId: string | null, auditId: string, dependencies: Dependency[], findings: Array<Record<string, unknown>>, capabilities: Record<string, unknown>) {
-  await Promise.all([
+  const deleteResults = await Promise.all([
     admin.from("github_dependencies").delete().eq("audit_id", auditId),
     admin.from("github_vulnerabilities").delete().eq("audit_id", auditId),
   ])
+  for (const result of deleteResults) {
+    if (result.error) throw new Error(errorMessage(result.error, "Falha ao limpar dados normalizados.", 800))
+  }
 
   if (capabilities.dependency_graph) {
     const vulnerable = new Set(findings.map((item) =>
@@ -1363,7 +1394,7 @@ async function auditProject(projectId: string, options: {
 
     return { skipped: false, state, findings: fullFindings, plan_id: plan.plan_id, security_gate: securityGate }
   } catch (error) {
-    const message = compact(error instanceof Error ? error.message : "Falha na auditoria.", 1000)
+    const message = errorMessage(error, "Falha na auditoria.", 1000)
     const completedAt = new Date().toISOString()
     await admin.from("project_security_audits").update({ status: "failed", error_text: message, completed_at: completedAt }).eq("id", audit.id)
     await admin.from("project_security_state").upsert({
@@ -1392,7 +1423,9 @@ async function projectAction(req: Request, payload: Record<string, unknown>) {
     })
     return reply({ ok: true, ...result })
   } catch (error) {
-    return reply({ error: error instanceof Error ? error.message : "Falha na auditoria." }, 400)
+    const message = errorMessage(error, "Falha na auditoria.", 1000)
+    console.warn("github-security-scan project:", { projectId, error: message })
+    return reply({ error: message }, 400)
   }
 }
 
@@ -1414,7 +1447,9 @@ async function internalGithubAction(req: Request, payload: Record<string, unknow
     })
     return reply({ ok: true, ...result })
   } catch (error) {
-    return reply({ error: error instanceof Error ? error.message : "Falha na auditoria GitHub." }, 400)
+    const message = errorMessage(error, "Falha na auditoria GitHub.", 1000)
+    console.warn("github-security-scan internal:", { projectId, triggerType, error: message })
+    return reply({ error: message }, 400)
   }
 }
 
@@ -1435,7 +1470,9 @@ async function repoConnectedAction(req: Request, payload: Record<string, unknown
     const result = await auditProject(projectId, { triggerType: "automatic", force: true })
     return reply({ ok: true, ...result })
   } catch (error) {
-    return reply({ error: error instanceof Error ? error.message : "Falha no scan ao conectar repositório." }, 400)
+    const message = errorMessage(error, "Falha no scan ao conectar repositório.", 1000)
+    console.warn("github-security-scan repo-connected:", { projectId, error: message })
+    return reply({ error: message }, 400)
   }
 }
 
@@ -1468,7 +1505,7 @@ async function batchAction(req: Request) {
     try {
       results.push({ project_id: project.id, ...(await auditProject(project.id, { triggerType: "scheduled", force: false })) })
     } catch (error) {
-      results.push({ project_id: project.id, error: error instanceof Error ? error.message : "Falha na auditoria." })
+      results.push({ project_id: project.id, error: errorMessage(error, "Falha na auditoria.", 1000) })
     }
   }
   return reply({ ok: true, processed: results.length, results })
@@ -1489,6 +1526,6 @@ Deno.serve(async (req: Request) => {
     return reply({ error: "unsupported_action" }, 400)
   } catch (error) {
     console.error("github-security-scan:", error)
-    return reply({ error: error instanceof Error ? error.message : "security_audit_failed" }, 500)
+    return reply({ error: errorMessage(error, "security_audit_failed", 1000) }, 500)
   }
 })
