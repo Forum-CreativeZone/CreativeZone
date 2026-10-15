@@ -56,7 +56,13 @@ export async function getModerationAssessments(status='pending') {
     .order('analyzed_at',{ascending:false})
     .limit(150)
 
-  if(status!=='all') query=query.eq('review_status',status)
+  if(status==='attention') {
+    query=query.eq('review_status','pending').in('recommendation',['review','urgent'])
+  } else if(status==='urgent') {
+    query=query.eq('review_status','pending').eq('recommendation','urgent')
+  } else if(status!=='all') {
+    query=query.eq('review_status',status)
+  }
   const {data,error}=await query
   if(error) throw error
 
