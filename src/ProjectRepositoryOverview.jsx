@@ -1,8 +1,8 @@
 import React,{useEffect,useMemo,useState} from 'react'
 import {
-  BookOpen,ChevronDown,ChevronRight,CircleDot,Code2,ExternalLink,File,
-  FileCode2,Folder,GitBranch,GitCommitHorizontal,GitFork,Globe2,
-  Languages,LockKeyhole,Package,RefreshCw,Star,Users,X,
+  Activity,BookOpen,ChevronDown,ChevronRight,CircleDot,Code2,ExternalLink,File,
+  FileCode2,Folder,GitBranch,GitCommitHorizontal,Globe2,
+  Languages,LockKeyhole,Package,RefreshCw,Star,
 } from 'lucide-react'
 import {getGitHubRenderedReadme,getGitHubRepositoryBrowser} from './services/githubApi'
 import './ProjectRepositoryOverview.css'
@@ -138,7 +138,7 @@ export function ProjectRepositoryOverview({project,language='pt',onNavigate,noti
     </header>
 
     <div className="repo-overview__layout">
-      <main className="repo-overview__main">
+      <div className="repo-overview__main">
         <div className="repo-overview__toolbar">
           <span className="repo-overview__branch"><GitBranch/><b>{browser.branch||repository.default_branch||'main'}</b></span>
           <span><GitBranch/>{repository.forks||0}</span>
@@ -171,7 +171,7 @@ export function ProjectRepositoryOverview({project,language='pt',onNavigate,noti
             {readmeLoading?<p><RefreshCw className="security-spin"/>{labels.loading}</p>:readme?.html?<article className="devhub-markdown-body" dangerouslySetInnerHTML={{__html:readme.html}}/>:<p>README.md</p>}
           </div>}
         </section>
-      </main>
+      </div>
 
       <aside className="repo-overview__aside">
         <section>
