@@ -5,6 +5,7 @@ import {
   MessageSquare,MessagesSquare,Package,PanelTop,RefreshCw,Search,Settings,
   ShieldCheck,Sparkles,Star,Terminal,Users,Wrench,
 } from 'lucide-react'
+import {supabase} from './services/supabaseClient'
 import './ProjectRoadmap.css'
 
 const MENU=[
@@ -36,12 +37,34 @@ export function useDevHubLanguage(){
   const [language,setLanguageState]=useState(()=>{
     try{return localStorage.getItem('creativezone-devhub-language')||'en'}catch{return 'en'}
   })
+
+  useEffect(()=>{
+    let active=true
+    if(!supabase) return undefined
+    supabase.auth.getUser().then(({data})=>{
+      if(!active||!data?.user) return
+      return supabase.rpc('get_devhub_language').then(({data:stored,error})=>{
+        if(!active||error||!stored) return
+        const next=stored==='pt'?'pt':'en'
+        setLanguageState(next)
+        try{localStorage.setItem('creativezone-devhub-language',next)}catch{}
+      })
+    }).catch(()=>{})
+    return()=>{active=false}
+  },[])
+
   const setLanguage=(value)=>{
     const next=value==='pt'?'pt':'en'
     setLanguageState(next)
     try{localStorage.setItem('creativezone-devhub-language',next)}catch{}
     try{window.dispatchEvent(new CustomEvent('creativezone-devhub-language',{detail:next}))}catch{}
+    if(supabase){
+      supabase.auth.getUser().then(({data})=>{
+        if(data?.user) supabase.rpc('set_devhub_language',{p_language:next}).catch(()=>{})
+      }).catch(()=>{})
+    }
   }
+
   useEffect(()=>{
     const handler=(event)=>setLanguageState(event?.detail==='pt'?'pt':'en')
     window.addEventListener('creativezone-devhub-language',handler)
