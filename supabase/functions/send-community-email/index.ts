@@ -117,6 +117,24 @@ function copyFor(job: any) {
       excerpt: compact(job.notification_data?.message || "Você foi convidado para colaborar.", 240),
       cta: "Ver convite",
     },
+    project_member_invite: {
+      subject: `Convite para ${job.notification_data?.project_title || "um projeto"} — CreativeZone`,
+      eyebrow: "DEVHUB • CONVITE DE PROJETO",
+      title: "Você foi convidado para colaborar",
+      message: `Você recebeu um convite para participar de ${job.notification_data?.project_title || "um projeto"} como ${job.notification_data?.role || "membro"}.`,
+      excerpt: compact(job.notification_data?.message || "Abra o projeto para aceitar ou recusar o convite.", 240),
+      cta: "Abrir projeto",
+    },
+    project_role_updated: {
+      subject: `Sua função foi atualizada — ${job.notification_data?.project_title || "CreativeZone DevHub"}`,
+      eyebrow: "DEVHUB • PERMISSÕES",
+      title: "Seu acesso ao projeto foi atualizado",
+      message: `Sua função em ${job.notification_data?.project_title || "um projeto"} agora é ${job.notification_data?.role || "membro"}.`,
+      excerpt: job.notification_data?.operational_access
+        ? "O responsável também concedeu acesso operacional avançado, sem ações destrutivas de propriedade."
+        : "As permissões do DevHub foram atualizadas conforme a nova função.",
+      cta: "Abrir projeto",
+    },
     project_recruiting_application: {
       subject: `Nova candidatura para ${job.notification_data?.opening_title || "seu projeto"} — CreativeZone`,
       eyebrow: "DEVHUB • NOVA CANDIDATURA",
