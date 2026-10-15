@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { ForumIcon } from './ForumIcon'
 import { LinkPreviewCard } from './LinkPreview'
+import { LinkShieldGate } from './LinkShieldGuard'
 import { PackageSecurityCard } from './SecurityAudit'
 import { decodeSecurityEmbed, encodeSecurityEmbed } from './services/securityApi'
 import {
@@ -132,9 +133,11 @@ function Inline({ text = '' }) {
         const image = part.match(/^!\[([^\]]*)\]\((https?:\/\/[^)]+)\)$/)
         if (image) {
           return (
-            <a className="rich-inline-image" key={index} href={image[2]} target="_blank" rel="noreferrer noopener">
-              <img src={image[2]} alt={image[1] || 'Imagem'} loading="lazy" />
-            </a>
+            <LinkShieldGate key={index} url={image[2]} context="inline_image" compact>
+              <a className="rich-inline-image" href={image[2]} target="_blank" rel="noreferrer noopener">
+                <img src={image[2]} alt={image[1] || 'Imagem'} loading="lazy" />
+              </a>
+            </LinkShieldGate>
           )
         }
 
@@ -167,37 +170,43 @@ function UrlEmbed({ value }) {
   const yt = youtubeId(url)
   if (yt && /^[\w-]{6,20}$/.test(yt)) {
     return (
-      <div className="rich-embed video-embed">
-        <iframe
-          src={'https://www.youtube-nocookie.com/embed/' + yt}
-          title="Vídeo do YouTube"
-          loading="lazy"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      </div>
+      <LinkShieldGate url={url.href} context="embed">
+        <div className="rich-embed video-embed">
+          <iframe
+            src={'https://www.youtube-nocookie.com/embed/' + yt}
+            title="Vídeo do YouTube"
+            loading="lazy"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      </LinkShieldGate>
     )
   }
 
   const pen = codePenEmbed(url)
   if (pen) {
     return (
-      <div className="rich-embed codepen-embed">
-        <iframe
-          src={pen}
-          title="CodePen"
-          loading="lazy"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-        />
-      </div>
+      <LinkShieldGate url={url.href} context="embed">
+        <div className="rich-embed codepen-embed">
+          <iframe
+            src={pen}
+            title="CodePen"
+            loading="lazy"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          />
+        </div>
+      </LinkShieldGate>
     )
   }
 
   if (isImageUrl(url)) {
     return (
-      <a className="rich-image-link" href={url.href} target="_blank" rel="noreferrer noopener">
-        <img src={url.href} alt="Imagem incorporada" loading="lazy" />
-      </a>
+      <LinkShieldGate url={url.href} context="embed_image">
+        <a className="rich-image-link" href={url.href} target="_blank" rel="noreferrer noopener">
+          <img src={url.href} alt="Imagem incorporada" loading="lazy" />
+        </a>
+      </LinkShieldGate>
     )
   }
 
