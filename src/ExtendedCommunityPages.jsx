@@ -626,14 +626,14 @@ export function ProjectPage({ slug, session, navigate, notify }) {
             onChanged={load}
           />
 
-          <ProjectActivityFeed
-            projectId={project.id}
-            notify={notify}
-          />
-
           <ProjectKanban
             project={project}
             session={session}
+            notify={notify}
+          />
+
+          <ProjectActivityFeed
+            projectId={project.id}
             notify={notify}
           />
 
