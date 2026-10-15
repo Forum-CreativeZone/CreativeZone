@@ -128,6 +128,7 @@ import { AdminDashboard } from './AdminDashboard'
 import { getMemberDecorations, getMembershipState } from './services/membershipApi'
 import { EffectBadge, EffectName, EffectRole } from './VisualEffects'
 import { ProfileHoverLayer } from './ProfileHoverCard'
+import { LinkShieldGuard } from './LinkShieldGuard'
 import {
   AchievementsPage,
   AdvancedSearchPage,
@@ -144,6 +145,7 @@ import {
 import './styles.css'
 import './effects-v2.css'
 import './DevHubTheme.css'
+import './LinkShield.css'
 
 function readLocal(key, fallback) {
   try {
@@ -3660,4 +3662,4 @@ function App() {
   )
 }
 
-createRoot(document.getElementById('root')).render(<App />)
+createRoot(document.getElementById('root')).render(<><App /><LinkShieldGuard /></>)
