@@ -1,0 +1,402 @@
+/* CreativeZone DevHub visual identity
+   Graphite/black surfaces with the forum red as the primary accent.
+   Success/warning/error semantic colors remain functional. */
+
+:root{
+  --cz-dev-bg:#08090b;
+  --cz-dev-bg-2:#0d0f12;
+  --cz-dev-surface:#111318;
+  --cz-dev-surface-2:#15181e;
+  --cz-dev-surface-3:#1a1d23;
+  --cz-dev-border:rgba(232,48,37,.22);
+  --cz-dev-border-strong:rgba(232,48,37,.48);
+  --cz-dev-red:#e83025;
+  --cz-dev-red-bright:#ff4a3d;
+  --cz-dev-red-soft:rgba(232,48,37,.10);
+  --cz-dev-red-softer:rgba(232,48,37,.055);
+  --cz-dev-text:#f5f5f6;
+  --cz-dev-muted:#8f969f;
+  --cz-dev-muted-2:#69717c;
+}
+
+/* Main DevHub surfaces */
+.project-detail .project-passport-card,
+.project-detail .project-recruiting,
+.project-detail .devhub-repository-panel,
+.project-detail .project-kanban,
+.project-detail .project-activity-feed,
+.project-detail .project-studio.devhub-workspace,
+.project-detail .project-security-panel{
+  border-color:var(--cz-dev-border)!important;
+  background:
+    radial-gradient(900px 180px at 0 0,var(--cz-dev-red-softer),transparent 55%),
+    linear-gradient(180deg,var(--cz-dev-bg-2),var(--cz-dev-bg))!important;
+  box-shadow:0 15px 40px rgba(0,0,0,.24)!important;
+}
+
+/* Top bars */
+.project-detail .project-passport-card__header,
+.project-detail .project-recruiting__head,
+.project-detail .devhub-repo-head,
+.project-detail .project-kanban__head,
+.project-detail .project-activity-head,
+.project-detail .project-studio-head,
+.project-detail .project-security-panel>header{
+  border-color:var(--cz-dev-border)!important;
+  background:
+    linear-gradient(90deg,rgba(232,48,37,.095),rgba(232,48,37,.018) 46%,transparent)!important;
+}
+
+/* Red identity icons instead of blue/purple */
+.project-detail .project-passport-card__seal,
+.project-detail .project-recruiting__head>div:first-child>svg,
+.project-detail .devhub-repo-avatar,
+.project-detail .project-kanban__head>div:first-child>svg,
+.project-detail .project-activity-head>div>svg,
+.project-detail .project-studio-head svg,
+.project-detail .devhub-repo-title>small,
+.project-detail .project-passport-card__title>small,
+.project-detail .project-recruiting__head small,
+.project-detail .project-kanban__head small{
+  color:var(--cz-dev-red-bright)!important;
+}
+
+.project-detail .project-passport-card__seal,
+.project-detail .project-recruiting-card__icon,
+.project-detail .project-kanban-card__top>span{
+  border-color:var(--cz-dev-border)!important;
+  background:var(--cz-dev-red-soft)!important;
+  color:#ff746b!important;
+}
+
+/* Passport */
+.project-detail .project-passport-card__maturity{
+  border-color:var(--cz-dev-border)!important;
+  background:linear-gradient(135deg,rgba(232,48,37,.09),rgba(232,48,37,.025))!important;
+}
+.project-detail .project-passport-card__score{
+  border-color:var(--cz-dev-border-strong)!important;
+  background:rgba(232,48,37,.08)!important;
+}
+.project-detail .project-passport-card__score strong{color:#ff8078!important}
+.project-detail .project-passport-card__progress{background:#24272d!important}
+.project-detail .project-passport-card__progress i{background:linear-gradient(90deg,#a81711,var(--cz-dev-red-bright))!important}
+.project-detail .project-passport-card__metric,
+.project-detail .project-passport-card__repo,
+.project-detail .project-passport-card__panel,
+.project-detail .project-passport-card__details section{
+  border-color:#292d33!important;
+  background:rgba(17,19,24,.92)!important;
+}
+.project-detail .project-passport-card__metric>span{
+  background:#202328!important;
+  color:#c7cbd1!important;
+}
+.project-detail .project-passport-card__languages span,
+.project-detail .project-passport-card__pulse span,
+.project-detail .project-passport-card__repo-stats span{
+  border-color:#30343b!important;
+  background:#14171b!important;
+}
+.project-detail .project-passport-card__footer{
+  border-color:var(--cz-dev-border)!important;
+  background:#090b0e!important;
+}
+
+/* Recruiting */
+.project-detail .project-recruiting-card{
+  border-color:rgba(232,48,37,.24)!important;
+  background:linear-gradient(180deg,#121418,#0e1013)!important;
+}
+.project-detail .project-recruiting-card.status-open{
+  border-color:rgba(232,48,37,.42)!important;
+}
+.project-detail .project-recruiting-card.status-filled{
+  border-color:rgba(232,48,37,.30)!important;
+}
+.project-detail .project-recruiting-card__icon{
+  border:1px solid var(--cz-dev-border)!important;
+  background:var(--cz-dev-red-soft)!important;
+  color:#ff746b!important;
+}
+.project-detail .project-recruiting-card.status-open>header em{
+  border-color:rgba(232,48,37,.35)!important;
+  background:rgba(232,48,37,.07)!important;
+  color:#ff8a82!important;
+}
+.project-detail .project-recruiting-card__chips span,
+.project-detail .project-recruiting-card__facts>span,
+.project-detail .project-recruiting-card__application,
+.project-detail .project-recruiting-applicant__meta>span,
+.project-detail .project-recruiting-applicant__meta>a,
+.project-detail .project-recruiting-applicant__meta>button{
+  border-color:#30343a!important;
+  background:#15171b!important;
+}
+.project-detail .project-recruiting-card__chips span{
+  border-color:rgba(232,48,37,.20)!important;
+  color:#c5a09d!important;
+}
+.project-detail .project-recruiting-passport,
+.project-detail .project-recruiting-apply-note{
+  border-color:rgba(232,48,37,.22)!important;
+  background:rgba(232,48,37,.055)!important;
+}
+.project-detail .project-recruiting-passport>svg,
+.project-detail .project-recruiting-apply-note>svg{color:#ff746b!important}
+
+/* Recruiting modal: keep footer visible and match forum */
+.project-recruiting-modal{background:rgba(0,0,0,.78)!important}
+.project-recruiting-dialog{
+  border-color:var(--cz-dev-border-strong)!important;
+  background:linear-gradient(180deg,#111317,#090b0e)!important;
+}
+.project-recruiting-dialog>header{
+  border-color:var(--cz-dev-border)!important;
+  background:linear-gradient(90deg,rgba(232,48,37,.10),#111317 42%)!important;
+}
+.project-recruiting-dialog>header>span>svg{color:#ff6a61!important}
+.project-recruiting-dialog>footer{
+  border-color:var(--cz-dev-border)!important;
+  background:#090b0e!important;
+}
+.project-recruiting-fields input,
+.project-recruiting-fields textarea,
+.project-recruiting-fields select,
+.project-recruiting-review input{
+  border-color:#383b41!important;
+  background:#14161a!important;
+  color:var(--cz-dev-text)!important;
+}
+.project-recruiting-fields input:focus,
+.project-recruiting-fields textarea:focus,
+.project-recruiting-fields select:focus,
+.project-recruiting-review input:focus{
+  border-color:var(--cz-dev-border-strong)!important;
+  box-shadow:0 0 0 3px rgba(232,48,37,.10)!important;
+}
+
+/* GitHub repository panel */
+.project-detail .devhub-repo-metrics>span,
+.project-detail .devhub-repo-meta>span,
+.project-detail .devhub-advanced-grid>section,
+.project-detail .devhub-readme,
+.project-detail .devhub-release,
+.project-detail .devhub-last-commit{
+  border-color:#2d3036!important;
+  background:#121418!important;
+}
+.project-detail .devhub-repo-meta>span,
+.project-detail .devhub-languages span{
+  background:#17191d!important;
+  border-color:#2d3036!important;
+}
+.project-detail .devhub-last-commit{
+  background:linear-gradient(90deg,rgba(232,48,37,.055),#121418 28%)!important;
+}
+.project-detail .devhub-advanced-grid>section>header,
+.project-detail .devhub-readme>header{
+  border-color:var(--cz-dev-border)!important;
+}
+.project-detail .devhub-readme-toggle{
+  border-color:var(--cz-dev-border-strong)!important;
+}
+.project-detail .devhub-repository-panel>footer{
+  border-color:var(--cz-dev-border)!important;
+  background:#090b0d!important;
+}
+
+/* Kanban */
+.project-detail .project-kanban__guide{
+  border-color:rgba(232,48,37,.20)!important;
+  background:rgba(232,48,37,.035)!important;
+}
+.project-detail .project-kanban__guide>div,
+.project-detail .project-kanban__column,
+.project-detail .project-kanban-card{
+  border-color:#2c3036!important;
+  background:#111318!important;
+}
+.project-detail .project-kanban__column>header{
+  border-color:var(--cz-dev-border)!important;
+  background:#15171b!important;
+}
+.project-detail .project-kanban__column>header>button:hover{
+  background:var(--cz-dev-red-soft)!important;
+  color:#ff766e!important;
+}
+.project-detail .project-kanban-card:hover{
+  border-color:var(--cz-dev-border-strong)!important;
+  background:#17191e!important;
+}
+.project-detail .project-kanban-card:before{background:#8a8f97!important}
+.project-detail .project-kanban-card.priority-low:before{background:#8a8f97!important}
+.project-detail .project-kanban-card.priority-normal:before{background:var(--cz-dev-red)!important}
+.project-detail .project-kanban-card.priority-high:before{background:#ff7a38!important}
+.project-detail .project-kanban-card.priority-urgent:before{background:#ff3b30!important}
+.project-detail .project-kanban__board{scrollbar-color:#5b2724 #0d0f12!important}
+
+/* Project Activity */
+.project-detail .project-activity-item:hover{background:rgba(232,48,37,.035)!important}
+.project-detail .project-activity-icon{
+  border-color:#34373d!important;
+  background:#14161a!important;
+  color:#aeb3ba!important;
+}
+.project-detail .project-activity-item.source-creativezone .project-activity-icon{
+  border-color:var(--cz-dev-border-strong)!important;
+  background:var(--cz-dev-red-soft)!important;
+  color:#ff766e!important;
+}
+.project-detail .project-activity-day-label:after,
+.project-detail .project-activity-timeline:before{background:#2b2e33!important}
+.project-detail .project-activity-copy>code{
+  border-color:rgba(232,48,37,.22)!important;
+  background:#121316!important;
+  color:#ff8c85!important;
+}
+.project-detail .project-activity-toggle{
+  border-color:var(--cz-dev-border-strong)!important;
+  color:#ff8a82!important;
+}
+
+/* Dev Workspace */
+.project-detail .project-studio.devhub-workspace{
+  border-color:var(--cz-dev-border)!important;
+  background:linear-gradient(180deg,#0e1014,#090a0d)!important;
+}
+.project-detail .project-studio-head{
+  border-bottom:1px solid var(--cz-dev-border)!important;
+  background:linear-gradient(90deg,rgba(232,48,37,.08),#0f1115 38%)!important;
+}
+.project-detail .devhub-tabs{
+  border-color:var(--cz-dev-border)!important;
+  background:#0c0e11!important;
+}
+.project-detail .devhub-tabs>button{color:#d3d5d9!important}
+.project-detail .devhub-tabs>button.active,
+.project-detail .devhub-tabs>button:hover{
+  background:var(--cz-dev-red-soft)!important;
+  color:#fff!important;
+  box-shadow:inset 0 -2px 0 var(--cz-dev-red)!important;
+}
+.project-detail .project-studio-workspace,
+.project-detail .studio-panel,
+.project-detail .project-studio-files,
+.project-detail .project-studio-empty{background:#0d0f12!important}
+.project-detail .studio-list>article,
+.project-detail .studio-list>button,
+.project-detail .studio-thread,
+.project-detail .studio-setting-toggles,
+.project-detail .studio-settings-summary{
+  border-color:#2d3036!important;
+  background:#121418!important;
+}
+.project-detail .studio-list>button.active{
+  border-color:var(--cz-dev-border-strong)!important;
+  background:var(--cz-dev-red-soft)!important;
+}
+.project-detail .studio-footer-note{
+  border-color:var(--cz-dev-border)!important;
+  background:#090b0d!important;
+}
+
+/* Security remains semantic, but panel framing belongs to CreativeZone */
+.project-detail .project-security-metrics>span,
+.project-detail .project-security-severity-grid>span,
+.project-detail .project-security-source,
+.project-detail .project-security-manifests,
+.project-detail .security-basic-plan-note{
+  border-color:#2d3035!important;
+  background:#111317!important;
+}
+.project-detail .project-security-panel>footer{
+  border-color:var(--cz-dev-border)!important;
+  background:#090b0d!important;
+}
+
+/* Actions: forum-style red framing across DevHub */
+.project-detail .project-passport-card .action,
+.project-detail .project-recruiting .action,
+.project-detail .devhub-repository-panel .action,
+.project-detail .project-kanban .action,
+.project-detail .project-activity-feed .action,
+.project-detail .project-studio .action,
+.project-detail .project-security-panel .action,
+.project-recruiting-dialog .action{
+  border-color:rgba(232,48,37,.70)!important;
+}
+.project-detail .project-passport-card .action:hover,
+.project-detail .project-recruiting .action:hover,
+.project-detail .devhub-repository-panel .action:hover,
+.project-detail .project-kanban .action:hover,
+.project-detail .project-activity-feed .action:hover,
+.project-detail .project-studio .action:hover,
+.project-detail .project-security-panel .action:hover,
+.project-recruiting-dialog .action:hover{
+  border-color:var(--cz-dev-red-bright)!important;
+  background:rgba(232,48,37,.10)!important;
+}
+.project-detail .primary-action,
+.project-recruiting-dialog .primary-action{
+  border-color:#f04a3e!important;
+  background:linear-gradient(180deg,#df3227,#b91f18)!important;
+  color:#fff!important;
+  box-shadow:0 8px 18px rgba(188,28,21,.18)!important;
+}
+
+/* Contribution Passport belongs to the same CreativeZone family */
+.contribution-passport{
+  border-color:var(--cz-dev-border)!important;
+  background:
+    radial-gradient(900px 170px at 0 0,var(--cz-dev-red-softer),transparent 55%),
+    linear-gradient(180deg,var(--cz-dev-bg-2),var(--cz-dev-bg))!important;
+}
+.contribution-passport__head{
+  border-color:var(--cz-dev-border)!important;
+  background:linear-gradient(90deg,rgba(232,48,37,.09),rgba(232,48,37,.015))!important;
+}
+.contribution-passport__seal,
+.contribution-passport__score-number{
+  border-color:var(--cz-dev-border-strong)!important;
+  background:var(--cz-dev-red-soft)!important;
+}
+.contribution-passport__seal{color:#ff766e!important}
+.contribution-passport__score-number strong{color:#ff827a!important}
+.contribution-passport__score-progress i,
+.contribution-passport__dimensions article i{
+  background:linear-gradient(90deg,#a81711,var(--cz-dev-red-bright))!important;
+}
+.contribution-passport__score,
+.contribution-passport__dimensions,
+.contribution-passport__metrics article,
+.contribution-passport__timeline,
+.contribution-passport__areas,
+.contribution-passport__projects,
+.contribution-passport__methodology{
+  border-color:#2f3238!important;
+  background:#111318!important;
+}
+
+/* Light theme: keep white surfaces but maintain red CreativeZone accents */
+:root[data-theme="light"] .project-detail .project-passport-card,
+:root[data-theme="light"] .project-detail .project-recruiting,
+:root[data-theme="light"] .project-detail .devhub-repository-panel,
+:root[data-theme="light"] .project-detail .project-kanban,
+:root[data-theme="light"] .project-detail .project-activity-feed,
+:root[data-theme="light"] .project-detail .project-studio.devhub-workspace,
+:root[data-theme="light"] .project-detail .project-security-panel,
+:root[data-theme="light"] .contribution-passport{
+  background:#fff!important;
+  border-color:rgba(190,35,27,.25)!important;
+}
+:root[data-theme="light"] .project-detail .project-passport-card__header,
+:root[data-theme="light"] .project-detail .project-recruiting__head,
+:root[data-theme="light"] .project-detail .devhub-repo-head,
+:root[data-theme="light"] .project-detail .project-kanban__head,
+:root[data-theme="light"] .project-detail .project-activity-head,
+:root[data-theme="light"] .project-detail .project-studio-head,
+:root[data-theme="light"] .contribution-passport__head{
+  background:linear-gradient(90deg,rgba(232,48,37,.075),#fff 55%)!important;
+  border-color:rgba(190,35,27,.18)!important;
+}
