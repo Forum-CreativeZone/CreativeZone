@@ -17,6 +17,7 @@ import {
   Edit3,
   Trash2,
   Briefcase,
+  BrainCircuit,
   Bell,
   BellOff,
   CheckCircle2,
@@ -129,6 +130,7 @@ import { getMemberDecorations, getMembershipState } from './services/membershipA
 import { EffectBadge, EffectName, EffectRole } from './VisualEffects'
 import { ProfileHoverLayer } from './ProfileHoverCard'
 import { LinkShieldGuard } from './LinkShieldGuard'
+import { ReaLabPage } from './ReaLab'
 import {
   AchievementsPage,
   AdvancedSearchPage,
@@ -146,6 +148,7 @@ import './styles.css'
 import './effects-v2.css'
 import './DevHubTheme.css'
 import './LinkShield.css'
+import './ReaLab.css'
 
 function readLocal(key, fallback) {
   try {
@@ -1853,6 +1856,10 @@ function App() {
         title: 'DevHub | CreativeZone',
         description: 'DevHub CreativeZone: projetos, GitHub, equipes, segurança, colaboração e desenvolvimento dentro da comunidade.',
       },
+      '/rea-lab': {
+        title: 'REA Lab | CreativeZone',
+        description: 'CreativeZone REA Lab: engenharia reversa assistida, evidências, Behavior Specification e reconstrução independente.',
+      },
       '/categorias': {
         title: 'Categorias do fórum | CreativeZone',
         description: 'Explore as categorias e fóruns da comunidade CreativeZone.',
@@ -2477,6 +2484,7 @@ function App() {
   const isProfile = path === '/perfil'
   const isAbout = path === '/creativezone'
   const isProjects = path === '/projetos' || Boolean(routeProjectSlug)
+  const isReaLab = path === '/rea-lab'
   const isTeams = path === '/equipes' || Boolean(routeTeamSlug)
   const isModeration = path === '/moderacao'
   const isAccount = Boolean(accountMatch)
@@ -2659,6 +2667,10 @@ function App() {
 
     if (path === '/projetos') {
       return <ProjectsPage session={session} navigate={navigate} notify={setToast} />
+    }
+
+    if (isReaLab) {
+      return <ReaLabPage session={session} navigate={navigate} notify={setToast} />
     }
 
     if (isModeration) {
@@ -3362,6 +3374,10 @@ function App() {
           <button className={isProjects ? 'active' : ''} onClick={() => navigate('/projetos')}>
             <Briefcase />
             DevHub
+          </button>
+          <button className={isReaLab ? 'active' : ''} onClick={() => navigate('/rea-lab')}>
+            <BrainCircuit />
+            REA Lab
           </button>
           <button className={isTeams ? 'active' : ''} onClick={() => navigate('/equipes')}>
             <Users />
