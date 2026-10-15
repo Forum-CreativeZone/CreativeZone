@@ -1322,26 +1322,38 @@ export function ProjectStudio({ project, canManage = false, notify, initialTab =
   if(!status) return error?<section className="project-studio locked"><p>{error}</p></section>:null
   if(!status.enabled) return <StudioLocked plan={status.plan}/>
 
+  const permissions=status.permissions||{}
+  const canCodeWrite=Boolean(permissions.code_write)
+  const canCreateIssue=Boolean(permissions.issues_create)
+  const canManageIssue=Boolean(permissions.issues_manage)
+  const canCommentIssue=Boolean(permissions.issues_comment)
+  const canCreatePr=Boolean(permissions.prs_create)
+  const canReviewPr=Boolean(permissions.prs_review)
+  const canCommentPr=Boolean(permissions.prs_comment)
+  const canMergePr=Boolean(permissions.prs_merge)
+  const canManageSecurity=Boolean(permissions.security_manage)
+  const canManageSettings=Boolean(permissions.settings_manage)
+
   return (
     <section className="project-studio devhub-workspace">
       <header className="project-studio-head">
         <Code2/>
         <span><small>CREATIVEZONE DEVHUB · {String(status.plan?.plan_id || 'elite').toUpperCase()}</small><strong>Dev Workspace</strong></span>
         <em><GitBranch/>{branch || baseBranch}</em>
-        <small className="studio-role">permissão: {status.role || 'contributor'}</small>
+        <small className="studio-role">permissão: {status.role || 'member'}{status.operational_access?' · operacional':''}</small>
       </header>
 
       <nav className="project-studio-tabs devhub-tabs">
-        <button className={tab==='code'?'active':''} onClick={()=>changeTab('code')}><FileCode2/>{devhubLanguage==='pt'?'Código':'Code'}</button>
-        <button className={tab==='issues'?'active':''} onClick={()=>changeTab('issues')}><MessageSquarePlus/>Issues</button>
-        <button className={tab==='prs'?'active':''} onClick={()=>changeTab('prs')}><GitPullRequest/>Pull Requests</button>
-        <button className={tab==='branches'?'active':''} onClick={()=>changeTab('branches')}><GitBranch/>Branches</button>
-        <button className={tab==='commits'?'active':''} onClick={()=>changeTab('commits')}><GitCommitHorizontal/>Commits</button>
-        <button className={tab==='terminal'?'active':''} onClick={()=>changeTab('terminal')}><Terminal/>{devhubLanguage==='pt'?'Terminal Git':'Git Terminal'}</button>
-        <button className={tab==='runner'?'active':''} onClick={()=>changeTab('runner')}><Code2/>{devhubLanguage==='pt'?'Executar código':'Run code'}</button>
-        <button className={tab==='ci'?'active':''} onClick={()=>changeTab('ci')}><Workflow/>CI/CD</button>
-        <button className={tab==='security'?'active':''} onClick={()=>changeTab('security')}><ShieldCheck/>{devHubLabel('security',devhubLanguage)}</button>
-        <button className={tab==='settings'?'active':''} onClick={()=>changeTab('settings')}><Wrench/>{devHubLabel('settings',devhubLanguage)}</button>
+        {permissions.code_read&&<button className={tab==='code'?'active':''} onClick={()=>changeTab('code')}><FileCode2/>{devhubLanguage==='pt'?'Código':'Code'}</button>}
+        {permissions.issues_read&&<button className={tab==='issues'?'active':''} onClick={()=>changeTab('issues')}><MessageSquarePlus/>Issues</button>}
+        {permissions.prs_read&&<button className={tab==='prs'?'active':''} onClick={()=>changeTab('prs')}><GitPullRequest/>Pull Requests</button>}
+        {permissions.code_read&&<button className={tab==='branches'?'active':''} onClick={()=>changeTab('branches')}><GitBranch/>Branches</button>}
+        {permissions.code_read&&<button className={tab==='commits'?'active':''} onClick={()=>changeTab('commits')}><GitCommitHorizontal/>Commits</button>}
+        {permissions.terminal&&<button className={tab==='terminal'?'active':''} onClick={()=>changeTab('terminal')}><Terminal/>{devhubLanguage==='pt'?'Terminal Git':'Git Terminal'}</button>}
+        {permissions.run_code&&<button className={tab==='runner'?'active':''} onClick={()=>changeTab('runner')}><Code2/>{devhubLanguage==='pt'?'Executar código':'Run code'}</button>}
+        {permissions.actions_read&&<button className={tab==='ci'?'active':''} onClick={()=>changeTab('ci')}><Workflow/>CI/CD</button>}
+        {permissions.security_read&&<button className={tab==='security'?'active':''} onClick={()=>changeTab('security')}><ShieldCheck/>{devHubLabel('security',devhubLanguage)}</button>}
+        {permissions.settings_read&&<button className={tab==='settings'?'active':''} onClick={()=>changeTab('settings')}><Wrench/>{devHubLabel('settings',devhubLanguage)}</button>}
       </nav>
 
       {error&&<p className="project-studio-error"><AlertTriangle/>{error}</p>}
@@ -1351,14 +1363,14 @@ export function ProjectStudio({ project, canManage = false, notify, initialTab =
           <div className="project-studio-search"><Search/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar arquivo"/></div>
           <div className="studio-code-tools">
             <button className="action" onClick={()=>refreshTree()} disabled={Boolean(busy)}><RefreshCw/>Atualizar</button>
-            <button className="action" onClick={()=>uploadRef.current?.click()} disabled={Boolean(busy)}><Upload/>Upload</button>
-            <input ref={uploadRef} type="file" multiple hidden onChange={uploadFiles}/>
+            {canCodeWrite&&<><button className="action" onClick={()=>uploadRef.current?.click()} disabled={Boolean(busy)}><Upload/>Upload</button>
+            <input ref={uploadRef} type="file" multiple hidden onChange={uploadFiles}/></>}
           </div>
-          <div className="studio-new-file">
+          {canCodeWrite&&<div className="studio-new-file">
             <input value={newPath} onChange={e=>setNewPath(e.target.value)} placeholder="src/novo-arquivo.js ou src/nova-pasta"/>
             <button type="button" onClick={createFileDraft} title="Criar arquivo"><FilePlus2/></button>
             <button type="button" onClick={createFolderDraft} title="Criar pasta"><FolderPlus/></button>
-          </div>
+          </div>}
           <div className="project-studio-files studio-file-tree" aria-label="Estrutura do repositório">
             {renderTree(fileTree)}
             {!visibleFiles.length&&<small>Nenhum arquivo carregado.</small>}
@@ -1369,7 +1381,7 @@ export function ProjectStudio({ project, canManage = false, notify, initialTab =
             <div className="project-studio-filebar">
               <strong>{selected}</strong>
               <span>{preview?'Imagem':selectedMeta?.editable===false?'Somente visualização':content===original?'Sem alterações':original==='__creativezone_new_file__'?'Novo arquivo':'Alterado'}</span>
-              {selectedMeta?.editable!==false&&(
+              {canCodeWrite&&selectedMeta?.editable!==false&&(
                 <div className="studio-edit-control">
                   <button type="button" className="studio-edit-trigger" onClick={()=>setEditMenuOpen(value=>!value)}><Pencil/>Editar<ChevronDown/></button>
                   {editMenuOpen&&<div className="studio-edit-menu">
@@ -1378,8 +1390,8 @@ export function ProjectStudio({ project, canManage = false, notify, initialTab =
                   </div>}
                 </div>
               )}
-              {selectedMeta?.editable!==false&&original!=='__creativezone_new_file__'&&<button title="Renomear ou mover arquivo" onClick={renameCurrentFile} disabled={Boolean(busy)}>Mover</button>}
-              <button title="Excluir arquivo" onClick={removeCurrentFile}><Trash2/></button>
+              {canCodeWrite&&selectedMeta?.editable!==false&&original!=='__creativezone_new_file__'&&<button title="Renomear ou mover arquivo" onClick={renameCurrentFile} disabled={Boolean(busy)}>Mover</button>}
+              {canCodeWrite&&<button title="Excluir arquivo" onClick={removeCurrentFile}><Trash2/></button>}
             </div>
             {preview
               ? <div className="project-studio-image-preview">
@@ -1423,11 +1435,11 @@ export function ProjectStudio({ project, canManage = false, notify, initialTab =
                         <span>Monaco Editor</span>
                       </footer>
                     </div>
-                    <div className="project-studio-commitbar">
+                    {canCodeWrite&&<div className="project-studio-commitbar">
                       <input value={message} onChange={e=>setMessage(e.target.value)} placeholder="Mensagem do commit"/>
                       <button className="action primary-action" onClick={commit} disabled={content===original||Boolean(busy)}><GitCommitHorizontal/>{busy==='commit'?'Commitando...':'Commitar'}</button>
-                      {(commitInfo?.branch||branch!==baseBranch)&&<button className="action" onClick={createPr} disabled={Boolean(busy)}><GitPullRequest/>Criar PR</button>}
-                    </div>
+                      {canCreatePr&&(commitInfo?.branch||branch!==baseBranch)&&<button className="action" onClick={createPr} disabled={Boolean(busy)}><GitPullRequest/>Criar PR</button>}
+                    </div>}
                   </>}
           </>:<div className="project-studio-empty"><Code2/><strong>Code Studio</strong><p>Abra, crie, edite, envie ou exclua arquivos. As alterações são gravadas no GitHub sem sair da CreativeZone.</p></div>}
         </main>
@@ -1435,7 +1447,7 @@ export function ProjectStudio({ project, canManage = false, notify, initialTab =
 
       {tab==='branches'&&<div className="studio-panel">
         <header><span><GitBranch/><strong>Branches</strong></span><button className="action" onClick={refreshBranches}><RefreshCw/>Atualizar</button></header>
-        <div className="studio-create-row"><input value={newBranch} onChange={e=>setNewBranch(e.target.value)} placeholder="feature/minha-alteracao"/><button className="action primary-action" onClick={createBranch} disabled={!newBranch.trim()||Boolean(busy)}><Plus/>Criar branch</button></div>
+        {canCodeWrite&&<div className="studio-create-row"><input value={newBranch} onChange={e=>setNewBranch(e.target.value)} placeholder="feature/minha-alteracao"/><button className="action primary-action" onClick={createBranch} disabled={!newBranch.trim()||Boolean(busy)}><Plus/>Criar branch</button></div>}
         <div className="studio-list">{branches.map(item=><button key={item.name} className={item.name===branch?'active':''} onClick={()=>chooseBranch(item.name)}><GitBranch/><span><strong>{item.name}</strong><small>{item.sha?String(item.sha).slice(0,10):''}{item.protected?' · protegida':''}</small></span>{item.name===baseBranch&&<em>padrão</em>}</button>)}</div>
       </div>}
 
@@ -1446,15 +1458,15 @@ export function ProjectStudio({ project, canManage = false, notify, initialTab =
 
       {tab==='issues'&&<div className="studio-panel">
         <header><span><MessageSquarePlus/><strong>Issues</strong></span><button className="action" onClick={loadIssues}><RefreshCw/>Atualizar</button></header>
-        <form className="studio-issue-form" onSubmit={createIssue}><input value={issueTitle} onChange={e=>setIssueTitle(e.target.value)} placeholder="Título da nova Issue"/><textarea value={issueBody} onChange={e=>setIssueBody(e.target.value)} placeholder="Descreva a tarefa, bug ou melhoria..."/><button className="action primary-action" disabled={!issueTitle.trim()||Boolean(busy)}><Plus/>Criar Issue</button></form>
-        <div className="studio-list">{issues.map(item=><article key={item.number}><span className={'studio-state '+item.state}>{item.state}</span><span><strong>#{item.number} {item.title}</strong><small>{item.user||'GitHub'} · {item.comments||0} comentário(s) · {shortDate(item.updated_at)}</small><p>{item.body}</p></span><div className="studio-item-actions"><button className="action" onClick={()=>openIssueComments(item)}><MessageSquarePlus/>Comentários</button><button className="action" onClick={()=>toggleIssue(item)}>{item.state==='open'?'Fechar':'Reabrir'}</button></div></article>)}</div>
-        {selectedIssue&&<section className="studio-thread"><header><strong>Issue #{selectedIssue.number} · comentários</strong><button onClick={()=>setSelectedIssue(null)}>×</button></header><div>{issueComments.map(comment=><article key={comment.id}><strong>@{comment.user}</strong><small>{shortDate(comment.created_at)}</small><p>{comment.body}</p></article>)}</div><form onSubmit={submitIssueComment}><textarea value={issueComment} onChange={e=>setIssueComment(e.target.value)} placeholder="Adicionar comentário..."/><button className="action primary-action" disabled={!issueComment.trim()||Boolean(busy)}>Comentar</button></form></section>}
+        {canCreateIssue&&<form className="studio-issue-form" onSubmit={createIssue}><input value={issueTitle} onChange={e=>setIssueTitle(e.target.value)} placeholder="Título da nova Issue"/><textarea value={issueBody} onChange={e=>setIssueBody(e.target.value)} placeholder="Descreva a tarefa, bug ou melhoria..."/><button className="action primary-action" disabled={!issueTitle.trim()||Boolean(busy)}><Plus/>Criar Issue</button></form>}
+        <div className="studio-list">{issues.map(item=><article key={item.number}><span className={'studio-state '+item.state}>{item.state}</span><span><strong>#{item.number} {item.title}</strong><small>{item.user||'GitHub'} · {item.comments||0} comentário(s) · {shortDate(item.updated_at)}</small><p>{item.body}</p></span><div className="studio-item-actions"><button className="action" onClick={()=>openIssueComments(item)}><MessageSquarePlus/>Comentários</button>{canManageIssue&&<button className="action" onClick={()=>toggleIssue(item)}>{item.state==='open'?'Fechar':'Reabrir'}</button>}</div></article>)}</div>
+        {selectedIssue&&<section className="studio-thread"><header><strong>Issue #{selectedIssue.number} · comentários</strong><button onClick={()=>setSelectedIssue(null)}>×</button></header><div>{issueComments.map(comment=><article key={comment.id}><strong>@{comment.user}</strong><small>{shortDate(comment.created_at)}</small><p>{comment.body}</p></article>)}</div>{canCommentIssue&&<form onSubmit={submitIssueComment}><textarea value={issueComment} onChange={e=>setIssueComment(e.target.value)} placeholder="Adicionar comentário..."/><button className="action primary-action" disabled={!issueComment.trim()||Boolean(busy)}>Comentar</button></form>}</section>}
       </div>}
 
       {tab==='prs'&&<div className="studio-panel">
-        <header><span><GitPullRequest/><strong>Pull Requests</strong></span><div><button className="action" onClick={createPr}><Plus/>Nova PR da branch atual</button><button className="action" onClick={loadPulls}><RefreshCw/>Atualizar</button></div></header>
-        <div className="studio-list">{pulls.map(item=><article key={item.number}><GitPullRequest/><span><strong>#{item.number} {item.title}</strong><small>{item.head} → {item.base} · {item.user||'GitHub'} · {item.state}{item.draft?' · draft':''}</small><p>{item.body}</p></span><div className="studio-item-actions"><button className="action" onClick={()=>openPullReviews(item)}>Review</button>{status.can_manage&&item.state==='open'&&<button className="action primary-action" onClick={()=>mergePr(item.number)} disabled={Boolean(busy)}><GitMerge/>{busy==='merge:'+item.number?'Integrando...':'Merge'}</button>}</div></article>)}</div>
-        {selectedPull&&<section className="studio-thread"><header><strong>PR #{selectedPull.number} · reviews</strong><button onClick={()=>setSelectedPull(null)}>×</button></header><div>{pullReviews.map(review=><article key={review.id}><strong>@{review.user} · {review.state}</strong><small>{shortDate(review.submitted_at)}</small><p>{review.body}</p></article>)}</div><div className="studio-review-form"><textarea value={reviewBody} onChange={e=>setReviewBody(e.target.value)} placeholder="Comentário da review..."/><div><button className="action" onClick={()=>submitReview('COMMENT')} disabled={!reviewBody.trim()||Boolean(busy)}>Comentar</button><button className="action" onClick={()=>submitReview('REQUEST_CHANGES')} disabled={!reviewBody.trim()||Boolean(busy)}><AlertTriangle/>Solicitar mudanças</button><button className="action primary-action" onClick={()=>submitReview('APPROVE')} disabled={Boolean(busy)}><CheckCircle2/>Aprovar</button></div></div></section>}
+        <header><span><GitPullRequest/><strong>Pull Requests</strong></span><div>{canCreatePr&&<button className="action" onClick={createPr}><Plus/>Nova PR da branch atual</button>}<button className="action" onClick={loadPulls}><RefreshCw/>Atualizar</button></div></header>
+        <div className="studio-list">{pulls.map(item=><article key={item.number}><GitPullRequest/><span><strong>#{item.number} {item.title}</strong><small>{item.head} → {item.base} · {item.user||'GitHub'} · {item.state}{item.draft?' · draft':''}</small><p>{item.body}</p></span><div className="studio-item-actions"><button className="action" onClick={()=>openPullReviews(item)}>Review</button>{canMergePr&&item.state==='open'&&<button className="action primary-action" onClick={()=>mergePr(item.number)} disabled={Boolean(busy)}><GitMerge/>{busy==='merge:'+item.number?'Integrando...':'Merge'}</button>}</div></article>)}</div>
+        {selectedPull&&<section className="studio-thread"><header><strong>PR #{selectedPull.number} · reviews</strong><button onClick={()=>setSelectedPull(null)}>×</button></header><div>{pullReviews.map(review=><article key={review.id}><strong>@{review.user} · {review.state}</strong><small>{shortDate(review.submitted_at)}</small><p>{review.body}</p></article>)}</div>{(canCommentPr||canReviewPr)&&<div className="studio-review-form"><textarea value={reviewBody} onChange={e=>setReviewBody(e.target.value)} placeholder="Comentário da review..."/><div>{canCommentPr&&<button className="action" onClick={()=>submitReview('COMMENT')} disabled={!reviewBody.trim()||Boolean(busy)}>Comentar</button>}{canReviewPr&&<><button className="action" onClick={()=>submitReview('REQUEST_CHANGES')} disabled={!reviewBody.trim()||Boolean(busy)}><AlertTriangle/>Solicitar mudanças</button><button className="action primary-action" onClick={()=>submitReview('APPROVE')} disabled={Boolean(busy)}><CheckCircle2/>Aprovar</button></>}</div></div>}</section>}
       </div>}
 
       {tab==='terminal'&&<div className={'studio-terminal vscode-terminal xterm-terminal-panel '+(terminalEditor?'has-editor':'')}>
@@ -1562,21 +1574,21 @@ export function ProjectStudio({ project, canManage = false, notify, initialTab =
       {tab==='security'&&<div className="project-studio-security studio-panel">
         <header><span><ShieldCheck/><strong>CreativeZone Security + AutoFix</strong></span><button className="action" onClick={loadFixes}><RefreshCw/>Atualizar</button></header>
         {!fixes.length&&!busy&&<p>Nenhuma vulnerabilidade com versão corrigida disponível no último relatório.</p>}
-        {fixes.map(item=><article key={item.id}><span><b>{item.package_name}</b><small>{item.osv_id} · {item.severity} · {item.version} → {item.fixed_versions?.[0]}</small></span><button className="action" onClick={()=>autoFix(item.id)} disabled={Boolean(busy)}><Wrench/>{busy==='autofix:'+item.id?'Criando PR...':'Criar correção'}</button></article>)}
+        {fixes.map(item=><article key={item.id}><span><b>{item.package_name}</b><small>{item.osv_id} · {item.severity} · {item.version} → {item.fixed_versions?.[0]}</small></span>{canManageSecurity&&<button className="action" onClick={()=>autoFix(item.id)} disabled={Boolean(busy)}><Wrench/>{busy==='autofix:'+item.id?'Criando PR...':'Criar correção'}</button>}</article>)}
       </div>}
 
       {tab==='settings'&&<div className="studio-panel studio-settings">
         <header><span><Wrench/><strong>Configurações do repositório</strong></span><button className="action" onClick={loadSettings}><RefreshCw/>Atualizar</button></header>
         {settings&&<form onSubmit={saveSettings}>
           <div className="studio-settings-summary"><span><strong>{settings.full_name || status.repository?.repo_owner+'/'+status.repository?.repo_name}</strong><small>{settings.visibility} · branch padrão {settings.default_branch}</small></span>{settings.archived&&<em>Arquivado</em>}</div>
-          <label>Descrição<textarea value={settingsForm.description} onChange={e=>setSettingsForm({...settingsForm,description:e.target.value})} maxLength={350}/></label>
-          <label>Homepage<input type="url" value={settingsForm.homepage} onChange={e=>setSettingsForm({...settingsForm,homepage:e.target.value})} placeholder="https://..."/></label>
+          <label>Descrição<textarea disabled={!canManageSettings} value={settingsForm.description} onChange={e=>setSettingsForm({...settingsForm,description:e.target.value})} maxLength={350}/></label>
+          <label>Homepage<input disabled={!canManageSettings} type="url" value={settingsForm.homepage} onChange={e=>setSettingsForm({...settingsForm,homepage:e.target.value})} placeholder="https://..."/></label>
           <div className="studio-setting-toggles">
-            <label><input type="checkbox" checked={settingsForm.has_issues} onChange={e=>setSettingsForm({...settingsForm,has_issues:e.target.checked})}/> Issues habilitadas</label>
-            <label><input type="checkbox" checked={settingsForm.has_projects} onChange={e=>setSettingsForm({...settingsForm,has_projects:e.target.checked})}/> GitHub Projects habilitado</label>
-            <label><input type="checkbox" checked={settingsForm.has_wiki} onChange={e=>setSettingsForm({...settingsForm,has_wiki:e.target.checked})}/> Wiki habilitada</label>
+            <label><input disabled={!canManageSettings} type="checkbox" checked={settingsForm.has_issues} onChange={e=>setSettingsForm({...settingsForm,has_issues:e.target.checked})}/> Issues habilitadas</label>
+            <label><input disabled={!canManageSettings} type="checkbox" checked={settingsForm.has_projects} onChange={e=>setSettingsForm({...settingsForm,has_projects:e.target.checked})}/> GitHub Projects habilitado</label>
+            <label><input disabled={!canManageSettings} type="checkbox" checked={settingsForm.has_wiki} onChange={e=>setSettingsForm({...settingsForm,has_wiki:e.target.checked})}/> Wiki habilitada</label>
           </div>
-          <button className="action primary-action" disabled={Boolean(busy)}>Salvar no GitHub</button>
+          {canManageSettings&&<button className="action primary-action" disabled={Boolean(busy)}>Salvar no GitHub</button>}
         </form>}
         {!settings&&!busy&&<p>Carregue as configurações para editar o repositório pelo CreativeZone.</p>}
       </div>}
