@@ -90,23 +90,30 @@ export function LinkShieldGuard() {
       event.stopPropagation()
       const target=anchor.getAttribute('target')||''
 
-      const navigate=()=>{
-        if(target==='_blank'){
-          const opened=window.open(normalized,'_blank','noopener,noreferrer')
-          if(!opened) window.location.assign(normalized)
-        }else{
-          window.location.assign(normalized)
-        }
-      }
-
       if(cached && (cached.decision==='warn'||cached.decision==='block')){
         setWarning({url:normalized,safety:cached,target})
         return
       }
 
+      const pendingWindow=target==='_blank' ? window.open('','_blank') : null
+      if(pendingWindow) pendingWindow.opener=null
+
+      const navigate=()=>{
+        if(target==='_blank'){
+          if(pendingWindow) pendingWindow.location.href=normalized
+          else window.location.assign(normalized)
+        }else{
+          window.location.assign(normalized)
+        }
+      }
+
       checkLinkSafety(normalized,{context:'outbound_click'}).then((safety)=>{
-        if(!safety || safety.decision==='allow') navigate()
-        else setWarning({url:normalized,safety,target})
+        if(!safety || safety.decision==='allow'){
+          navigate()
+          return
+        }
+        pendingWindow?.close()
+        setWarning({url:normalized,safety,target})
       }).catch(navigate)
     }
 
