@@ -77,6 +77,7 @@ import { MembershipSection } from './MembershipSection'
 import { getMembershipState } from './services/membershipApi'
 import { EffectAvatarFrame, EffectBadge, EffectCoverFrame, EffectName, EffectRole, EffectSurface } from './VisualEffects'
 import { ForumIcon } from './ForumIcon'
+import { ContributionPassport } from './ContributionPassport'
 
 function Avatar({ profile, size = 56 }) {
   const name = profile?.display_name || profile?.username || 'Membro'
@@ -508,9 +509,9 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
       </div>
 
       <nav className="community-tabs">
-        {['atividade','topicos','sobre','trofeus'].map((value) => (
+        {['atividade','contribuicoes','topicos','sobre','trofeus'].map((value) => (
           <button key={value} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}>
-            {value === 'topicos' ? 'Tópicos' : value === 'trofeus' ? 'Troféus' : value[0].toUpperCase()+value.slice(1)}
+            {value === 'contribuicoes' ? 'Contribuições' : value === 'topicos' ? 'Tópicos' : value === 'trofeus' ? 'Troféus' : value[0].toUpperCase()+value.slice(1)}
           </button>
         ))}
       </nav>
@@ -527,6 +528,13 @@ export function PublicProfilePage({ username, session, navigate, notify }) {
             )) : <p className="community-empty">Este membro ocultou a atividade pública.</p>}
             {profile.show_activity && !activity.length && <p className="community-empty">Ainda não há atividade pública.</p>}
           </div>
+        )}
+        {tab === 'contribuicoes' && (
+          <ContributionPassport
+            userId={profile.id}
+            navigate={navigate}
+            notify={notify}
+          />
         )}
         {tab === 'topicos' && (
           <div className="simple-list">
