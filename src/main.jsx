@@ -2821,7 +2821,7 @@ function App() {
             ? <NotificationsPanel
                 session={session}
                 navigate={navigate}
-                onClose={()=>navigate('/')}
+                onClose={()=>{}}
                 onChanged={(items)=>{setUnreadNotifications((items||[]).filter(item=>!item.read));refreshUnreadNotifications()}}
               />
             : <div className="panel-content notification-list standalone-notifications">
