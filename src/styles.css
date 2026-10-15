@@ -7112,3 +7112,46 @@ main{
 :root[data-theme="light"] .project-roadmap-content-card{background:#fff;border-color:rgba(190,35,27,.22)}
 :root[data-theme="light"] .project-overview-team-summary,:root[data-theme="light"] .project-roadmap-people>button{background:#fafafa;border-color:#e4dedb}
 @media(max-width:680px){.project-overview-team-summary{align-items:flex-start;flex-direction:column}.project-overview-team-summary .action{width:100%;justify-content:center}}
+
+
+/* CreativeZone Moderation Assist */
+.moderation-assist{gap:14px}
+.moderation-assist-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;border:1px solid #ffffff14;border-radius:10px;background:linear-gradient(135deg,#7c2d1212,#dc26260d 55%,transparent)}
+.moderation-assist-head>div{display:grid;gap:4px}
+.moderation-assist-head strong{font-size:15px}
+.moderation-assist-head span{color:#8d96a3;font-size:12px;line-height:1.45}
+.moderation-assist-head .action{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.moderation-assist-head .action svg{width:15px}
+.moderation-assist-card{display:grid;gap:12px;padding:15px;border:1px solid #ffffff14;border-radius:10px;background:#ffffff035}
+.moderation-assist-card.risk-review{border-color:#d99c313d;background:linear-gradient(135deg,#f59e0b0a,transparent 55%)}
+.moderation-assist-card.risk-urgent{border-color:#ef444455;background:linear-gradient(135deg,#ef44440d,transparent 55%)}
+.moderation-assist-card-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px}
+.moderation-assist-card-head>small{color:#7d8793;font-size:11px;white-space:nowrap}
+.moderation-risk-score{width:54px;height:54px;display:grid;grid-template-columns:auto auto;place-content:center;align-items:baseline;border:1px solid #334155;border-radius:50%;background:#0e1116}
+.moderation-risk-score strong{font-size:19px;line-height:1}
+.moderation-risk-score small{font-size:9px;color:#7f8a98}
+.moderation-risk-score.risk-allow{border-color:#2f6c45;color:#7ee2a0}
+.moderation-risk-score.risk-review{border-color:#7a5a20;color:#f6c96b}
+.moderation-risk-score.risk-urgent{border-color:#8d2f2f;color:#ff7b72}
+.moderation-assist-title{display:grid;gap:2px;min-width:0}
+.moderation-assist-title strong{font-size:15px}
+.moderation-assist-title span{color:#7f8a98;font-size:11px}
+.moderation-assist-preview{padding:10px 12px;border:1px solid #ffffff10;border-radius:8px;background:#00000022;color:#b8c0ca;font-size:12.5px;line-height:1.55;overflow-wrap:anywhere}
+.moderation-signal-chips,.moderation-signal-summary{display:flex;flex-wrap:wrap;gap:7px}
+.moderation-signal-chips span,.moderation-signal-summary span{display:inline-flex;align-items:center;gap:5px;padding:5px 7px;border:1px solid #ffffff12;border-radius:999px;background:#ffffff05;color:#8f99a7;font-size:10.5px;text-transform:none}
+.moderation-signal-chips b,.moderation-signal-summary b{color:#d1d6dc}
+.moderation-signal-summary span.danger{border-color:#ef44443d;background:#ef44440b;color:#ff817a}
+.is-spinning{animation:moderation-spin .8s linear infinite}
+@keyframes moderation-spin{to{transform:rotate(360deg)}}
+:root[data-theme="light"] .moderation-assist-head,:root[data-theme="light"] .moderation-assist-card{background:#fff;border-color:#eadeda}
+:root[data-theme="light"] .moderation-assist-card.risk-review{background:#fffaf0;border-color:#ead9ae}
+:root[data-theme="light"] .moderation-assist-card.risk-urgent{background:#fff6f5;border-color:#edcbc8}
+:root[data-theme="light"] .moderation-risk-score{background:#fff;border-color:#d6dde5}
+:root[data-theme="light"] .moderation-assist-preview{background:#fafafa;border-color:#e7e7e7;color:#4b5563}
+:root[data-theme="light"] .moderation-signal-chips span,:root[data-theme="light"] .moderation-signal-summary span{background:#f7f7f8;border-color:#e5e7eb;color:#5d6672}
+@media(max-width:720px){
+  .moderation-assist-head{align-items:stretch;flex-direction:column}
+  .moderation-assist-card-head{grid-template-columns:auto minmax(0,1fr)}
+  .moderation-assist-card-head>small{grid-column:1/-1}
+  .moderation-risk-score{width:48px;height:48px}
+}
