@@ -340,6 +340,30 @@ export function TeamTopicPage({teamSlug,topicSlug,session,navigate,notify}){
   }
   useEffect(()=>{load()},[teamSlug,topicSlug,session?.user?.id])
 
+  async function toggleLocked(){
+    setBusy(true)
+    try{
+      await updateCreativeTeamTopic(data.topic.id,{locked:!data.topic.locked})
+      await load()
+      notify?.(data.topic.locked?'Tópico reaberto.':'Tópico fechado para novas respostas.')
+    }catch(error){notify?.(error?.message||'Não foi possível alterar o tópico.')}
+    finally{setBusy(false)}
+  }
+
+  async function changeVisibility(value){
+    if(value==='public_preview'&&!String(data.topic.public_summary||'').trim()){
+      notify?.('Adicione um resumo público antes de transformar este tópico em vitrine pública.')
+      return
+    }
+    setBusy(true)
+    try{
+      await updateCreativeTeamTopic(data.topic.id,{visibility:value})
+      await load()
+      notify?.(value==='public_preview'?'Vitrine pública ativada.':'Tópico definido como somente equipe.')
+    }catch(error){notify?.(error?.message||'Não foi possível alterar a visibilidade.')}
+    finally{setBusy(false)}
+  }
+
   async function send(event){
     event.preventDefault()
     if(!reply.trim()) return
@@ -357,6 +381,10 @@ export function TeamTopicPage({teamSlug,topicSlug,session,navigate,notify}){
       <header>
         <span className={'team-topic-visibility '+data.topic.visibility}>{data.topic.visibility==='team_only'?<LockKeyhole/>:<Eye/>}</span>
         <div><small>{data.team.name}</small><h2>{data.topic.title}</h2><p>{data.topic.public_summary}</p></div>
+        {data.permissions?.manage_topics&&<div className="team-topic-admin-actions">
+          {data.permissions?.publish_topics&&<button type="button" className="action" disabled={busy} onClick={()=>changeVisibility(data.topic.visibility==='team_only'?'public_preview':'team_only')}>{data.topic.visibility==='team_only'?<Eye/>:<EyeOff/>}{data.topic.visibility==='team_only'?'Tornar vitrine':'Tornar privado'}</button>}
+          <button type="button" className="action" disabled={busy} onClick={toggleLocked}><LockKeyhole/>{data.topic.locked?'Reabrir tópico':'Fechar tópico'}</button>
+        </div>}
       </header>
 
       {privateVisible
