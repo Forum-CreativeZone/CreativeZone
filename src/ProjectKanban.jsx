@@ -158,6 +158,11 @@ export function ProjectKanban({project,session,notify}){
   const columns=board?.columns||[]
   const cards=board?.cards||[]
   const permissions=board?.permissions||{}
+  const canCreateCard=Boolean(permissions.can_write||permissions.can_participate)
+  const canEditCard=(card)=>Boolean(
+    permissions.can_write ||
+    (permissions.can_participate && card && (card.created_by===session?.user?.id || card.assignee_id===session?.user?.id))
+  )
   const members=useMemo(()=>{
     const seen=new Set()
     const result=[]
@@ -262,7 +267,8 @@ export function ProjectKanban({project,session,notify}){
   }
 
   async function move(cardId,columnId){
-    if(!permissions.can_write) return
+    const card=cards.find(item=>item.id===cardId)
+    if(!canEditCard(card)) return
     setBusy(true)
     try{
       await moveProjectKanbanCard(cardId,columnId)
@@ -343,7 +349,7 @@ export function ProjectKanban({project,session,notify}){
         <div><strong>2. Defina o trabalho</strong><small>Adicione responsável, prioridade, prazo, labels e checklist. Você também pode vincular Issue, PR e branch do GitHub.</small></div>
         <div><strong>3. Mova pelo fluxo</strong><small>Arraste o card entre Backlog, A fazer, Em andamento, Em revisão e Concluído conforme o trabalho avança.</small></div>
         <div><strong>4. Trabalhe em equipe</strong><small>Abra o card para comentar, acompanhar o histórico e manter todos sincronizados em tempo real.</small></div>
-        {!cards.length&&permissions.can_write&&columns[0]&&<button type="button" className="action primary-action" onClick={()=>openCreate(columns[0])}><Plus/>Criar primeiro card</button>}
+        {!cards.length&&canCreateCard&&columns[0]&&<button type="button" className="action primary-action" onClick={()=>openCreate(columns[0])}><Plus/>Criar primeiro card</button>}
       </div>}
 
       <div className="project-kanban__board">
@@ -352,7 +358,7 @@ export function ProjectKanban({project,session,notify}){
         return <section
           className={'project-kanban__column '+(column.is_done?'is-done':'')}
           key={column.id}
-          onDragOver={event=>{if(permissions.can_write) event.preventDefault()}}
+          onDragOver={event=>{if(canCreateCard) event.preventDefault()}}
           onDrop={event=>{
             event.preventDefault()
             const id=draggedCard.current
@@ -362,7 +368,7 @@ export function ProjectKanban({project,session,notify}){
         >
           <header>
             <span><b>{column.title}</b><small>{rows.length}</small></span>
-            {permissions.can_write&&<button type="button" onClick={()=>openCreate(column)} title={'Criar em '+column.title}><Plus/></button>}
+            {canCreateCard&&<button type="button" onClick={()=>openCreate(column)} title={'Criar em '+column.title}><Plus/></button>}
           </header>
           <div className="project-kanban__cards">
             {rows.map(card=>{
@@ -373,13 +379,13 @@ export function ProjectKanban({project,session,notify}){
               return <article
                 key={card.id}
                 className={'project-kanban-card priority-'+card.priority}
-                draggable={Boolean(permissions.can_write)}
+                draggable={canEditCard(card)}
                 onDragStart={()=>{draggedCard.current=card.id}}
                 onDragEnd={()=>{draggedCard.current=null}}
                 onClick={()=>openCard(card.id)}
               >
                 <div className="project-kanban-card__top">
-                  {permissions.can_write&&<GripVertical/>}
+                  {canEditCard(card)&&<GripVertical/>}
                   <span>{PRIORITIES[card.priority]||card.priority}</span>
                   {card.completed_at&&<CheckCircle2/>}
                 </div>
@@ -424,21 +430,21 @@ export function ProjectKanban({project,session,notify}){
                   <KanbanFields form={form} setForm={setForm} members={members} repoConnected={Boolean(repoBase(project))}/>
                   <section className="project-kanban-checklist">
                     <header><ListChecks/><strong>Checklist</strong><span>{checklistProgress(form.checklist).done}/{checklistProgress(form.checklist).total}</span></header>
-                    <div>{form.checklist.map(item=><label key={item.id}><input type="checkbox" checked={Boolean(item.done)} disabled={!permissions.can_write} onChange={()=>toggleCheck(item.id)}/><span className={item.done?'done':''}>{item.text}</span>{permissions.can_write&&<button type="button" onClick={()=>removeCheck(item.id)}><X/></button>}</label>)}</div>
-                    {permissions.can_write&&<div className="project-kanban-check-add"><input maxLength={240} value={checkText} onChange={event=>setCheckText(event.target.value)} placeholder="Adicionar item..." onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();addChecklistItem()}}}/><button type="button" onClick={addChecklistItem}><Plus/></button></div>}
+                    <div>{form.checklist.map(item=><label key={item.id}><input type="checkbox" checked={Boolean(item.done)} disabled={!canEditCard(detail.card)} onChange={()=>toggleCheck(item.id)}/><span className={item.done?'done':''}>{item.text}</span>{canEditCard(detail.card)&&<button type="button" onClick={()=>removeCheck(item.id)}><X/></button>}</label>)}</div>
+                    {canEditCard(detail.card)&&<div className="project-kanban-check-add"><input maxLength={240} value={checkText} onChange={event=>setCheckText(event.target.value)} placeholder="Adicionar item..." onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();addChecklistItem()}}}/><button type="button" onClick={addChecklistItem}><Plus/></button></div>}
                   </section>
-                  {permissions.can_write&&<footer><button type="submit" className="action primary-action" disabled={busy}><Save/>{busy?'Salvando...':'Salvar alterações'}</button>{(permissions.can_manage||detail.card.created_by===session.user.id)&&<button type="button" className="action danger-action" onClick={removeCard} disabled={busy}><Trash2/>Excluir</button>}</footer>}
+                  {canEditCard(detail.card)&&<footer><button type="submit" className="action primary-action" disabled={busy}><Save/>{busy?'Salvando...':'Salvar alterações'}</button>{(permissions.can_manage||detail.card.created_by===session.user.id)&&<button type="button" className="action danger-action" onClick={removeCard} disabled={busy}><Trash2/>Excluir</button>}</footer>}
                 </form>
 
                 <aside className="project-kanban-side">
                   <section>
                     <header><GitBranch/><strong>Mover card</strong></header>
-                    <select disabled={!permissions.can_write||busy} value={detail.card.column_id} onChange={event=>move(detail.card.id,event.target.value)}>{columns.map(column=><option value={column.id} key={column.id}>{column.title}</option>)}</select>
+                    <select disabled={!canEditCard(detail.card)||busy} value={detail.card.column_id} onChange={event=>move(detail.card.id,event.target.value)}>{columns.map(column=><option value={column.id} key={column.id}>{column.title}</option>)}</select>
                   </section>
                   <section className="project-kanban-comments">
                     <header><MessageSquare/><strong>Comentários</strong><span>{detail.comments?.length||0}</span></header>
                     <div>{(detail.comments||[]).map(item=><article key={item.id}>{item.user?.avatar_url?<img src={item.user.avatar_url} alt=""/>:<UserRound/>}<span><strong>{item.user?.display_name||item.user?.username||'Membro'}</strong><small>{relative(item.created_at)}</small><p>{item.content}</p></span></article>)}{!(detail.comments||[]).length&&<p className="project-kanban-side-empty">Nenhum comentário.</p>}</div>
-                    {permissions.can_write&&<form onSubmit={sendComment}><textarea maxLength={4000} value={comment} onChange={event=>setComment(event.target.value)} placeholder="Escreva um comentário..."/><button className="action" disabled={busy||!comment.trim()}><Send/>Comentar</button></form>}
+                    {permissions.can_comment&&<form onSubmit={sendComment}><textarea maxLength={4000} value={comment} onChange={event=>setComment(event.target.value)} placeholder="Escreva um comentário..."/><button className="action" disabled={busy||!comment.trim()}><Send/>Comentar</button></form>}
                   </section>
                   <section className="project-kanban-history">
                     <header><Clock3/><strong>Histórico</strong></header>
