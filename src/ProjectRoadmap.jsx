@@ -1,9 +1,8 @@
-import React,{useEffect,useMemo,useState} from 'react'
+import React,{useEffect,useState} from 'react'
 import {
-  Activity,BookOpen,BriefcaseBusiness,Code2,Columns3,ExternalLink,FileCode2,
-  GitBranch,GitCommitHorizontal,GitPullRequest,Globe2,GraduationCap,Languages,
-  MessageSquare,MessagesSquare,Package,PanelTop,RefreshCw,Search,Settings,
-  ShieldCheck,Sparkles,Star,Terminal,Users,Wrench,
+  Activity,BookOpen,BriefcaseBusiness,Code2,Columns3,GitPullRequest,Globe2,
+  GraduationCap,MessageSquare,MessagesSquare,Package,PanelTop,Settings,
+  ShieldCheck,Sparkles,Star,Terminal,Users,
 } from 'lucide-react'
 import {supabase} from './services/supabaseClient'
 import './ProjectRoadmap.css'
@@ -85,17 +84,20 @@ export function ProjectRoadmapNav({active='overview',onSelect}){
   const primary=MENU.slice(0,12)
   const creative=MENU.slice(12)
 
-  const renderGroup=(rows)=><div className="project-roadmap__group">
-    {rows.map(([key,en,pt,Icon])=><button
-      type="button"
-      key={key}
-      className={active===key?'active':''}
-      onClick={()=>onSelect?.(key)}
-      title={language==='pt'?en:pt}
-    ><Icon/><span>{language==='pt'?pt:en}</span></button>)}
-  </div>
+  const renderGroup=(title,rows)=><section className="project-roadmap__section">
+    <small>{title}</small>
+    <div className="project-roadmap__group">
+      {rows.map(([key,en,pt,Icon])=><button
+        type="button"
+        key={key}
+        className={active===key?'active':''}
+        onClick={()=>onSelect?.(key)}
+        title={language==='pt'?en:pt}
+      ><Icon/><span>{language==='pt'?pt:en}</span></button>)}
+    </div>
+  </section>
 
-  return <section className="project-roadmap">
+  return <aside className="project-roadmap">
     <header>
       <div><Sparkles/><span><small>CREATIVEZONE DEVHUB</small><strong>{language==='pt'?'Navegação do projeto':'Project navigation'}</strong></span></div>
       <div className="project-roadmap__language" role="group" aria-label="Idioma do DevHub">
@@ -103,10 +105,10 @@ export function ProjectRoadmapNav({active='overview',onSelect}){
         <button type="button" className={language==='pt'?'active':''} onClick={()=>setLanguage('pt')}>PT-BR</button>
       </div>
     </header>
-    <div className="project-roadmap__scroll">
-      {renderGroup(primary)}
+    <nav className="project-roadmap__scroll" aria-label={language==='pt'?'Áreas do DevHub':'DevHub areas'}>
+      {renderGroup(language==='pt'?'DESENVOLVIMENTO':'DEVELOPMENT',primary)}
       <span className="project-roadmap__divider"/>
-      {renderGroup(creative)}
-    </div>
-  </section>
+      {renderGroup('CREATIVEZONE',creative)}
+    </nav>
+  </aside>
 }
