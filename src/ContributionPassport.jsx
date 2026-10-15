@@ -3,7 +3,7 @@ import {
   Activity,BadgeCheck,BriefcaseBusiness,CalendarDays,ChevronDown,CircleDot,
   ExternalLink,Fingerprint,GitBranch,GitCommitHorizontal,GitPullRequest,
   Layers3,ListChecks,MessageSquare,RefreshCw,Rocket,Star,TrendingDown,
-  TrendingUp,Trophy,UserCog,Users,
+  TrendingUp,Trophy,UserCog,
 } from 'lucide-react'
 import {getContributionPassport} from './services/contributionPassportApi'
 import './ContributionPassport.css'
