@@ -240,7 +240,9 @@ export function ProjectRecruiting({project,session,navigate,notify}){
         {openings.map(opening=>{
           const CategoryIcon=CATEGORIES[opening.category]?.icon||Users
           const mine=opening.my_application
-          const canApply=opening.status==='open'&&!isMember&&!permissions.can_manage
+          const canApply=opening.status==='open'&&!permissions.can_manage&&(
+            opening.visibility==='team' ? isMember : !isMember
+          )
           return <article className={'project-recruiting-card status-'+opening.status} key={opening.id}>
             <header>
               <span className="project-recruiting-card__icon"><CategoryIcon/></span>
@@ -265,7 +267,7 @@ export function ProjectRecruiting({project,session,navigate,notify}){
                   ? <button type="button" className="action primary-action" onClick={()=>startApply(opening)}><UserPlus/>Quero contribuir</button>
                   : !session?.user&&opening.status==='open'
                     ? <button type="button" className="action primary-action" onClick={()=>navigate?.('/entrar')}><UserPlus/>Entrar para contribuir</button>
-                    : isMember&&<small>Você já faz parte deste projeto.</small>}
+                    : isMember&&opening.visibility==='public'&&<small>Você já faz parte deste projeto.</small>}
               {permissions.can_manage&&<div className="project-recruiting-card__manage">
                 <button type="button" className="action" onClick={()=>openApplications(opening)}><Users/>{opening.applications_count||0} candidatura(s)</button>
                 <button type="button" className="action" onClick={()=>startEdit(opening)}><FileText/>Editar</button>
