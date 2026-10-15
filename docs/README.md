@@ -64,13 +64,19 @@ O README principal deve continuar resumido. A documentação completa fica neste
 
 ---
 
-## Próximos sistemas
-
 ### CreativeZone REA Lab
 
-Planejado para engenharia reversa assistida, análise comportamental e reconstrução independente de funcionalidades.
+**Função:** engenharia reversa assistida, evidências, Behavior Specification e reconstrução independente.
 
-Documentação e tópico serão criados junto com a implementação.
+- GitHub: [creativezone-rea-lab/README.md](./creativezone-rea-lab/README.md)
+- Fórum: tópico oficial em Tecnologias & Integrações
+- Estado: fundação e workspace implementados; execução profunda aguarda worker isolado
+
+---
+
+## Próximos sistemas
+
+A próxima subetapa do REA Lab é conectar a infraestrutura de worker isolado para executar o upstream `morluto/rea` fora do processo web do fórum.
 
 ---
 
