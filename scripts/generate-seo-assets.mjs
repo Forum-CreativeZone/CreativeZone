@@ -430,6 +430,11 @@ async function main() {
       description: 'Projetos criados e compartilhados pelos membros da comunidade CreativeZone.',
     },
     {
+      path: '/rea-lab',
+      title: 'REA Lab | CreativeZone',
+      description: 'Engenharia reversa assistida, evidências, Behavior Specification e reconstrução independente na CreativeZone.',
+    },
+    {
       path: '/categorias',
       title: 'Categorias do fórum | CreativeZone',
       description: 'Explore as categorias e fóruns da comunidade CreativeZone.',
