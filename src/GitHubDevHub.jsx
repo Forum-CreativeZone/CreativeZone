@@ -160,7 +160,7 @@ export function GitHubRepositoryPanel({ project, canManage = false, notify, onCh
   const [data,setData] = useState(null)
   const [readme,setReadme] = useState(null)
   const [readmeLoading,setReadmeLoading] = useState(false)
-  const [readmeExpanded,setReadmeExpanded] = useState(true)
+  const [readmeExpanded,setReadmeExpanded] = useState(false)
   const [loading,setLoading] = useState(Boolean(project?.repo_url))
   const [busy,setBusy] = useState(false)
   const [error,setError] = useState('')
@@ -188,7 +188,10 @@ export function GitHubRepositoryPanel({ project, canManage = false, notify, onCh
     finally { setLoading(false) }
   }
 
-  useEffect(()=>{ load() },[project?.id,project?.repo_url])
+  useEffect(()=>{
+    setReadmeExpanded(false)
+    load()
+  },[project?.id,project?.repo_url])
 
   async function sync() {
     setBusy(true)
