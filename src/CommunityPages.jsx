@@ -1237,6 +1237,8 @@ export function notificationTitle(item) {
     membership_expired: 'Seu VIP expirou',
     github_org_join_request: 'Novo pedido para entrar na organização GitHub',
     github_org_join_request_updated: 'Seu pedido da organização GitHub foi atualizado',
+    project_recruiting_application: 'Nova candidatura para um projeto',
+    project_recruiting_status: 'Sua candidatura no DevHub foi atualizada',
     github_org_invited: 'Convite GitHub criado pela organização',
     github_org_joined: 'Entrada confirmada na organização GitHub',
     github_org_removed: 'Você saiu da organização GitHub',
