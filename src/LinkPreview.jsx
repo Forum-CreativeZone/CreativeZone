@@ -191,7 +191,15 @@ export function LinkPreviewCard({
               {lang && <small>{lang.replace('_', '-')}</small>}
             </span>
           ) : (
-            <small className="cz-link-preview-domain">{domain}</small>
+            <>
+              <small className="cz-link-preview-domain">{domain}</small>
+              {verified && (
+                <small className="cz-link-preview-chat-shield-ok">
+                  <ShieldCheck />
+                  Link Shield verificado
+                </small>
+              )}
+            </>
           )}
 
           {detailed && (
