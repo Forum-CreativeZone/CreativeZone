@@ -43,6 +43,7 @@ import { ProjectPassport } from './ProjectPassport'
 import { ProjectKanban } from './ProjectKanban'
 import { ProjectRecruiting } from './ProjectRecruiting'
 import { ProjectRoadmapNav, useDevHubLanguage } from './ProjectRoadmap'
+import { ProjectOverviewDashboard } from './ProjectOverviewDashboard'
 import { GitHubAccountConnect } from './GitHubAccountConnect'
 import { connectExistingGitHubRepository, createGitHubRepositoryForProject, getGitHubAccountStatus } from './services/githubAuthApi'
 import { requestGitHubOrganizationMembership, syncGitHubProject } from './services/githubApi'
@@ -665,7 +666,9 @@ export function ProjectPage({ slug, session, navigate, notify }) {
   return (
     <Shell title={project.title} onBack={()=>navigate('/projetos')}>
       <div className="project-detail">
-        <ProjectRoadmapNav active={activeSection} onSelect={openRoadmapSection}/>
+        <div className="project-devhub-layout">
+          <ProjectRoadmapNav active={activeSection} onSelect={openRoadmapSection}/>
+          <main className="project-devhub-content">
 
         {activeSection==='overview'&&<section className="project-overview project-roadmap-anchor">
           <div className="project-title-row"><ProjectStatus value={project.status}/><span>{devhubLanguage==='pt'?'por':'by'} {project.owner?.display_name || project.owner?.username || 'Comunidade'}</span></div>
@@ -683,8 +686,13 @@ export function ProjectPage({ slug, session, navigate, notify }) {
             <button type="button" className="action" onClick={()=>openRoadmapSection('team')}>{devhubLanguage==='pt'?'Ver equipe':'View team'}</button>
           </div>
           {project.website_url&&<div className="project-website-preview"><LinkPreviewCard url={project.website_url} variant="project" eager/></div>}
-          <ProjectPassport project={project} notify={notify}/>
-          <ProjectActivityFeed projectId={project.id} notify={notify}/>
+          <ProjectOverviewDashboard
+            project={project}
+            session={session}
+            language={devhubLanguage}
+            onNavigate={openRoadmapSection}
+            notify={notify}
+          />
           {canManage&&<div className="project-status-controls">{['idea','planning','active','paused','completed'].map(value=><button className="action" key={value} onClick={()=>changeStatus(value)}>{value}</button>)}</div>}
         </section>}
 
@@ -709,6 +717,8 @@ export function ProjectPage({ slug, session, navigate, notify }) {
         {activeSection==='security-score'&&<ProjectSecurityPanel project={{...project,project_security_state:projectSecurityState(project)}} canManage={canManage} notify={notify} onChanged={load}/>}
         {activeSection==='osv'&&<ProjectSecurityPanel project={{...project,project_security_state:projectSecurityState(project)}} canManage={canManage} notify={notify} onChanged={load}/>}
         {activeSection==='learning'&&renderLearning()}
+          </main>
+        </div>
       </div>
     </Shell>
   )
