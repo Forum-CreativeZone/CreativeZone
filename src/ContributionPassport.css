@@ -1,3 +1,11 @@
+.contribution-passport.is-hidden{
+  display:flex;align-items:center;gap:10px;padding:16px;border:1px solid #303844;border-radius:12px;
+  background:#11171e;color:#8b98a7
+}
+.contribution-passport.is-hidden>svg{width:19px;flex:none;color:#8b99aa}
+.contribution-passport.is-hidden>span{display:grid;gap:3px}
+.contribution-passport.is-hidden strong{font-size:11px;color:#d5dce4}
+.contribution-passport.is-hidden small{font-size:9px;line-height:1.45}
 .contribution-passport{
   display:grid;gap:12px;border:1px solid #303844;border-radius:14px;background:#0f141b;
   overflow:hidden;color:#eef2f6;box-shadow:0 16px 42px rgba(0,0,0,.15)
