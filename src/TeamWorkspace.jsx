@@ -247,8 +247,19 @@ export function TeamPage({slug,session,navigate,notify}){
     <section className="team-profile-head">
       <span className="team-profile-avatar">{data.team.avatar_url?<img src={data.team.avatar_url} alt=""/>:<Users/>}</span>
       <div><span>{data.team.public_profile?'PERFIL PÚBLICO • CONTEÚDO PROTEGIDO':'EQUIPE PRIVADA'}</span><h2>{data.team.name}</h2><p>{data.team.description||'Equipe privada CreativeZone.'}</p></div>
-      {perms.role&&<em><ShieldCheck/>{ROLE_LABELS[perms.role]||perms.role}</em>}
+      <div className="team-profile-actions">
+        {perms.role&&<em><ShieldCheck/>{ROLE_LABELS[perms.role]||perms.role}</em>}
+        {perms.edit_team&&<button type="button" className="action" onClick={()=>setSettingsOpen(value=>!value)}><Settings/>Configurações</button>}
+      </div>
     </section>
+
+    {settingsOpen&&perms.edit_team&&<form className="team-settings-panel" onSubmit={saveSettings}>
+      <header><Settings/><span><strong>Configurações da equipe</strong><small>{perms.manage_team?'Identidade, descrição e exposição pública.':perms.edit_team_identity?'Administrador: identidade e descrição; privacidade continua reservada ao dono.':'Maintainer: configuração limitada à descrição.'}</small></span></header>
+      <label>Nome<input required minLength={3} maxLength={80} disabled={!perms.edit_team_identity} value={settings.name} onChange={e=>setSettings({...settings,name:e.target.value})}/></label>
+      <label>Descrição<textarea maxLength={2000} value={settings.description} onChange={e=>setSettings({...settings,description:e.target.value})}/></label>
+      {perms.manage_team&&<label className="team-public-profile-toggle"><input type="checkbox" checked={settings.public_profile} onChange={e=>setSettings({...settings,public_profile:e.target.checked})}/><span><strong>Perfil público da equipe</strong><small>Somente o dono pode alterar esta exposição. Conteúdo privado continua protegido.</small></span></label>}
+      <div className="team-settings-actions"><button type="button" className="action" onClick={()=>setSettingsOpen(false)}>Cancelar</button><button className="action primary-action" disabled={busy}>Salvar configurações</button></div>
+    </form>}
 
     {perms.view_private&&<section className="team-members-workspace">
       <header><span><Users/><strong>Membros</strong></span><small>Passe o mouse no avatar para abrir o perfil do fórum.</small></header>
@@ -256,8 +267,8 @@ export function TeamPage({slug,session,navigate,notify}){
         {(data.members||[]).map(member=><article key={member.user_id}>
           <button type="button" data-profile-username={member.profile?.username||undefined}>{avatar(member.profile,42)}</button>
           <span><strong>{member.profile?.display_name||member.profile?.username}</strong><small>{ROLE_LABELS[member.role]||member.role}</small></span>
-          {member.role!=='owner'&&(perms.manage_members||perms.remove_members)&&<div>
-            {perms.manage_members&&<select value={member.role} disabled={busy} onChange={e=>roleChange(member.user_id,e.target.value)}>{ROLE_OPTIONS.map(role=><option value={role} key={role}>{ROLE_LABELS[role]}</option>)}</select>}
+          {member.role!=='owner'&&(perms.manage_roles||perms.remove_members)&&<div>
+            {perms.manage_roles&&(perms.grant_admin||member.role!=='lead')&&<select value={member.role} disabled={busy} onChange={e=>roleChange(member.user_id,e.target.value)}>{assignableRoles.map(role=><option value={role} key={role}>{ROLE_LABELS[role]}</option>)}</select>}
             {perms.remove_members&&<button title="Remover membro" disabled={busy} onClick={()=>remove(member.user_id)}><X/></button>}
           </div>}
         </article>)}
@@ -268,13 +279,13 @@ export function TeamPage({slug,session,navigate,notify}){
       <form onSubmit={sendInvite}>
         <header><UserPlus/><div><strong>Convidar pelo @username</strong><small>Escolha usuário, função e mensagem. O convidado recebe aviso no fórum e por e-mail.</small></div></header>
         <label>Usuário<input required value={invite.username} onChange={e=>setInvite({...invite,username:e.target.value})} placeholder="@CreativeZone"/></label>
-        <label>Função<select value={invite.role} onChange={e=>setInvite({...invite,role:e.target.value})}>{ROLE_OPTIONS.filter(role=>perms.manage_members||role!=='lead').map(role=><option value={role} key={role}>{ROLE_LABELS[role]}</option>)}</select></label>
+        <label>Função<select value={invite.role} onChange={e=>setInvite({...invite,role:e.target.value})}>{assignableRoles.map(role=><option value={role} key={role}>{ROLE_LABELS[role]}</option>)}</select></label>
         <label>Mensagem<textarea maxLength={1000} value={invite.message} onChange={e=>setInvite({...invite,message:e.target.value})} placeholder="Conte no que a pessoa vai colaborar."/></label>
         <button className="action primary-action" disabled={busy}><Send/>Enviar convite</button>
       </form>
       <section>
         <header><Users/><div><strong>Convites pendentes</strong><small>{data.invitations?.length||0} aguardando resposta</small></div></header>
-        {(data.invitations||[]).map(item=><article key={item.id}>{avatar(item.profile,34)}<span><strong>@{item.profile?.username}</strong><small>{ROLE_LABELS[item.role]||item.role} · {relative(item.created_at)}</small></span></article>)}
+        {(data.invitations||[]).map(item=><article key={item.id}>{avatar(item.profile,34)}<span><strong>@{item.profile?.username}</strong><small>{ROLE_LABELS[item.role]||item.role} · {relative(item.created_at)}</small></span>{perms.cancel_invites&&<button type="button" className="team-invite-cancel" title="Cancelar convite" disabled={busy} onClick={()=>cancelInvite(item.id)}><X/></button>}</article>)}
         {!data.invitations?.length&&<p>Nenhum convite pendente.</p>}
       </section>
     </section>}
