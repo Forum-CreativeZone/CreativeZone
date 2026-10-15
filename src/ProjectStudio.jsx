@@ -292,10 +292,10 @@ function buildFileTree(files=[]) {
   return root
 }
 
-export function ProjectStudio({ project, canManage = false, notify }) {
+export function ProjectStudio({ project, canManage = false, notify, initialTab = 'code' }) {
   const [status,setStatus]=useState(null)
   const [loading,setLoading]=useState(false)
-  const [tab,setTab]=useState('code')
+  const [tab,setTab]=useState(initialTab || 'code')
   const [devhubLanguage]=useDevHubLanguage()
   const [files,setFiles]=useState([])
   const [query,setQuery]=useState('')
@@ -1312,6 +1312,10 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     window.addEventListener('creativezone-devhub-open',handler)
     return()=>window.removeEventListener('creativezone-devhub-open',handler)
   },[status,branches.length,fixes.length,settings,selected,content])
+
+  useEffect(()=>{
+    if(initialTab && initialTab!==tab) changeTab(initialTab)
+  },[initialTab])
 
   if(!canManage) return null
   if(loading) return <section className="project-studio loading"><RefreshCw className="security-spin"/> Preparando Dev Workspace...</section>
