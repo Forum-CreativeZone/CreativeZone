@@ -130,3 +130,9 @@
   .contribution-passport__metrics,.contribution-passport__dimensions>div,.contribution-passport__internal>div{grid-template-columns:1fr 1fr}
   .contribution-passport__methodology>div{grid-template-columns:1fr}.contribution-passport__bars{height:145px}
 }
+
+.contribution-passport__internal-labels{display:grid!important;grid-template-columns:1fr!important;gap:7px!important;margin-top:9px;padding-top:9px;border-top:1px solid rgba(139,92,246,.16)}
+.contribution-passport__internal-labels>strong{font-size:9px;color:#b9aed2}
+.contribution-passport__internal-labels>span{display:flex;flex-wrap:wrap;gap:5px}
+.contribution-passport__internal-labels em{display:flex;align-items:center;gap:4px;padding:4px 6px;border:1px solid rgba(139,92,246,.2);border-radius:999px;color:#a99bc7;font-size:8px;font-style:normal}
+.contribution-passport__internal-labels em small{font-size:7px;color:#75698e}
