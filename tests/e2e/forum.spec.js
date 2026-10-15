@@ -97,7 +97,7 @@ test('DevHub roadmap layout remains usable on desktop, mobile and light theme', 
       '</aside>',
       '<div class="project-devhub-content"><div style="min-height:160px">DevHub content</div></div>',
     ].join('')
-    document.querySelector('main')?.appendChild(fixture)
+    document.body.appendChild(fixture)
   })
 
   const layout=page.locator('[data-e2e-devhub-layout]')
