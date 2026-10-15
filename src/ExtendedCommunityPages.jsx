@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
+  BookOpen,
   Check,
   Code2,
   ExternalLink,
   Flag,
   GitBranch,
+  GraduationCap,
+  MessageSquare,
   Plus,
   Shield,
   UserPlus,
