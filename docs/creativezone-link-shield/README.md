@@ -1,6 +1,6 @@
 # CreativeZone Link Shield
 
-> Camada universal de proteção de URLs externas da CreativeZone.
+> Camada universal de proteção de URLs externas da CreativeZone.\n\n**Tutorial no fórum:** https://forum.creativezone.pro/topico/creativezone-link-shield-protecao-inteligente-de-links--d47f4fe0-9ca7-4bf0-b639-33738393c727
 
 ## Objetivo
 
@@ -189,7 +189,7 @@ As proteções locais continuam ativas.
 - `src/LinkShield.css`;
 - `supabase/functions/link-shield/index.ts`;
 - `supabase/functions/link-preview/index.ts`;
-- `supabase/migrations/20261015205000_creativezone_link_shield_v1.sql`.
+- `supabase/migrations/20261015210949_creativezone_link_shield_v1.sql`.
 
 ## Regra de produto
 
