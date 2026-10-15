@@ -30,6 +30,10 @@ export function getGitHubRepositoryCard(projectId) {
   return invokeGithub({ action: 'repo_card', project_id: projectId })
 }
 
+export function getGitHubRepositoryBrowser(projectId, path = '', branch = '') {
+  return invokeGithub({ action:'repo_browser', project_id:projectId, path, branch })
+}
+
 export function syncGitHubProject(projectId) {
   return invokeGithub({ action: 'sync_project', project_id: projectId })
 }
