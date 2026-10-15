@@ -672,6 +672,8 @@ async function repositoryBrowser(req: Request, payload: Record<string, unknown>)
       open_issues:Number(row.open_issues_count || 0),
       topics:row.topics || [],
       license:row.license_spdx,
+      latest_release:row.latest_release || {},
+      pushed_at:row.pushed_at,
       last_sync_at:row.last_sync_at,
     },
     branch,
