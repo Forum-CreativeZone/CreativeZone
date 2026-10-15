@@ -117,6 +117,30 @@ function copyFor(job: any) {
       excerpt: compact(job.notification_data?.message || "Você foi convidado para colaborar.", 240),
       cta: "Ver convite",
     },
+    project_recruiting_application: {
+      subject: `Nova candidatura para ${job.notification_data?.opening_title || "seu projeto"} — CreativeZone`,
+      eyebrow: "DEVHUB • NOVA CANDIDATURA",
+      title: "Alguém quer contribuir com seu projeto",
+      message: `${actor} se candidatou à oportunidade “${job.notification_data?.opening_title || "Oportunidade"}” em ${job.notification_data?.project_title || "seu projeto"}.`,
+      excerpt: compact(job.notification_data?.message || "Abra o DevHub para revisar o perfil e o Contribution Passport.", 240),
+      cta: "Revisar candidatura",
+    },
+    project_recruiting_status: {
+      subject: `Atualização da sua candidatura — ${job.notification_data?.project_title || "CreativeZone"}`,
+      eyebrow: "DEVHUB • CANDIDATURA",
+      title: job.notification_data?.status === "accepted"
+        ? "Sua candidatura foi aceita"
+        : job.notification_data?.status === "shortlisted"
+          ? "Você avançou para a pré-seleção"
+          : "Sua candidatura foi atualizada",
+      message: job.notification_data?.status === "accepted"
+        ? `Você foi aceito para colaborar em “${job.notification_data?.opening_title || "uma oportunidade"}” no projeto ${job.notification_data?.project_title || "CreativeZone"}.`
+        : job.notification_data?.status === "shortlisted"
+          ? `Sua candidatura para “${job.notification_data?.opening_title || "uma oportunidade"}” avançou para a pré-seleção.`
+          : `Sua candidatura para “${job.notification_data?.opening_title || "uma oportunidade"}” foi encerrada.`,
+      excerpt: compact(job.notification_data?.review_note || job.notification_data?.message || "", 240),
+      cta: "Abrir projeto",
+    },
     github_org_join_request: {
       subject: `Novo pedido para entrar na organização ${job.notification_data?.organization || "CreativeZone"} — CreativeZone`,
       eyebrow: "GITHUB • NOVO PEDIDO",
