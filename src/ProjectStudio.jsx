@@ -28,6 +28,7 @@ import {
   Wrench,
   Workflow,
 } from 'lucide-react'
+import { useDevHubLanguage, devHubLabel } from './ProjectRoadmap'
 import {
   commitProjectStudioBatch,
   commitProjectStudioFile,
