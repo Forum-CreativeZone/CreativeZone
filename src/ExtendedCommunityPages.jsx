@@ -37,6 +37,7 @@ import { GitHubRepositoryPanel, GitHubCommunityOrganization } from './GitHubDevH
 import { ProjectStudio } from './ProjectStudio'
 import { ProjectActivityFeed } from './ProjectActivityFeed'
 import { ProjectPassport } from './ProjectPassport'
+import { ProjectKanban } from './ProjectKanban'
 import { GitHubAccountConnect } from './GitHubAccountConnect'
 import { connectExistingGitHubRepository, createGitHubRepositoryForProject, getGitHubAccountStatus } from './services/githubAuthApi'
 import { requestGitHubOrganizationMembership, syncGitHubProject } from './services/githubApi'
@@ -627,6 +628,12 @@ export function ProjectPage({ slug, session, navigate, notify }) {
 
           <ProjectActivityFeed
             projectId={project.id}
+            notify={notify}
+          />
+
+          <ProjectKanban
+            project={project}
+            session={session}
             notify={notify}
           />
 
