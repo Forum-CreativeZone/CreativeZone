@@ -66,6 +66,8 @@ A validação de plano e função acontece no **backend**, não apenas na interf
 
 📘 [Documentação técnica e funcional completa](./docs/CREATIVEZONE_DEVHUB_GUIA_COMPLETO.md)
 
+📚 [Índice geral da documentação](./docs/README.md)
+
 🧭 [Tutorial passo a passo no fórum](https://forum.creativezone.pro/topico/creativezone-github-devhub-organizacao-oficial-projetos-colaborativos--669c591f-a72d-469d-86bf-17d4cc8d06d3)
 
 ---
