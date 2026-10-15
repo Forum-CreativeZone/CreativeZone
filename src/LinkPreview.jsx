@@ -141,7 +141,7 @@ export function LinkPreviewCard({
             {variant === 'compact' && date && <small>{date}</small>}
           </span>
 
-          {detailed && <small className="cz-link-preview-kicker">PRÉVIA DO SITE</small>}
+          {detailed && <small className="cz-link-preview-kicker">{variant==='project'?'SITE DO PROJETO':'PRÉVIA DO LINK'}</small>}
           <strong className="cz-link-preview-title">{title}</strong>
           {description && variant !== 'compact' && (
             <span className="cz-link-preview-description">{description}</span>
