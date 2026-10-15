@@ -11,13 +11,13 @@ import './ProjectRoadmap.css'
 const MENU=[
   ['overview','Overview','Visão geral',PanelTop],
   ['code','Code','Código',Code2],
-  ['issues','Issues','Issues',MessageSquare],
-  ['prs','Pull Requests','Pull Requests',GitPullRequest],
-  ['projects','Projects','Projetos',Columns3],
+  ['issues','Issues','Issues / Tarefas',MessageSquare],
+  ['prs','Pull Requests','Pull Requests / Alterações',GitPullRequest],
+  ['projects','Projects','Quadro / Kanban',Columns3],
   ['team','Team','Equipe',Users],
   ['discussions','Discussions','Discussões',MessagesSquare],
   ['releases','Releases','Versões',Package],
-  ['actions','Actions','Ações',Activity],
+  ['actions','Actions','Automações',Activity],
   ['security','Security','Segurança',ShieldCheck],
   ['terminal','Terminal','Terminal',Terminal],
   ['settings','Settings','Configurações',Settings],
@@ -26,7 +26,7 @@ const MENU=[
   ['recruiting','Recruiting','Recrutamento',BriefcaseBusiness],
   ['reputation','Reputation','Reputação',Star],
   ['team-chat','Team Chat','Chat da equipe',MessagesSquare],
-  ['security-score','Security Score','Pontuação de segurança',ShieldCheck],
+  ['security-score','Security Score','Nota de segurança',ShieldCheck],
   ['osv','OSV','OSV',ShieldCheck],
   ['learning','Learning','Aprendizado',BookOpen],
 ]
@@ -43,7 +43,7 @@ export function useDevHubLanguage(){
     if(!supabase) return undefined
     supabase.auth.getUser().then(({data})=>{
       if(!active||!data?.user) return
-      return supabase.rpc('get_devhub_language').then(({data:stored,error})=>{
+      return Promise.resolve(supabase.rpc('get_devhub_language')).then(({data:stored,error})=>{
         if(!active||error||!stored) return
         const next=stored==='pt'?'pt':'en'
         setLanguageState(next)
@@ -59,9 +59,12 @@ export function useDevHubLanguage(){
     try{localStorage.setItem('creativezone-devhub-language',next)}catch{}
     try{window.dispatchEvent(new CustomEvent('creativezone-devhub-language',{detail:next}))}catch{}
     if(supabase){
-      supabase.auth.getUser().then(({data})=>{
-        if(data?.user) supabase.rpc('set_devhub_language',{p_language:next}).catch(()=>{})
-      }).catch(()=>{})
+      ;(async()=>{
+        try{
+          const {data}=await supabase.auth.getUser()
+          if(data?.user) await supabase.rpc('set_devhub_language',{p_language:next})
+        }catch{}
+      })()
     }
   }
 
