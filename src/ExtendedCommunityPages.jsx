@@ -36,6 +36,7 @@ import { ProjectSecurityPanel, SecurityScoreBadge } from './SecurityAudit'
 import { GitHubRepositoryPanel, GitHubCommunityOrganization } from './GitHubDevHub'
 import { ProjectStudio } from './ProjectStudio'
 import { ProjectActivityFeed } from './ProjectActivityFeed'
+import { ProjectPassport } from './ProjectPassport'
 import { GitHubAccountConnect } from './GitHubAccountConnect'
 import { connectExistingGitHubRepository, createGitHubRepositoryForProject, getGitHubAccountStatus } from './services/githubAuthApi'
 import { requestGitHubOrganizationMembership, syncGitHubProject } from './services/githubApi'
@@ -611,6 +612,11 @@ export function ProjectPage({ slug, session, navigate, notify }) {
               <LinkPreviewCard url={project.website_url} variant="project" eager />
             </div>
           )}
+
+          <ProjectPassport
+            project={project}
+            notify={notify}
+          />
 
           <GitHubRepositoryPanel
             project={project}
