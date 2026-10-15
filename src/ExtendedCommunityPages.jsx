@@ -510,6 +510,9 @@ export function ProjectPage({ slug, session, navigate, notify }) {
   const [loading,setLoading]=useState(true)
   const [message,setMessage]=useState('')
   const [updateText,setUpdateText]=useState('')
+  const [activeSection,setActiveSection]=useState(()=>{
+    try{return localStorage.getItem('creativezone-devhub-section-'+slug)||'overview'}catch{return 'overview'}
+  })
   const [devhubLanguage]=useDevHubLanguage()
 
   async function load() {
@@ -519,8 +522,12 @@ export function ProjectPage({ slug, session, navigate, notify }) {
   }
   useEffect(()=>{ load() },[slug])
 
-  if (loading) return <Shell title="Projeto" onBack={()=>navigate('/projetos')}><p className="community-empty">Carregando...</p></Shell>
-  if (!project) return <Shell title="Projeto" onBack={()=>navigate('/projetos')}><p className="community-empty">Projeto não encontrado.</p></Shell>
+  useEffect(()=>{
+    try{localStorage.setItem('creativezone-devhub-section-'+slug,activeSection)}catch{}
+  },[slug,activeSection])
+
+  if (loading) return <Shell title={devhubLanguage==='pt'?'Projeto':'Project'} onBack={()=>navigate('/projetos')}><p className="community-empty">{devhubLanguage==='pt'?'Carregando...':'Loading...'}</p></Shell>
+  if (!project) return <Shell title={devhubLanguage==='pt'?'Projeto':'Project'} onBack={()=>navigate('/projetos')}><p className="community-empty">{devhubLanguage==='pt'?'Projeto não encontrado.':'Project not found.'}</p></Shell>
 
   const userId=session?.user?.id
   const membership=(project.project_members||[]).find(m=>m.user_id===userId)
@@ -530,6 +537,10 @@ export function ProjectPage({ slug, session, navigate, notify }) {
   const canStudio=canUpdate
   const activeMembers=(project.project_members||[]).filter(m=>m.status==='active')
   const pending=(project.project_members||[]).filter(m=>m.status==='pending')
+  const leaders=[
+    {user_id:project.owner_id,profile:project.owner,role:'owner'},
+    ...activeMembers.filter(member=>member.role==='maintainer')
+  ].filter((item,index,self)=>item.user_id&&self.findIndex(other=>other.user_id===item.user_id)===index)
 
   async function join(event) {
     event.preventDefault()
@@ -537,178 +548,162 @@ export function ProjectPage({ slug, session, navigate, notify }) {
     try {
       await requestProjectParticipation(project.id,userId,message)
       trackEvent('join_project')
-      notify?.('Pedido para participar enviado.')
+      notify?.(devhubLanguage==='pt'?'Pedido para participar enviado.':'Participation request sent.')
       setMessage('')
       load()
-    } catch (error) { notify?.(error?.message || 'Não foi possível solicitar participação.') }
+    } catch (error) { notify?.(error?.message || (devhubLanguage==='pt'?'Não foi possível solicitar participação.':'Could not request participation.')) }
   }
 
   async function leave() {
-    try { await leaveProject(project.id,userId); notify?.('Você saiu do projeto.'); load() }
-    catch (error) { notify?.(error?.message || 'Não foi possível sair do projeto.') }
+    try { await leaveProject(project.id,userId); notify?.(devhubLanguage==='pt'?'Você saiu do projeto.':'You left the project.'); load() }
+    catch (error) { notify?.(error?.message || (devhubLanguage==='pt'?'Não foi possível sair do projeto.':'Could not leave the project.')) }
   }
 
   async function review(member,status,role='contributor') {
-    try { await reviewProjectMember(project.id,member.user_id,status,role); notify?.('Participação atualizada.'); load() }
-    catch (error) { notify?.(error?.message || 'Não foi possível atualizar a participação.') }
+    try { await reviewProjectMember(project.id,member.user_id,status,role); notify?.(devhubLanguage==='pt'?'Participação atualizada.':'Membership updated.'); load() }
+    catch (error) { notify?.(error?.message || (devhubLanguage==='pt'?'Não foi possível atualizar a participação.':'Could not update membership.')) }
   }
 
   async function publishUpdate(event) {
     event.preventDefault()
     if (!updateText.trim()) return
     try { await addProjectUpdate(project.id,userId,updateText.trim()); setUpdateText(''); load() }
-    catch (error) { notify?.(error?.message || 'Não foi possível publicar a atualização.') }
+    catch (error) { notify?.(error?.message || (devhubLanguage==='pt'?'Não foi possível publicar a atualização.':'Could not publish the update.')) }
   }
 
   async function changeStatus(value) {
-    try { await updateProjectStatus(project.id,value); notify?.('Status do projeto atualizado.'); load() }
-    catch (error) { notify?.(error?.message || 'Não foi possível alterar o status.') }
+    try { await updateProjectStatus(project.id,value); notify?.(devhubLanguage==='pt'?'Status do projeto atualizado.':'Project status updated.'); load() }
+    catch (error) { notify?.(error?.message || (devhubLanguage==='pt'?'Não foi possível alterar o status.':'Could not change project status.')) }
   }
 
   function openRoadmapSection(key){
-    const selectors={
-      overview:'.project-overview',
-      code:'.project-studio',
-      issues:'.project-studio',
-      prs:'.project-studio',
-      projects:'.project-kanban',
-      team:'.project-members-strip',
-      discussions:'.project-updates',
-      releases:'.devhub-repository-panel',
-      actions:'.project-activity-feed',
-      security:'.project-security-panel',
-      terminal:'.project-studio',
-      settings:'.project-studio',
-      community:'.project-updates',
-      mentors:'.project-recruiting',
-      recruiting:'.project-recruiting',
-      reputation:'.project-passport-card',
-      'team-chat':'.project-members-strip',
-      'security-score':'.project-security-panel',
-      osv:'.project-security-panel',
-      learning:'.project-updates',
-    }
-    const node=document.querySelector(selectors[key]||'.project-overview')
-    node?.scrollIntoView({behavior:'smooth',block:'start'})
-    try{window.dispatchEvent(new CustomEvent('creativezone-devhub-open',{detail:key}))}catch{}
+    setActiveSection(key)
+    requestAnimationFrame(()=>window.scrollTo({top:Math.max(0,document.querySelector('.project-roadmap')?.getBoundingClientRect().top+window.scrollY-90),behavior:'smooth'}))
   }
+
+  function renderMembers(){
+    return <section className="project-roadmap-content-card">
+      <header><Users/><span><strong>{devhubLanguage==='pt'?'Equipe do projeto':'Project team'}</strong><small>{devhubLanguage==='pt'?'Membros, responsáveis e solicitações de entrada.':'Members, leads and participation requests.'}</small></span></header>
+      <div className="project-members-strip roadmap-team-strip">
+        <span className="project-members-strip-label"><Users/>{devhubLanguage==='pt'?'Equipe':'Team'}</span>
+        <div className="project-members-avatars">
+          {activeMembers.map(member=>{
+            const username=member.profile?.username || ''
+            return <button type="button" key={member.user_id} className="project-member-avatar-button" data-profile-username={username || undefined} title={username ? '@'+username : 'Membro do projeto'} aria-label={member.profile?.display_name || username || 'Membro do projeto'}><MiniAvatar profile={member.profile} size={38}/></button>
+          })}
+        </div>
+        <span className="project-members-count">{activeMembers.length} {devhubLanguage==='pt'?(activeMembers.length===1?'membro':'membros'):(activeMembers.length===1?'member':'members')}</span>
+        {!isOwner && !membership && session && <form className="join-project-form compact" onSubmit={join}><input maxLength={1000} value={message} onChange={e=>setMessage(e.target.value)} placeholder={devhubLanguage==='pt'?'Como você quer contribuir? (opcional)':'How would you like to contribute? (optional)'}/><button className="action primary-action"><UserPlus/>{devhubLanguage==='pt'?'Quero participar':'Join project'}</button></form>}
+        {membership?.status==='pending' && <small className="project-members-note">{devhubLanguage==='pt'?'Seu pedido está aguardando análise.':'Your request is awaiting review.'}</small>}
+        {membership?.status==='active' && membership.role!=='owner' && <button className="action project-leave-button" onClick={leave}>{devhubLanguage==='pt'?'Sair do projeto':'Leave project'}</button>}
+      </div>
+      {canManage && pending.length>0 && <div className="project-pending-panel roadmap-pending">
+        <h3>{devhubLanguage==='pt'?'Pedidos para participar':'Participation requests'}</h3>
+        {pending.map(member=><div key={member.user_id}><MiniAvatar profile={member.profile} size={38}/><span><strong>{member.profile?.display_name || member.profile?.username}</strong><small>{member.message || (devhubLanguage==='pt'?'Sem mensagem':'No message')}</small></span><div><button className="action" onClick={()=>review(member,'active','contributor')}>{devhubLanguage==='pt'?'Aceitar':'Accept'}</button><button className="action" onClick={()=>review(member,'declined')}>{devhubLanguage==='pt'?'Recusar':'Decline'}</button></div></div>)}
+      </div>}
+    </section>
+  }
+
+  function renderUpdates(title,subtitle){
+    return <section className="project-updates project-roadmap-content-card">
+      <header className="project-roadmap-card-head"><MessageSquare/><span><strong>{title}</strong><small>{subtitle}</small></span></header>
+      {canUpdate && <form onSubmit={publishUpdate}><textarea maxLength={5000} value={updateText} onChange={e=>setUpdateText(e.target.value)} placeholder={devhubLanguage==='pt'?'Compartilhe uma atualização do projeto...':'Share a project update...'}/><button className="action primary-action">{devhubLanguage==='pt'?'Publicar atualização':'Publish update'}</button></form>}
+      <div>{[...(project.project_updates||[])].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).map(item=><article key={item.id}><strong>{item.author?.display_name || item.author?.username || 'Membro'}</strong><small>{new Date(item.created_at).toLocaleString(devhubLanguage==='pt'?'pt-BR':'en-US')}</small><p>{item.content}</p></article>)}</div>
+      {!(project.project_updates||[]).length && <p className="community-empty">{devhubLanguage==='pt'?'Nenhuma atualização publicada ainda.':'No updates published yet.'}</p>}
+    </section>
+  }
+
+  function renderMentors(){
+    return <section className="project-roadmap-content-card">
+      <header><GraduationCap/><span><strong>{devhubLanguage==='pt'?'Mentores e liderança técnica':'Mentors & technical leads'}</strong><small>{devhubLanguage==='pt'?'Responsáveis atuais que podem orientar contribuições neste projeto.':'Current project leads who can guide contributions.'}</small></span></header>
+      <div className="project-roadmap-people">
+        {leaders.map(item=>{
+          const username=item.profile?.username||''
+          return <button type="button" key={item.user_id} onClick={()=>username&&navigate('/membro/'+encodeURIComponent(username))}><MiniAvatar profile={item.profile} size={44}/><span><strong>{item.profile?.display_name||username||'Membro'}</strong><small>{item.role==='owner'?(devhubLanguage==='pt'?'Responsável pelo projeto':'Project owner'):'Maintainer'}</small></span></button>
+        })}
+      </div>
+      {!leaders.length&&<p className="community-empty">{devhubLanguage==='pt'?'Nenhum responsável disponível.':'No project lead available.'}</p>}
+    </section>
+  }
+
+  function renderTeamChat(){
+    return <section className="project-roadmap-content-card">
+      <header><Users/><span><strong>{devhubLanguage==='pt'?'Comunicação da equipe':'Team communication'}</strong><small>{devhubLanguage==='pt'?'Abra uma conversa direta com os membros do projeto sem sair da CreativeZone.':'Open a direct conversation with project members without leaving CreativeZone.'}</small></span></header>
+      <div className="project-roadmap-people">
+        {activeMembers.filter(member=>member.user_id!==userId).map(member=>{
+          const username=member.profile?.username||''
+          return <button type="button" key={member.user_id} onClick={()=>username&&navigate('/mensagens/'+encodeURIComponent(username))}><MiniAvatar profile={member.profile} size={42}/><span><strong>{member.profile?.display_name||username||'Membro'}</strong><small>{devhubLanguage==='pt'?'Enviar mensagem':'Send message'}</small></span></button>
+        })}
+      </div>
+      {!activeMembers.some(member=>member.user_id!==userId)&&<p className="community-empty">{devhubLanguage==='pt'?'Adicione colaboradores ao projeto para iniciar conversas de equipe.':'Add collaborators to start team conversations.'}</p>}
+    </section>
+  }
+
+  function renderLearning(){
+    const topics=[...(project.tags||[]),...(project.skills_needed||[])].filter((value,index,self)=>value&&self.indexOf(value)===index)
+    return <section className="project-roadmap-content-card">
+      <header><BookOpen/><span><strong>{devhubLanguage==='pt'?'Mapa de aprendizado':'Learning map'}</strong><small>{devhubLanguage==='pt'?'Tecnologias e competências relacionadas ao projeto.':'Technologies and skills related to this project.'}</small></span></header>
+      <div className="project-roadmap-learning">
+        {topics.map(item=><span key={item}>{item}</span>)}
+      </div>
+      {!topics.length&&<p className="community-empty">{devhubLanguage==='pt'?'Adicione tags e habilidades necessárias ao projeto para construir este mapa.':'Add project tags and required skills to build this map.'}</p>}
+    </section>
+  }
+
+  const studioTab={
+    code:'code',
+    issues:'issues',
+    prs:'prs',
+    actions:'ci',
+    terminal:'terminal',
+    settings:'settings',
+  }[activeSection]
 
   return (
     <Shell title={project.title} onBack={()=>navigate('/projetos')}>
       <div className="project-detail">
-        <ProjectRoadmapNav active="overview" onSelect={openRoadmapSection}/>
-        <section className="project-overview project-roadmap-anchor">
-          <div className="project-title-row"><ProjectStatus value={project.status}/><span>por {project.owner?.display_name || project.owner?.username || 'Comunidade'}</span></div>
+        <ProjectRoadmapNav active={activeSection} onSelect={openRoadmapSection}/>
+
+        {activeSection==='overview'&&<section className="project-overview project-roadmap-anchor">
+          <div className="project-title-row"><ProjectStatus value={project.status}/><span>{devhubLanguage==='pt'?'por':'by'} {project.owner?.display_name || project.owner?.username || 'Comunidade'}</span></div>
           <p className="project-summary">{project.summary}</p>
           {project.description && <p className="project-description">{project.description}</p>}
           <div className="project-tags">{(project.tags||[]).map(tag=><span key={tag}>{tag}</span>)}</div>
           <div className="project-links">
-            {project.repo_url && <span className="action project-devhub-connected"><GitBranch/>DevHub conectado</span>}
-            {canManage && <button type="button" className="action project-recruiting-jump" onClick={()=>document.querySelector('.project-recruiting')?.scrollIntoView({behavior:'smooth',block:'start'})}><UserPlus/>{devhubLanguage==='pt'?'Preciso de ajuda':'Need help'}</button>}
-            {project.website_url && <a className="action" href={project.website_url} target="_blank" rel="noreferrer"><ExternalLink/>Site</a>}
-            {!isOwner && session && (
-              <ReportButton
-                session={session}
-                targetType="project"
-                targetId={project.id}
-                notify={notify}
-              />
-            )}
+            {project.repo_url && <span className="action project-devhub-connected"><GitBranch/>DevHub</span>}
+            {canManage && <button type="button" className="action project-recruiting-jump" onClick={()=>openRoadmapSection('recruiting')}><UserPlus/>{devhubLanguage==='pt'?'Preciso de ajuda':'Need help'}</button>}
+            {project.website_url && <a className="action" href={project.website_url} target="_blank" rel="noreferrer"><ExternalLink/>{devhubLanguage==='pt'?'Site':'Website'}</a>}
+            {!isOwner && session && <ReportButton session={session} targetType="project" targetId={project.id} notify={notify}/>}
           </div>
-
-          <div className="project-members-strip">
-            <span className="project-members-strip-label"><Users/>Equipe</span>
-            <div className="project-members-avatars">
-              {activeMembers.map(member=>{
-                const username=member.profile?.username || ''
-                return <button
-                  type="button"
-                  key={member.user_id}
-                  className="project-member-avatar-button"
-                  data-profile-username={username || undefined}
-                  title={username ? '@'+username : 'Membro do projeto'}
-                  aria-label={member.profile?.display_name || username || 'Membro do projeto'}
-                ><MiniAvatar profile={member.profile} size={38}/></button>
-              })}
-            </div>
-            <span className="project-members-count">{activeMembers.length} membro{activeMembers.length===1?'':'s'}</span>
-            {!isOwner && !membership && session && (
-              <form className="join-project-form compact" onSubmit={join}>
-                <input maxLength={1000} value={message} onChange={e=>setMessage(e.target.value)} placeholder="Como você quer contribuir? (opcional)"/>
-                <button className="action primary-action"><UserPlus/>Quero participar</button>
-              </form>
-            )}
-            {membership?.status==='pending' && <small className="project-members-note">Seu pedido está aguardando análise.</small>}
-            {membership?.status==='active' && membership.role!=='owner' && <button className="action project-leave-button" onClick={leave}>Sair do projeto</button>}
+          <div className="project-overview-team-summary">
+            <span><Users/>{activeMembers.length} {devhubLanguage==='pt'?(activeMembers.length===1?'membro':'membros'):(activeMembers.length===1?'member':'members')}</span>
+            <button type="button" className="action" onClick={()=>openRoadmapSection('team')}>{devhubLanguage==='pt'?'Ver equipe':'View team'}</button>
           </div>
-          <div className="project-roadmap-anchor" data-devhub-section="recruiting"><ProjectRecruiting
-            project={project}
-            session={session}
-            navigate={navigate}
-            notify={notify}
-          /></div>
+          {project.website_url&&<div className="project-website-preview"><LinkPreviewCard url={project.website_url} variant="project" eager/></div>}
+          <ProjectPassport project={project} notify={notify}/>
+          <ProjectActivityFeed projectId={project.id} notify={notify}/>
+          {canManage&&<div className="project-status-controls">{['idea','planning','active','paused','completed'].map(value=><button className="action" key={value} onClick={()=>changeStatus(value)}>{value}</button>)}</div>}
+        </section>}
 
-          {project.website_url && (
-            <div className="project-website-preview">
-              <LinkPreviewCard url={project.website_url} variant="project" eager />
-            </div>
-          )}
-
-          <div className="project-roadmap-anchor" data-devhub-section="reputation"><ProjectPassport
-            project={project}
-            notify={notify}
-          /></div>
-
-          <div className="project-roadmap-anchor" data-devhub-section="releases"><GitHubRepositoryPanel
-            project={project}
-            canManage={canManage}
-            notify={notify}
-            onChanged={load}
-          /></div>
-
-          <div className="project-roadmap-anchor" data-devhub-section="projects"><ProjectKanban
-            project={project}
-            session={session}
-            notify={notify}
-          /></div>
-
-          <div className="project-roadmap-anchor" data-devhub-section="actions"><ProjectActivityFeed
-            projectId={project.id}
-            notify={notify}
-          /></div>
-
-          <div className="project-roadmap-anchor" data-devhub-section="code"><ProjectStudio
-            project={project}
-            canManage={canStudio}
-            notify={notify}
-          /></div>
-
-          <div className="project-roadmap-anchor" data-devhub-section="security"><ProjectSecurityPanel
-            project={{ ...project, project_security_state: projectSecurityState(project) }}
-            canManage={canManage}
-            notify={notify}
-            onChanged={load}
-          /></div>
-
-          {canManage && <div className="project-status-controls">
-            {['idea','planning','active','paused','completed'].map(value=><button className="action" key={value} onClick={()=>changeStatus(value)}>{value}</button>)}
-          </div>}
-        </section>
-
-        {canManage && pending.length>0 && (
-          <section className="project-pending-panel">
-            <h3>Pedidos para participar</h3>
-            {pending.map(member=><div key={member.user_id}><MiniAvatar profile={member.profile} size={38}/><span><strong>{member.profile?.display_name || member.profile?.username}</strong><small>{member.message || 'Sem mensagem'}</small></span><div><button className="action" onClick={()=>review(member,'active','contributor')}>Aceitar</button><button className="action" onClick={()=>review(member,'declined')}>Recusar</button></div></div>)}
-          </section>
-        )}
-
-        <section className="project-updates">
-          <h3>Atualizações</h3>
-          {canUpdate && <form onSubmit={publishUpdate}><textarea maxLength={5000} value={updateText} onChange={e=>setUpdateText(e.target.value)} placeholder="Compartilhe uma atualização do projeto..."/><button className="action primary-action">Publicar atualização</button></form>}
-          <div>{[...(project.project_updates||[])].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).map(item=><article key={item.id}><strong>{item.author?.display_name || item.author?.username || 'Membro'}</strong><small>{new Date(item.created_at).toLocaleString('pt-BR')}</small><p>{item.content}</p></article>)}</div>
-          {!(project.project_updates||[]).length && <p className="community-empty">Nenhuma atualização publicada ainda.</p>}
-        </section>
+        {studioTab&&<ProjectStudio project={project} canManage={canStudio} notify={notify} initialTab={studioTab}/>}
+        {activeSection==='projects'&&<ProjectKanban project={project} session={session} notify={notify}/>}
+        {activeSection==='team'&&renderMembers()}
+        {activeSection==='discussions'&&renderUpdates(devhubLanguage==='pt'?'Discussões e atualizações':'Discussions & updates',devhubLanguage==='pt'?'Registre decisões e progresso do projeto.':'Record project decisions and progress.')}
+        {activeSection==='releases'&&<GitHubRepositoryPanel project={project} canManage={canManage} notify={notify} onChanged={load}/>}
+        {activeSection==='security'&&<ProjectSecurityPanel project={{...project,project_security_state:projectSecurityState(project)}} canManage={canManage} notify={notify} onChanged={load}/>}
+        {activeSection==='community'&&<>
+          <ProjectRecruiting project={project} session={session} navigate={navigate} notify={notify}/>
+          <ProjectActivityFeed projectId={project.id} notify={notify}/>
+        </>}
+        {activeSection==='mentors'&&renderMentors()}
+        {activeSection==='recruiting'&&<ProjectRecruiting project={project} session={session} navigate={navigate} notify={notify}/>}
+        {activeSection==='reputation'&&<ProjectPassport project={project} notify={notify}/>}
+        {activeSection==='team-chat'&&renderTeamChat()}
+        {activeSection==='security-score'&&<ProjectSecurityPanel project={{...project,project_security_state:projectSecurityState(project)}} canManage={canManage} notify={notify} onChanged={load}/>}
+        {activeSection==='osv'&&<ProjectSecurityPanel project={{...project,project_security_state:projectSecurityState(project)}} canManage={canManage} notify={notify} onChanged={load}/>}
+        {activeSection==='learning'&&renderLearning()}
       </div>
     </Shell>
   )
 }
+
