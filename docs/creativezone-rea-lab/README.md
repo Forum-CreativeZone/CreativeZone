@@ -5,6 +5,7 @@
 **Upstream:** https://github.com/morluto/rea  
 **Licença upstream:** MIT  
 **Status:** fundação + workspace + orquestração implementados; execução profunda aguarda worker isolado.
+**Tutorial no fórum:** https://forum.creativezone.pro/topico/creativezone-rea-lab-engenharia-reversa-assistida--8dc7a209-8f23-48b2-91d2-29b2f04c9a3e
 
 ## Objetivo
 
