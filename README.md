@@ -26,7 +26,7 @@ A **CreativeZone** reúne comunidade, colaboração e desenvolvimento em uma ún
 
 - **Fórum e comunidade:** categorias, tópicos, respostas, reações, perfis, reputação, mensagens e chat em tempo real.
 - **CreativeZone DevHub:** repositório real, README estilo GitHub, Code Studio com Monaco Editor, terminal com xterm.js, Issues, Pull Requests, Actions, Kanban e equipes.
-- **CreativeZone Security:** análise de dependências, OSV, Security Score, histórico de auditorias e automações por plano.
+- **CreativeZone Security:** análise de dependências, OSV, Security Score, histórico de auditorias e automações por plano.\n- **CreativeZone Link Shield:** proteção preventiva e reputação de links externos para toda a comunidade.
 - **Projetos colaborativos:** Activity Feed, Project Passport, Contribution Passport, Recruiting, Mentors, Team Chat e Learning.
 - **Contas e notificações:** login por e-mail, Google e GitHub, notificações em tempo real, e-mail e Web Push.
 
@@ -82,7 +82,7 @@ O sistema mantém:
 - scans automáticos conforme o plano;
 - proteção por RLS e permissões de projeto.
 
-Documentação específica: [CreativeZone Security](./docs/creativezone-security/README.md).
+Documentação específica: [CreativeZone Security](./docs/creativezone-security/README.md).\n\nProteção de URLs: [CreativeZone Link Shield](./docs/creativezone-link-shield/README.md).
 
 ---
 
