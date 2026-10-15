@@ -5,6 +5,7 @@ import {
   Languages,LockKeyhole,Package,RefreshCw,Star,
 } from 'lucide-react'
 import {getGitHubRenderedReadme,getGitHubRepositoryBrowser} from './services/githubApi'
+import {prepareReadmeHtml} from './services/readmeHtml'
 import './ProjectRepositoryOverview.css'
 
 function relative(value,language='pt'){
@@ -35,6 +36,7 @@ export function ProjectRepositoryOverview({project,language='pt',onNavigate,noti
   const [loading,setLoading]=useState(true)
   const [readmeOpen,setReadmeOpen]=useState(false)
   const [readme,setReadme]=useState(null)
+  const [readmeHtml,setReadmeHtml]=useState('')
   const [readmeLoading,setReadmeLoading]=useState(false)
 
   async function load(nextPath=path){
@@ -49,14 +51,18 @@ export function ProjectRepositoryOverview({project,language='pt',onNavigate,noti
     }finally{setLoading(false)}
   }
 
-  useEffect(()=>{setPath('');setReadmeOpen(false);setReadme(null);load('')},[project?.id])
+  useEffect(()=>{setPath('');setReadmeOpen(false);setReadme(null);setReadmeHtml('');load('')},[project?.id])
 
   async function toggleReadme(){
     const next=!readmeOpen
     setReadmeOpen(next)
     if(next&&!readme){
       setReadmeLoading(true)
-      try{setReadme(await getGitHubRenderedReadme(project.id))}
+      try{
+        const doc=await getGitHubRenderedReadme(project.id)
+        setReadme(doc)
+        setReadmeHtml(await prepareReadmeHtml(doc,project.id))
+      }
       catch(error){notify?.(error?.message||(language==='pt'?'Não foi possível carregar o README.':'Could not load README.'))}
       finally{setReadmeLoading(false)}
     }
@@ -168,7 +174,7 @@ export function ProjectRepositoryOverview({project,language='pt',onNavigate,noti
         <section className="repo-overview__readme">
           <header><span><BookOpen/><strong>{labels.readme}</strong></span><button type="button" className="action" onClick={toggleReadme}><ChevronDown className={readmeOpen?'up':''}/>{readmeOpen?labels.minimize:labels.expand}</button></header>
           {readmeOpen&&<div className="repo-overview__readme-body">
-            {readmeLoading?<p><RefreshCw className="security-spin"/>{labels.loading}</p>:readme?.html?<article className="devhub-markdown-body" dangerouslySetInnerHTML={{__html:readme.html}}/>:<p>README.md</p>}
+            {readmeLoading?<p><RefreshCw className="security-spin"/>{labels.loading}</p>:readmeHtml?<article className="devhub-markdown-body" dangerouslySetInnerHTML={{__html:readmeHtml}}/>:readme?.html?<article className="devhub-markdown-body" dangerouslySetInnerHTML={{__html:readme.html}}/>:<p>README.md</p>}
           </div>}
         </section>
       </div>
