@@ -93,7 +93,10 @@ function addJsonLd(html, data) {
 
 function setRootFallback(html, bodyHtml = '') {
   const rootPattern = /<div\s+id=["']root["']\s*>[\s\S]*?<\/div>/i
-  const root = `<div id="root">${bodyHtml}</div>`
+  const fallback = bodyHtml
+    ? `<noscript data-seo-prerender="true">${bodyHtml}</noscript>`
+    : ''
+  const root = `<div id="root">${fallback}</div>`
   return rootPattern.test(html) ? html.replace(rootPattern, root) : html
 }
 
