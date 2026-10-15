@@ -39,6 +39,7 @@ const MINIMAL_TTL_MS = 24 * 60 * 60 * 1000
 const FAILURE_TTL_MS = 2 * 60 * 60 * 1000
 const NETWORK_WINDOW_MS = 5 * 60 * 1000
 const NETWORK_MISS_LIMIT = 30
+const LINK_SHIELD_TIMEOUT_MS = 5000
 
 const TRACKING_PARAMS = new Set([
   "fbclid",
@@ -648,6 +649,48 @@ async function validatePublicAssetUrl(value: string | null) {
   }
 }
 
+async function checkLinkShield(normalizedUrl: string) {
+  const fallback = {
+    normalized_url: normalizedUrl,
+    domain: (() => {
+      try { return new URL(normalizedUrl).hostname.replace(/^www\\./, "") } catch { return "" }
+    })(),
+    verdict: "unknown",
+    decision: "allow",
+    risk_score: 0,
+    threat_type: null,
+    providers: { creativezone: { status: "link_shield_unavailable" } },
+    protected: false,
+  }
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), LINK_SHIELD_TIMEOUT_MS)
+
+  try {
+    const response = await fetch(SUPABASE_URL + "/functions/v1/link-shield", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + SERVICE_KEY,
+      },
+      body: JSON.stringify({
+        action: "check",
+        url: normalizedUrl,
+        context: "preview",
+      }),
+      signal: controller.signal,
+    })
+
+    if (!response.ok) return fallback
+    const body = await response.json().catch(() => null)
+    return body?.safety || fallback
+  } catch {
+    return fallback
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 function publicPreview(record: Partial<PreviewRecord>) {
   return {
     normalized_url: record.normalized_url || "",
@@ -714,6 +757,32 @@ Deno.serve(async (req: Request) => {
   }
 
   const normalizedUrl = target.href
+  const safety = await checkLinkShield(normalizedUrl)
+
+  if (safety?.decision === "block" || safety?.decision === "warn") {
+    return json({
+      ok: false,
+      blocked: true,
+      cached: false,
+      preview: {
+        normalized_url: normalizedUrl,
+        url: normalizedUrl,
+        domain: target.hostname.replace(/^www\\./, ""),
+        title: null,
+        description: null,
+        image_url: null,
+        logo_url: null,
+        publisher: null,
+        author: null,
+        published_at: null,
+        lang: null,
+        status: "blocked",
+        fetched_at: null,
+        expires_at: safety?.expires_at || null,
+        safety,
+      },
+    })
+  }
 
   try {
     const cached = await readCache(normalizedUrl)
@@ -721,7 +790,7 @@ Deno.serve(async (req: Request) => {
       return json({
         ok: cached.status !== "failed",
         cached: true,
-        preview: publicPreview(cached),
+        preview: { ...publicPreview(cached), safety },
       })
     }
   } catch (error) {
@@ -799,7 +868,7 @@ Deno.serve(async (req: Request) => {
     return json({
       ok: true,
       cached: false,
-      preview: publicPreview(record),
+      preview: { ...publicPreview(record), safety },
     })
   } catch (error) {
     const typed = error as Error & { httpStatus?: number; contentType?: string }
@@ -835,7 +904,7 @@ Deno.serve(async (req: Request) => {
     return json({
       ok: false,
       cached: false,
-      preview: publicPreview(failed),
+      preview: { ...publicPreview(failed), safety },
     })
   }
 })
