@@ -99,7 +99,7 @@ export function ProjectPassport({project,notify}){
 
     <div className="project-passport-card__summary">
       <article className="project-passport-card__maturity">
-        <div className="project-passport-card__score"><strong>{maturity.score??'—'}</strong><span>/100</span></div>
+        <div className="project-passport-card__score"><strong>{maturity.score??'—'}</strong><span>pontos de 100</span></div>
         <div className="project-passport-card__maturity-copy">
           <small>MATURIDADE DO PROJETO</small>
           <strong>{maturity.level||'—'}</strong>
@@ -174,6 +174,7 @@ export function ProjectPassport({project,notify}){
       <section><strong>GitHub</strong><p>{repo.connected?(repo.details_restricted?'Repositório conectado e privado.':'Push '+relative(repo.pushed_at)+' · sync '+relative(repo.last_sync_at)):'Nenhum repositório conectado.'}</p></section>
       <section><strong>Segurança</strong><p>{security.visible===false?'Detalhes restritos.':security.last_audited_at?('Auditoria '+relative(security.last_audited_at)+' · '+(security.dependencies??0)+' dependência(s).'):'Auditoria ainda não concluída.'}</p></section>
       <section><strong>Build</strong><p>{activity.latest_build?activity.latest_build.title+' · '+relative(activity.latest_build.occurred_at):'Nenhum build registrado.'}</p></section>
+      <section className="wide"><strong>Como a maturidade é calculada</strong><p>Identidade até 10 pontos · GitHub e sincronização 20 · Equipe 15 · Atividade recente 20 · Segurança 20 · Release 10 · Site publicado 5. O total máximo é 100.</p></section>
       {(passport.project?.skills_needed||[]).length>0&&<section className="wide"><strong>Competências procuradas</strong><div className="project-passport-card__skills">{passport.project.skills_needed.map(item=><span key={item}>{item}</span>)}</div></section>}
       {latestRelease&&<section><strong>Release</strong><p><Rocket/> {latestRelease}</p></section>}
     </div>}
