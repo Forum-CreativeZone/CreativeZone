@@ -79,10 +79,32 @@ export function devHubLabel(key,language='en'){
   return DEVHUB_MENU_KEYS[key]?.[language]||DEVHUB_MENU_KEYS[key]?.en||key
 }
 
-export function ProjectRoadmapNav({active='overview',onSelect}){
+export function ProjectRoadmapNav({active='overview',onSelect,permissions=null}){
   const [language,setLanguage]=useDevHubLanguage()
-  const primary=MENU.slice(0,12)
-  const creative=MENU.slice(12)
+  const capabilityFor={
+    code:'code_read',
+    issues:'issues_read',
+    prs:'prs_read',
+    projects:'kanban_read',
+    team:'team_view',
+    releases:'code_read',
+    actions:'actions_read',
+    security:'security_read',
+    terminal:'terminal',
+    settings:'settings_read',
+    'team-chat':'team_view',
+    'security-score':'security_read',
+    osv:'security_read',
+  }
+  const publicKeys=new Set(['overview','discussions','community','mentors','recruiting','reputation','learning'])
+  const visible=(row)=>{
+    const key=row[0]
+    if(!permissions) return publicKeys.has(key)
+    const capability=capabilityFor[key]
+    return !capability || Boolean(permissions[capability])
+  }
+  const primary=MENU.slice(0,12).filter(visible)
+  const creative=MENU.slice(12).filter(visible)
 
   const renderGroup=(title,rows)=><section className="project-roadmap__section">
     <small>{title}</small>
