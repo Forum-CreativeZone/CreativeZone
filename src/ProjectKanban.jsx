@@ -1,6 +1,6 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react'
 import {
-  CalendarDays,CheckCircle2,CircleDot,Clock3,Columns3,GitBranch,GitPullRequest,GripVertical,
+  CalendarDays,CheckCircle2,ChevronDown,ChevronUp,CircleDot,CircleHelp,Clock3,Columns3,GitBranch,GitPullRequest,GripVertical,
   ListChecks,LockKeyhole,MessageSquare,Plus,RefreshCw,Save,Send,Trash2,UserRound,X,
 } from 'lucide-react'
 import {
@@ -105,6 +105,8 @@ export function ProjectKanban({project,session,notify}){
   const [detailLoading,setDetailLoading]=useState(false)
   const [comment,setComment]=useState('')
   const [checkText,setCheckText]=useState('')
+  const [panelOpen,setPanelOpen]=useState(true)
+  const [helpOpen,setHelpOpen]=useState(true)
   const draggedCard=useRef(null)
 
   async function load(){
@@ -324,16 +326,27 @@ export function ProjectKanban({project,session,notify}){
   }
   if(!board) return null
 
-  return <section className="project-kanban">
+  return <section className={'project-kanban '+(panelOpen?'is-open':'is-collapsed')}>
     <header className="project-kanban__head">
-      <div><Columns3/><span><small>CREATIVEZONE DEVHUB</small><strong>Kanban do projeto</strong><em>Tarefas, responsáveis, GitHub, checklist e histórico em tempo real.</em></span></div>
+      <div><Columns3/><span><small>CREATIVEZONE DEVHUB</small><strong>Kanban do projeto</strong><em>Organize o trabalho em etapas: crie cards e mova-os até “Concluído”.</em></span></div>
       <div>
         <span className="project-kanban__counter">{cards.length} card{cards.length===1?'':'s'}</span>
-        <button type="button" className="action" onClick={load}><RefreshCw/>Atualizar</button>
+        {panelOpen&&<button type="button" className="action" onClick={()=>setHelpOpen(value=>!value)}><CircleHelp/>{helpOpen?'Ocultar ajuda':'Como funciona'}</button>}
+        {panelOpen&&<button type="button" className="action" onClick={load}><RefreshCw/>Atualizar</button>}
+        <button type="button" className="action" onClick={()=>setPanelOpen(value=>!value)} aria-expanded={panelOpen}>{panelOpen?<><ChevronUp/>Minimizar</>:<><ChevronDown/>Expandir</>}</button>
       </div>
     </header>
 
-    <div className="project-kanban__board">
+    {panelOpen&&<>
+      {helpOpen&&<div className="project-kanban__guide">
+        <div><strong>1. Crie um card</strong><small>Clique no <b>+</b> da coluna onde a tarefa deve começar. Um card representa uma tarefa real do projeto.</small></div>
+        <div><strong>2. Defina o trabalho</strong><small>Adicione responsável, prioridade, prazo, labels e checklist. Você também pode vincular Issue, PR e branch do GitHub.</small></div>
+        <div><strong>3. Mova pelo fluxo</strong><small>Arraste o card entre Backlog, A fazer, Em andamento, Em revisão e Concluído conforme o trabalho avança.</small></div>
+        <div><strong>4. Trabalhe em equipe</strong><small>Abra o card para comentar, acompanhar o histórico e manter todos sincronizados em tempo real.</small></div>
+        {!cards.length&&permissions.can_write&&columns[0]&&<button type="button" className="action primary-action" onClick={()=>openCreate(columns[0])}><Plus/>Criar primeiro card</button>}
+      </div>}
+
+      <div className="project-kanban__board">
       {columns.map(column=>{
         const rows=cardsFor(column.id)
         return <section
@@ -389,7 +402,8 @@ export function ProjectKanban({project,session,notify}){
           </div>
         </section>
       })}
-    </div>
+      </div>
+    </>}
 
     {createColumn&&<div className="project-kanban-modal" onMouseDown={()=>setCreateColumn(null)}>
       <form className="project-kanban-dialog create" onSubmit={createCard} onMouseDown={event=>event.stopPropagation()}>
