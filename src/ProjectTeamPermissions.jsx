@@ -9,6 +9,8 @@ import {
   getProjectTeamAccess,
   respondProjectMemberInvite,
   reviewProjectMember,
+  requestProjectParticipation,
+  leaveProject,
   searchProjectInviteCandidates,
   setProjectMemberAccess,
 } from './services/extendedApi'
@@ -82,6 +84,7 @@ export function ProjectTeamPermissions({project,session,language='pt',notify,onC
   const [selected,setSelected]=useState(null)
   const [invite,setInvite]=useState({role:'member',message:'',operationalAccess:false,allowedPaths:''})
   const [pendingRoles,setPendingRoles]=useState({})
+  const [joinMessage,setJoinMessage]=useState('')
 
   async function load(){
     if(!project?.id) return
@@ -185,6 +188,30 @@ export function ProjectTeamPermissions({project,session,language='pt',notify,onC
     finally{setBusy(false)}
   }
 
+  async function requestJoin(event){
+    event.preventDefault()
+    if(!session?.user) return
+    setBusy(true)
+    try{
+      await requestProjectParticipation(project.id,session.user.id,joinMessage.trim())
+      setJoinMessage('')
+      notify?.(language==='pt'?'Pedido para participar enviado.':'Participation request sent.')
+      await load();onChanged?.()
+    }catch(error){notify?.(error?.message||(language==='pt'?'Não foi possível solicitar participação.':'Could not request participation.'))}
+    finally{setBusy(false)}
+  }
+
+  async function leave(){
+    if(!session?.user||!window.confirm(language==='pt'?'Sair deste projeto?':'Leave this project?')) return
+    setBusy(true)
+    try{
+      await leaveProject(project.id,session.user.id)
+      notify?.(language==='pt'?'Você saiu do projeto.':'You left the project.')
+      await load();onChanged?.()
+    }catch(error){notify?.(error?.message||(language==='pt'?'Não foi possível sair do projeto.':'Could not leave project.'))}
+    finally{setBusy(false)}
+  }
+
   if(loading&&!data){
     return <section className="project-team-access loading"><RefreshCw className="security-spin"/><span>{language==='pt'?'Carregando funções e permissões...':'Loading roles and permissions...'}</span></section>
   }
@@ -195,6 +222,17 @@ export function ProjectTeamPermissions({project,session,language='pt',notify,onC
       <div><ShieldCheck/><span><small>CREATIVEZONE DEVHUB</small><strong>{language==='pt'?'Equipe e permissões':'Team & permissions'}</strong><em>{language==='pt'?'Acesso aplicado no backend, não apenas na interface.':'Access is enforced by the backend, not only the UI.'}</em></span></div>
       <div>{canInvite&&<button type="button" className="action primary-action" onClick={()=>setInviteOpen(value=>!value)}><UserPlus/>{language==='pt'?'Convidar membro':'Invite member'}</button>}<button type="button" className="action" onClick={load}><RefreshCw/>{language==='pt'?'Atualizar':'Refresh'}</button></div>
     </header>
+
+    {session?.user&&data.current?.role==='none'&&!data.my_invite&&<form className="project-team-join" onSubmit={requestJoin}>
+      <UserPlus/><span><strong>{language==='pt'?'Quer fazer parte deste projeto?':'Want to join this project?'}</strong><small>{language==='pt'?'Envie uma mensagem para os responsáveis escolherem sua função.':'Send a message so the project leads can choose your role.'}</small></span>
+      <input maxLength={1000} value={joinMessage} onChange={e=>setJoinMessage(e.target.value)} placeholder={language==='pt'?'Como você quer contribuir?':'How would you like to contribute?'}/>
+      <button className="action primary-action" disabled={busy}><UserPlus/>{language==='pt'?'Solicitar participação':'Request access'}</button>
+    </form>}
+
+    {session?.user&&data.current?.role!=='none'&&data.current?.role!=='owner'&&<div className="project-team-current-role">
+      <ShieldCheck/><span><strong>{language==='pt'?'Seu acesso atual':'Your current access'}</strong><small>{roleLabel(data.current.role,roleMap[data.current.role],language)}{data.current.operational_access?' · '+(language==='pt'?'poder operacional total':'full operational access'):''}</small></span>
+      <button type="button" className="action" disabled={busy} onClick={leave}>{language==='pt'?'Sair do projeto':'Leave project'}</button>
+    </div>}
 
     {data.my_invite&&<div className="project-team-invite-banner">
       <Mail/><span><strong>{language==='pt'?'Você recebeu um convite para este projeto':'You were invited to this project'}</strong><small>{language==='pt'?'Função':'Role'}: {roleLabel(data.my_invite.role,roleMap[data.my_invite.role],language)}{data.my_invite.message?' · '+data.my_invite.message:''}</small></span>
