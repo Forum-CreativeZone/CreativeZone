@@ -69,7 +69,7 @@ O README principal deve continuar resumido. A documentação completa fica neste
 **Função:** engenharia reversa assistida, evidências, Behavior Specification e reconstrução independente.
 
 - GitHub: [creativezone-rea-lab/README.md](./creativezone-rea-lab/README.md)
-- Fórum: tópico oficial em Tecnologias & Integrações
+- Fórum: https://forum.creativezone.pro/topico/creativezone-rea-lab-engenharia-reversa-assistida--8dc7a209-8f23-48b2-91d2-29b2f04c9a3e
 - Estado: fundação e workspace implementados; execução profunda aguarda worker isolado
 
 ---
