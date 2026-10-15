@@ -28,6 +28,7 @@ A **CreativeZone** reúne comunidade, colaboração e desenvolvimento em uma ún
 - **CreativeZone DevHub:** repositório real, README estilo GitHub, Code Studio com Monaco Editor, terminal com xterm.js, Issues, Pull Requests, Actions, Kanban e equipes.
 - **CreativeZone Security:** análise de dependências, OSV, Security Score, histórico de auditorias e automações por plano.\n- **CreativeZone Link Shield:** proteção preventiva e reputação de links externos para toda a comunidade.
 - **CreativeZone Moderation:** denúncias, triagem assistida e decisões humanas na Central de Moderação.
+- **CreativeZone REA Lab:** engenharia reversa assistida, evidências e reconstrução independente com worker isolado.
 - **Projetos colaborativos:** Activity Feed, Project Passport, Contribution Passport, Recruiting, Mentors, Team Chat e Learning.
 - **Contas e notificações:** login por e-mail, Google e GitHub, notificações em tempo real, e-mail e Web Push.
 
@@ -88,6 +89,8 @@ O sistema mantém:
 Documentação específica: [CreativeZone Security](./docs/creativezone-security/README.md).\n\nProteção de URLs: [CreativeZone Link Shield](./docs/creativezone-link-shield/README.md).
 
 Moderação: [CreativeZone Moderation Assist](./docs/creativezone-moderation/README.md).
+
+Engenharia reversa: [CreativeZone REA Lab](./docs/creativezone-rea-lab/README.md).
 
 ---
 
