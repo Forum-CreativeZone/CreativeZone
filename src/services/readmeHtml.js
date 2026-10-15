@@ -7,7 +7,16 @@ export function sanitizeReadmeHtml(html=''){
     const doc=parser.parseFromString('<div id="cz-readme-root">'+html+'</div>','text/html')
     const root=doc.getElementById('cz-readme-root')
     if(!root) return ''
-    root.querySelectorAll('script,style,iframe,object,embed,form,input,button,textarea,select,link,meta').forEach(node=>node.remove())
+    root.querySelectorAll('script,style,iframe,object,embed,form,button,textarea,select,link,meta').forEach(node=>node.remove())
+    root.querySelectorAll('input').forEach(input=>{
+      const type=String(input.getAttribute('type')||'').toLowerCase()
+      if(type!=='checkbox'||!input.hasAttribute('disabled')){ input.remove(); return }
+      ;[...input.attributes].forEach(attr=>{
+        if(!['type','checked','disabled'].includes(attr.name.toLowerCase())) input.removeAttribute(attr.name)
+      })
+      input.setAttribute('type','checkbox')
+      input.setAttribute('disabled','')
+    })
     root.querySelectorAll('*').forEach(node=>{
       ;[...node.attributes].forEach(attr=>{
         const name=attr.name.toLowerCase()
@@ -17,8 +26,14 @@ export function sanitizeReadmeHtml(html=''){
         if(name==='style') node.removeAttribute(attr.name)
       })
       if(node.tagName==='A'){
-        node.setAttribute('target','_blank')
-        node.setAttribute('rel','noreferrer noopener')
+        const href=String(node.getAttribute('href')||'').trim()
+        if(href.startsWith('#')){
+          node.removeAttribute('target')
+          node.removeAttribute('rel')
+        }else{
+          node.setAttribute('target','_blank')
+          node.setAttribute('rel','noreferrer noopener')
+        }
       }
       if(node.tagName==='IMG'){
         node.setAttribute('loading','lazy')
