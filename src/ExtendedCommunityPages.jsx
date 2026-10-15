@@ -573,6 +573,7 @@ export function ProjectPage({ slug, session, navigate, notify }) {
           <div className="project-tags">{(project.tags||[]).map(tag=><span key={tag}>{tag}</span>)}</div>
           <div className="project-links">
             {project.repo_url && <span className="action project-devhub-connected"><GitBranch/>DevHub conectado</span>}
+            {canManage && <button type="button" className="action project-recruiting-jump" onClick={()=>document.querySelector('.project-recruiting')?.scrollIntoView({behavior:'smooth',block:'start'})}><UserPlus/>Preciso de ajuda</button>}
             {project.website_url && <a className="action" href={project.website_url} target="_blank" rel="noreferrer"><ExternalLink/>Site</a>}
             {!isOwner && session && (
               <ReportButton
@@ -609,6 +610,13 @@ export function ProjectPage({ slug, session, navigate, notify }) {
             {membership?.status==='pending' && <small className="project-members-note">Seu pedido está aguardando análise.</small>}
             {membership?.status==='active' && membership.role!=='owner' && <button className="action project-leave-button" onClick={leave}>Sair do projeto</button>}
           </div>
+          <ProjectRecruiting
+            project={project}
+            session={session}
+            navigate={navigate}
+            notify={notify}
+          />
+
           {project.website_url && (
             <div className="project-website-preview">
               <LinkPreviewCard url={project.website_url} variant="project" eager />
@@ -617,13 +625,6 @@ export function ProjectPage({ slug, session, navigate, notify }) {
 
           <ProjectPassport
             project={project}
-            notify={notify}
-          />
-
-          <ProjectRecruiting
-            project={project}
-            session={session}
-            navigate={navigate}
             notify={notify}
           />
 
