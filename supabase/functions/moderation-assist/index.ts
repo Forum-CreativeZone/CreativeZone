@@ -460,7 +460,6 @@ Deno.serve(async(req:Request)=>{
     }
 
     if(action==="batch"){
-      if(!actor.staff && !internalRequest(req)) return json({error:"staff_access_required"},403)
       const result=await processBatch(Number(body.limit||10))
       return json({ok:true,...result})
     }
