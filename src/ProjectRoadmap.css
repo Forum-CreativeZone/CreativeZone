@@ -9,14 +9,14 @@
 .project-roadmap__scroll{display:grid;gap:8px;max-height:calc(100vh - 190px);padding:9px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#5c2926 #0b0c0f}
 .project-roadmap__section{display:grid;gap:4px}.project-roadmap__section>small{padding:3px 6px 2px;color:#5f6872;font:800 7px "DM Sans",sans-serif;letter-spacing:.11em}
 .project-roadmap__group{display:grid;gap:3px}
-.project-roadmap__group button{display:grid;grid-template-columns:20px minmax(0,1fr);align-items:center;gap:7px;width:100%;border:1px solid transparent;border-radius:8px;background:transparent;color:#9ba2aa;padding:7px 8px;font:700 9px "DM Sans",sans-serif;text-align:left;cursor:pointer}
+.project-roadmap__group button{display:grid;grid-template-columns:20px minmax(0,1fr);align-items:center;gap:7px;width:100%;border:1px solid transparent;border-radius:8px;background:transparent;color:#9ba2aa;padding:7px 8px;font:700 10px "DM Sans",sans-serif;text-align:left;cursor:pointer}
 .project-roadmap__group button:hover{border-color:rgba(232,48,37,.20);background:rgba(232,48,37,.045);color:#e8eaed}.project-roadmap__group button.active{border-color:rgba(232,48,37,.42);background:linear-gradient(90deg,rgba(232,48,37,.14),rgba(232,48,37,.045));color:#ff8d85;box-shadow:inset 2px 0 0 #e83025}
 .project-roadmap__group button svg{width:14px;height:14px;justify-self:center}.project-roadmap__group button span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .project-roadmap__divider{height:1px;background:#272a2f;margin:1px 4px}
 .project-roadmap-anchor{scroll-margin-top:100px}
 
 @media(max-width:860px){
-  .project-devhub-layout{grid-template-columns:190px minmax(0,1fr);gap:10px}
+  .project-devhub-layout{grid-template-columns:210px minmax(0,1fr);gap:10px}
   .project-roadmap{top:66px}
 }
 @media(max-width:680px){
@@ -31,7 +31,7 @@
 
 .project-devhub-layout{
   display:grid;
-  grid-template-columns:228px minmax(0,1fr);
+  grid-template-columns:240px minmax(0,1fr);
   gap:16px;
   align-items:start;
   width:100%;
