@@ -469,7 +469,7 @@ export function ProjectsPage({ session, navigate, notify }) {
             {form.repo_mode==='existing' && <label>URL do repositório GitHub<input type="url" value={form.repo_url} onChange={e=>setForm({...form,repo_url:e.target.value})} placeholder="https://github.com/usuario/repositorio"/></label>}
           </section>
           <div className="project-form-grid">
-            <label>Site do projeto<input type="url" value={form.website_url} onChange={e=>setForm({...form,website_url:e.target.value})}/></label>
+            <label>Site publicado do projeto (opcional)<input type="url" value={form.website_url} onChange={e=>setForm({...form,website_url:e.target.value})} placeholder="https://seusite.com"/><small className="project-form-help">Preencha somente quando o site oficial estiver publicado e acessível.</small></label>
           </div>
           <div className="project-form-grid">
             <label>Tags<input value={form.tags} onChange={e=>setForm({...form,tags:e.target.value})} placeholder="react, ia, automação"/></label>
