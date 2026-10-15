@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { ExternalLink, Link2, LoaderCircle, ShieldAlert, TriangleAlert } from 'lucide-react'
+import { ExternalLink, Link2, LoaderCircle, ShieldAlert, ShieldCheck, TriangleAlert } from 'lucide-react'
 import { normalizePreviewUrl, resolveLinkPreview } from './services/linkPreviewApi'
 
 function domainFromUrl(value) {
@@ -90,6 +90,11 @@ export function LinkPreviewCard({
   const hasMetadata = Boolean(preview && preview.status !== 'failed' && preview.status !== 'blocked')
   const safety = preview?.safety || null
   const shielded = Boolean(safety && (safety.decision === 'warn' || safety.decision === 'block'))
+  const verified = Boolean(
+    safety?.protected &&
+    safety?.decision === 'allow' &&
+    safety?.verdict === 'no_known_threat'
+  )
 
   if (shielded) {
     return (
@@ -160,6 +165,15 @@ export function LinkPreviewCard({
               <Link2 />
             )}
             <span>{publisher}</span>
+            {verified && (
+              <small
+                className="cz-link-preview-shield-ok"
+                title="CreativeZone Link Shield: nenhuma ameaça conhecida nas fontes consultadas"
+              >
+                <ShieldCheck />
+                {variant === 'compact' ? 'Verificado' : 'Link Shield · sem ameaça conhecida'}
+              </small>
+            )}
             {variant === 'compact' && date && <small>{date}</small>}
           </span>
 
