@@ -668,7 +668,7 @@ export function ProjectPage({ slug, session, navigate, notify }) {
       <div className="project-detail">
         <div className="project-devhub-layout">
           <ProjectRoadmapNav active={activeSection} onSelect={openRoadmapSection}/>
-          <main className="project-devhub-content">
+          <div className="project-devhub-content">
 
         {activeSection==='overview'&&<section className="project-overview project-roadmap-anchor">
           <div className="project-title-row"><ProjectStatus value={project.status}/><span>{devhubLanguage==='pt'?'por':'by'} {project.owner?.display_name || project.owner?.username || 'Comunidade'}</span></div>
@@ -717,7 +717,7 @@ export function ProjectPage({ slug, session, navigate, notify }) {
         {activeSection==='security-score'&&<ProjectSecurityPanel project={{...project,project_security_state:projectSecurityState(project)}} canManage={canManage} notify={notify} onChanged={load}/>}
         {activeSection==='osv'&&<ProjectSecurityPanel project={{...project,project_security_state:projectSecurityState(project)}} canManage={canManage} notify={notify} onChanged={load}/>}
         {activeSection==='learning'&&renderLearning()}
-          </main>
+          </div>
         </div>
       </div>
     </Shell>
