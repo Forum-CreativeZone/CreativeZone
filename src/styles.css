@@ -7050,3 +7050,17 @@ main{
 :root[data-theme="light"] .team-settings-panel,:root[data-theme="light"] .team-role-matrix{background:#fff;border-color:#e3d9d6}:root[data-theme="light"] .team-settings-panel input,:root[data-theme="light"] .team-settings-panel textarea{background:#fff;color:#202020;border-color:#ddd3d0}:root[data-theme="light"] .team-role-matrix article{background:#fafafa;border-color:#e3d9d6}:root[data-theme="light"] .team-role-matrix article.active{background:#faf7ff}
 @media(max-width:980px){.team-role-matrix>div{grid-template-columns:repeat(2,minmax(0,1fr))}.team-topic-page>header{grid-template-columns:auto 1fr}.team-topic-admin-actions{grid-column:1/-1;justify-content:flex-start!important}}
 @media(max-width:620px){.team-profile-actions{justify-content:flex-start}.team-settings-panel,.team-role-matrix{margin-left:12px;margin-right:12px}.team-role-matrix>div{grid-template-columns:1fr}.team-settings-actions{justify-content:flex-start;flex-wrap:wrap}.team-topic-admin-actions{flex-wrap:wrap}}
+
+
+/* Notification badge + real-time popup refinements */
+.notifications.has-unread,.mobile-notifications.has-unread{position:relative}
+.notifications.has-unread:after{content:"";position:absolute;inset:3px;border:1px solid rgba(231,41,32,.42);border-radius:50%;pointer-events:none;animation:notification-bell-pulse 2.4s ease-out infinite}
+@keyframes notification-bell-pulse{0%,62%{opacity:0;transform:scale(.82)}72%{opacity:.65}100%{opacity:0;transform:scale(1.22)}}
+.notification-count-badge{box-shadow:0 0 0 1px rgba(231,41,32,.16),0 2px 7px rgba(0,0,0,.3)}
+.notification-list-toolbar .mark-all-overlay:disabled{opacity:.42;cursor:not-allowed}
+.personal-notification-open>span>p{margin-top:3px;color:#7f8996;font-size:10px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.personal-notification-row.unread .personal-notification-open strong{color:#f4f6f8}
+.login-notification-popup{overflow:hidden}
+.login-notification-popup:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--red)}
+.login-notification-popup>div:nth-of-type(1) p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+@media(prefers-reduced-motion:reduce){.notifications.has-unread:after{animation:none}}
