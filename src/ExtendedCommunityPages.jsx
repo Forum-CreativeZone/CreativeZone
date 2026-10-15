@@ -10,7 +10,9 @@ import {
   GraduationCap,
   MessageSquare,
   Plus,
+  RefreshCw,
   Shield,
+  ShieldAlert,
   UserPlus,
   Users,
   X,
@@ -46,6 +48,7 @@ import { ProjectTeamPermissions } from './ProjectTeamPermissions'
 import { GitHubAccountConnect } from './GitHubAccountConnect'
 import { connectExistingGitHubRepository, createGitHubRepositoryForProject, getGitHubAccountStatus } from './services/githubAuthApi'
 import { requestGitHubOrganizationMembership, syncGitHubProject } from './services/githubApi'
+import { getModerationAssessments, processModerationQueue, requestModerationAnalysis, reviewModerationAssessment } from './services/moderationApi'
 
 function Shell({ title, onBack, children }) {
   return (
@@ -134,24 +137,55 @@ const statusLabels = {
   dismissed:'Dispensada',
 }
 
+const assessmentStatusLabels = {
+  attention:'Atenção',
+  urgent:'Urgentes',
+  pending:'Todas pendentes',
+  reviewed:'Revisadas',
+  dismissed:'Dispensadas',
+  all:'Todas',
+}
+
+const recommendationLabels = {
+  allow:'Baixo risco',
+  review:'Revisar',
+  urgent:'Urgente',
+}
+
+function assessmentPreview(item) {
+  const preview=item?.target_preview
+  if(!preview) return 'Conteúdo não disponível.'
+  if(preview.deleted_at) return 'Conteúdo removido.'
+  const value=item.target_type==='topic'
+    ? [preview.title,preview.content].filter(Boolean).join(' — ')
+    : preview.content
+  const text=String(value||'').replace(/\s+/g,' ').trim()
+  return text.length>420 ? text.slice(0,419)+'…' : text || 'Sem texto.'
+}
+
 export function ModerationPage({ profile, session, navigate, notify }) {
   const [status, setStatus] = useState('pending')
+  const [assistStatus, setAssistStatus] = useState('attention')
   const [reports, setReports] = useState([])
   const [actions, setActions] = useState([])
+  const [assessments, setAssessments] = useState([])
   const [tab, setTab] = useState('reports')
   const [loading, setLoading] = useState(true)
+  const [assistBusy, setAssistBusy] = useState(false)
   const isStaff = ['moderator','admin'].includes(profile?.role)
 
   async function load() {
     if (!isStaff) return
     setLoading(true)
     try {
-      const [nextReports,nextActions] = await Promise.all([
+      const [nextReports,nextActions,nextAssessments] = await Promise.all([
         getModerationReports(status),
         getModerationActions(),
+        getModerationAssessments(assistStatus),
       ])
       setReports(nextReports)
       setActions(nextActions)
+      setAssessments(nextAssessments)
     } catch (error) {
       notify?.(error?.message || 'Não foi possível carregar a moderação.')
     } finally {
@@ -159,7 +193,7 @@ export function ModerationPage({ profile, session, navigate, notify }) {
     }
   }
 
-  useEffect(()=>{ load() },[status,isStaff])
+  useEffect(()=>{ load() },[status,assistStatus,isStaff])
 
   if (!session || !isStaff) {
     return <Shell title="Moderação" onBack={()=>navigate('/')}><p className="community-empty">Esta área é restrita à equipe de moderação.</p></Shell>
@@ -173,30 +207,67 @@ export function ModerationPage({ profile, session, navigate, notify }) {
     } catch (error) { notify?.(error?.message || 'Não foi possível atualizar a denúncia.') }
   }
 
-  async function actionOn(report,action) {
+  async function setAssessmentState(item,next) {
+    const note=window.prompt(next==='reviewed'?'Nota da revisão (opcional):':'Motivo para dispensar (opcional):','')
+    if(note===null) return
     try {
-      if (report.target_type === 'topic') await moderateTopic(report.target_id,action,'Ação aplicada a partir da fila de denúncias.')
-      else if (report.target_type === 'post' && action === 'delete') await moderatePost(report.target_id,'delete','Ação aplicada a partir da fila de denúncias.')
-      else if (report.target_type === 'chat_message') await moderateChatMessage(report.target_id,action,'Ação aplicada a partir da fila de denúncias do chat.')
+      await reviewModerationAssessment(item.id,next,note)
+      notify?.(next==='reviewed'?'Análise marcada como revisada.':'Análise dispensada.')
+      load()
+    } catch (error) { notify?.(error?.message || 'Não foi possível revisar a análise.') }
+  }
+
+  async function runQueue() {
+    setAssistBusy(true)
+    try {
+      const result=await processModerationQueue(20)
+      notify?.('Moderação assistida: '+Number(result.completed||0)+' analisado(s), '+Number(result.failed||0)+' falha(s).')
+      await load()
+    } catch (error) {
+      notify?.(error?.message || 'Não foi possível processar a fila assistida.')
+    } finally {
+      setAssistBusy(false)
+    }
+  }
+
+  async function reanalyze(item) {
+    setAssistBusy(true)
+    try {
+      await requestModerationAnalysis(item.target_type,item.target_id,{force:true})
+      notify?.('Conteúdo reanalisado.')
+      await load()
+    } catch (error) {
+      notify?.(error?.message || 'Não foi possível reanalisar o conteúdo.')
+    } finally {
+      setAssistBusy(false)
+    }
+  }
+
+  async function actionOn(item,action) {
+    const source=item?.risk_score!=null?'moderação assistida':'fila de denúncias'
+    try {
+      if (item.target_type === 'topic') await moderateTopic(item.target_id,action,'Ação aplicada a partir da '+source+'.')
+      else if (item.target_type === 'post' && action === 'delete') await moderatePost(item.target_id,'delete','Ação aplicada a partir da '+source+'.')
+      else if (item.target_type === 'chat_message') await moderateChatMessage(item.target_id,action,'Ação aplicada a partir da '+source+'.')
       else return
       notify?.('Ação de moderação aplicada.')
       load()
     } catch (error) { notify?.(error?.message || 'Não foi possível aplicar a ação.') }
   }
 
-  async function openTarget(report) {
+  async function openTarget(item) {
     try {
-      const targetPath = await getReportTargetPath(report)
+      const targetPath = await getReportTargetPath(item)
       if (!targetPath) {
-        notify?.('O conteúdo denunciado não está mais disponível.')
+        notify?.('O conteúdo não está mais disponível.')
         return
       }
-      if (report.target_type === 'chat_message') {
-        try { sessionStorage.setItem('creativezone-chat-focus', report.target_id) } catch {}
+      if (item.target_type === 'chat_message') {
+        try { sessionStorage.setItem('creativezone-chat-focus', item.target_id) } catch {}
       }
       navigate(targetPath)
     } catch (error) {
-      notify?.(error?.message || 'Não foi possível abrir o conteúdo denunciado.')
+      notify?.(error?.message || 'Não foi possível abrir o conteúdo.')
     }
   }
 
@@ -204,6 +275,7 @@ export function ModerationPage({ profile, session, navigate, notify }) {
     <Shell title="Central de moderação" onBack={()=>navigate('/')}>
       <div className="moderation-toolbar">
         <button className={tab==='reports'?'active':''} onClick={()=>setTab('reports')}><Flag/>Denúncias</button>
+        <button className={tab==='assist'?'active':''} onClick={()=>setTab('assist')}><ShieldAlert/>Assistida</button>
         <button className={tab==='actions'?'active':''} onClick={()=>setTab('actions')}><Shield/>Histórico</button>
       </div>
 
@@ -265,6 +337,91 @@ export function ModerationPage({ profile, session, navigate, notify }) {
             </article>
           ))}
           {!loading && !reports.length && <p className="community-empty">Nenhuma denúncia nesta fila.</p>}
+        </div>
+      )}
+
+      {tab === 'assist' && (
+        <div className="moderation-content moderation-assist">
+          <div className="moderation-assist-head">
+            <div>
+              <strong>CreativeZone Moderation Assist</strong>
+              <span>Triagem automática para ajudar a equipe. Nenhuma punição é aplicada sem ação humana.</span>
+            </div>
+            <button className="action" onClick={runQueue} disabled={assistBusy}>
+              <RefreshCw className={assistBusy?'is-spinning':''}/>{assistBusy?'Processando…':'Processar pendências'}
+            </button>
+          </div>
+
+          <div className="moderation-filters">
+            {['attention','urgent','pending','reviewed','dismissed','all'].map(value=>
+              <button className={assistStatus===value?'active':''} key={value} onClick={()=>setAssistStatus(value)}>
+                {assessmentStatusLabels[value]}
+              </button>
+            )}
+          </div>
+
+          {loading ? <p className="community-empty">Carregando análises...</p> : assessments.map(item=>{
+            const categories=Object.entries(item.categories||{}).filter(([,score])=>Number(score)>0)
+            const signals=item.signals||{}
+            return (
+              <article className={'moderation-assist-card risk-'+item.recommendation} key={item.id}>
+                <div className="moderation-assist-card-head">
+                  <div className={'moderation-risk-score risk-'+item.recommendation}>
+                    <strong>{Number(item.risk_score||0)}</strong><small>/100</small>
+                  </div>
+                  <div className="moderation-assist-title">
+                    <strong>{recommendationLabels[item.recommendation] || item.recommendation}</strong>
+                    <span>{item.target_type} · {item.analyzer_version}</span>
+                  </div>
+                  <small>{new Date(item.analyzed_at).toLocaleString('pt-BR')}</small>
+                </div>
+
+                <div className="report-reporter">
+                  <MiniAvatar profile={item.author} size={36}/>
+                  <span>{item.author?.display_name || item.author?.username || 'Membro'}</span>
+                </div>
+
+                <div className="moderation-assist-preview">{assessmentPreview(item)}</div>
+
+                {!!categories.length && (
+                  <div className="moderation-signal-chips">
+                    {categories.map(([key,score])=><span key={key}>{key.replaceAll('_',' ')} <b>{Number(score)}</b></span>)}
+                  </div>
+                )}
+
+                <div className="moderation-signal-summary">
+                  <span>Links <b>{Number(signals.url_count||0)}</b></span>
+                  <span>Menções <b>{Number(signals.mention_count||0)}</b></span>
+                  {signals.duplicate_recent && <span>Conteúdo duplicado</span>}
+                  {signals.new_account && <span>Conta recente</span>}
+                  {Number(signals.spam_cues||0)>0 && <span>Sinais de spam <b>{Number(signals.spam_cues)}</b></span>}
+                  {Number(signals.threat_cues||0)>0 && <span>Sinal de ameaça/assédio</span>}
+                  {(signals.link_results||[]).some((entry)=>entry.decision==='block') && <span className="danger">Link malicioso detectado</span>}
+                </div>
+
+                {item.review_note && <p className="resolution-note">Nota: {item.review_note}</p>}
+
+                <div className="report-actions">
+                  <button className="action" onClick={()=>openTarget(item)}>Abrir alvo</button>
+                  <button className="action" onClick={()=>reanalyze(item)} disabled={assistBusy}><RefreshCw/>Reanalisar</button>
+                  {item.review_status==='pending' && <button className="action" onClick={()=>setAssessmentState(item,'reviewed')}><Check/>Marcar revisado</button>}
+                  {item.review_status==='pending' && <button className="action" onClick={()=>setAssessmentState(item,'dismissed')}><X/>Dispensar sinal</button>}
+                  {item.target_type==='topic' && <>
+                    <button className="action" onClick={()=>actionOn(item,'lock')}>Bloquear tópico</button>
+                    {profile.role==='admin' && <button className="action danger-action" onClick={()=>actionOn(item,'delete')}>Excluir tópico</button>}
+                  </>}
+                  {item.target_type==='post' && <button className="action danger-action" onClick={()=>actionOn(item,'delete')}>Excluir resposta</button>}
+                  {item.target_type==='chat_message' && <>
+                    <button className="action danger-action" onClick={()=>actionOn(item,'delete')}>Excluir mensagem</button>
+                    <button className="action" onClick={()=>actionOn(item,'mute_10m')}>Silenciar 10 min</button>
+                    <button className="action" onClick={()=>actionOn(item,'mute_1h')}>Silenciar 1 hora</button>
+                    <button className="action danger-action" onClick={()=>actionOn(item,'ban')}>Banir do chat</button>
+                  </>}
+                </div>
+              </article>
+            )
+          })}
+          {!loading && !assessments.length && <p className="community-empty">Nenhum conteúdo precisa de atenção neste filtro.</p>}
         </div>
       )}
 
