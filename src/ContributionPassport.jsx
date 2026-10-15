@@ -2,10 +2,11 @@ import React,{useEffect,useMemo,useState} from 'react'
 import {
   Activity,BadgeCheck,BriefcaseBusiness,CalendarDays,ChevronDown,CircleDot,
   ExternalLink,Fingerprint,GitBranch,GitCommitHorizontal,GitPullRequest,
-  Layers3,ListChecks,MessageSquare,RefreshCw,Rocket,Star,TrendingDown,
+  Layers3,ListChecks,LockKeyhole,MessageSquare,RefreshCw,Rocket,Star,TrendingDown,
   TrendingUp,Trophy,UserCog,
 } from 'lucide-react'
 import {getContributionPassport} from './services/contributionPassportApi'
+import {supabase} from './services/supabaseClient'
 import './ContributionPassport.css'
 
 const DIMENSIONS=[
@@ -65,12 +66,30 @@ export function ContributionPassport({userId,navigate,notify}){
 
   useEffect(()=>{load()},[userId])
 
+  useEffect(()=>{
+    if(!supabase||!userId) return undefined
+    const refresh=()=>load()
+    const channel=supabase
+      .channel('creativezone-contribution-passport-'+userId)
+      .on('postgres_changes',{event:'*',schema:'public',table:'project_activity_feed',filter:`actor_user_id=eq.${userId}`},refresh)
+      .on('postgres_changes',{event:'*',schema:'public',table:'project_kanban_cards',filter:`assignee_id=eq.${userId}`},refresh)
+      .on('postgres_changes',{event:'*',schema:'public',table:'project_kanban_comments',filter:`user_id=eq.${userId}`},refresh)
+      .subscribe()
+    return()=>{supabase.removeChannel(channel)}
+  },[userId])
+
   const maxMonth=useMemo(()=>Math.max(1,...(passport?.timeline||[]).map(item=>Number(item.count||0))),[passport?.timeline])
 
   if(loading&&!passport){
     return <section className="contribution-passport is-loading"><RefreshCw className="security-spin"/><span>Calculando Contribution Passport...</span></section>
   }
   if(!passport) return null
+  if(passport.hidden){
+    return <section className="contribution-passport is-hidden">
+      <LockKeyhole/>
+      <span><strong>Contribution Passport privado</strong><small>Este membro optou por ocultar sua atividade pública. O passaporte continua disponível para o próprio membro e para o Arquiteto CreativeZone.</small></span>
+    </section>
+  }
 
   const score=passport.score||{}
   const metrics=passport.metrics||{}
