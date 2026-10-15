@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { scheduleModerationAnalysis } from './moderationApi'
 
 function requireSupabase() {
   if (!supabase) {
@@ -80,6 +81,7 @@ export async function createTopic(payload) {
     .single()
 
   if (error) throw error
+  void scheduleModerationAnalysis('topic',data.id)
   return data
 }
 
@@ -104,6 +106,7 @@ export async function createPost(payload) {
     .single()
 
   if (error) throw error
+  void scheduleModerationAnalysis('post',data.id)
   return data
 }
 
@@ -203,6 +206,7 @@ export async function updateTopic(topicId, changes) {
     .select('*, categories:categories!topics_category_id_fkey(*), profiles:profiles!topics_author_id_fkey(*)')
     .single()
   if (error) throw error
+  void scheduleModerationAnalysis('topic',data.id)
   return data
 }
 
@@ -221,6 +225,7 @@ export async function updatePost(postId, content) {
     .select('*, profiles:profiles!posts_author_id_fkey(*)')
     .single()
   if (error) throw error
+  void scheduleModerationAnalysis('post',data.id)
   return data
 }
 
