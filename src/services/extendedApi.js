@@ -238,7 +238,7 @@ export async function leaveProject(projectId, userId) {
   if (error) throw error
 }
 
-export async function reviewProjectMember(projectId, userId, status, role = 'contributor') {
+export async function reviewProjectMember(projectId, userId, status, role = 'member') {
   const client = requireSupabase()
   const { error } = await client.rpc('review_project_member', {
     p_project_id: projectId,
@@ -265,4 +265,70 @@ export async function sendPushTestNotification() {
   const { data, error } = await client.rpc('send_test_notification')
   if (error) throw error
   return data
+}
+
+
+export async function getProjectPermissions(projectId) {
+  const client=requireSupabase()
+  const {data,error}=await client.rpc('get_project_permissions',{p_project_id:projectId})
+  if(error) throw error
+  return data || null
+}
+
+export async function getProjectTeamAccess(projectId) {
+  const client=requireSupabase()
+  const {data,error}=await client.rpc('get_project_team_access',{p_project_id:projectId})
+  if(error) throw error
+  return data || null
+}
+
+export async function setProjectMemberAccess(projectId,userId,role,operationalAccess=false,allowedPaths=[]) {
+  const client=requireSupabase()
+  const {error}=await client.rpc('set_project_member_access',{
+    p_project_id:projectId,
+    p_user_id:userId,
+    p_role:role,
+    p_operational_access:Boolean(operationalAccess),
+    p_allowed_paths:allowedPaths||[],
+  })
+  if(error) throw error
+}
+
+export async function searchProjectInviteCandidates(projectId,query='') {
+  const client=requireSupabase()
+  const {data,error}=await client.rpc('search_project_invite_candidates',{
+    p_project_id:projectId,
+    p_query:query,
+  })
+  if(error) throw error
+  return data || []
+}
+
+export async function createProjectMemberInvite(projectId,userId,payload={}) {
+  const client=requireSupabase()
+  const {data,error}=await client.rpc('create_project_member_invite',{
+    p_project_id:projectId,
+    p_user_id:userId,
+    p_role:payload.role||'member',
+    p_message:payload.message||'',
+    p_operational_access:Boolean(payload.operationalAccess),
+    p_allowed_paths:payload.allowedPaths||[],
+  })
+  if(error) throw error
+  return data
+}
+
+export async function respondProjectMemberInvite(inviteId,accept) {
+  const client=requireSupabase()
+  const {error}=await client.rpc('respond_project_member_invite',{
+    p_invite_id:inviteId,
+    p_accept:Boolean(accept),
+  })
+  if(error) throw error
+}
+
+export async function cancelProjectMemberInvite(inviteId) {
+  const client=requireSupabase()
+  const {error}=await client.rpc('cancel_project_member_invite',{p_invite_id:inviteId})
+  if(error) throw error
 }
