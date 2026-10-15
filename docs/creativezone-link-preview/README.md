@@ -92,8 +92,15 @@ React / CreativeZone
 Supabase Edge Function
         |
         +--> normalização da URL
+        +--> CreativeZone Link Shield
+        |      +--> regras locais
+        |      +--> cache de reputação
+        |      +--> URLhaus/provider configurado
+        |
+        +--> warn/block? ---- sim ----> NÃO visita o destino
+        |
         +--> proteção SSRF / rede privada
-        +--> consulta ao cache
+        +--> consulta ao cache de preview
         |
         +--> cache válido? ---- sim ----> retorno
         |
