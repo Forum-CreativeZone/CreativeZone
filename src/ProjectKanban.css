@@ -59,3 +59,10 @@
   .project-kanban-fields{grid-template-columns:1fr}.project-kanban-fields label.wide{grid-column:auto}
   .project-kanban-modal{padding:8px}.project-kanban-dialog{max-height:96vh}.project-kanban-dialog.detail{width:98vw}
 }
+
+.project-kanban.is-collapsed .project-kanban__head{border-bottom:0}
+.project-kanban__guide{margin:12px 12px 0;padding:11px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:8px;align-items:stretch;border:1px solid rgba(96,165,250,.2);border-radius:10px;background:rgba(59,130,246,.04)}
+.project-kanban__guide>div{padding:8px;border:1px solid #2c3743;border-radius:8px;background:#131a22}.project-kanban__guide strong{display:block;margin-bottom:4px;font-size:9px;color:#cbd5df}.project-kanban__guide small{display:block;color:#7f8d9d;font-size:8px;line-height:1.5}.project-kanban__guide small b{color:#9fb5ca}.project-kanban__guide>.action{align-self:center;white-space:nowrap;font-size:9px;padding:7px 9px}
+:root[data-theme="light"] .project-kanban__guide{background:#f8fbff;border-color:#dce8f5}:root[data-theme="light"] .project-kanban__guide>div{background:#fff;border-color:#e1e6ec}
+@media(max-width:1150px){.project-kanban__guide{grid-template-columns:repeat(2,minmax(0,1fr))}.project-kanban__guide>.action{grid-column:1/-1;justify-content:center}}
+@media(max-width:680px){.project-kanban__guide{grid-template-columns:1fr}.project-kanban__guide>.action{grid-column:auto}}
