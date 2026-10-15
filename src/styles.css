@@ -7083,3 +7083,6 @@ main{
 .project-activity-feed.is-collapsed .project-activity-head{border-bottom:0}
 .project-activity-feed.is-collapsed .project-activity-head small{max-width:760px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:650px){.project-activity-head-actions{width:100%;justify-content:flex-start}.project-activity-head-actions .action{width:auto;flex:1}}
+
+.project-activity-toggle{font-weight:700!important}
+.project-activity-feed.is-collapsed .project-activity-toggle{border-color:rgba(96,165,250,.45)!important;color:#a9cfff!important}
