@@ -24,12 +24,9 @@ import {
   getReportTargetPath,
   getProject,
   getProjects,
-  leaveProject,
   moderatePost,
   moderateTopic,
   moderateChatMessage,
-  requestProjectParticipation,
-  reviewProjectMember,
   reviewReport,
   updateProject,
   updateProjectStatus,
@@ -44,10 +41,10 @@ import { ProjectKanban } from './ProjectKanban'
 import { ProjectRecruiting } from './ProjectRecruiting'
 import { ProjectRoadmapNav, useDevHubLanguage } from './ProjectRoadmap'
 import { ProjectRepositoryOverview } from './ProjectRepositoryOverview'
+import { ProjectTeamPermissions } from './ProjectTeamPermissions'
 import { GitHubAccountConnect } from './GitHubAccountConnect'
 import { connectExistingGitHubRepository, createGitHubRepositoryForProject, getGitHubAccountStatus } from './services/githubAuthApi'
 import { requestGitHubOrganizationMembership, syncGitHubProject } from './services/githubApi'
-import { trackEvent } from './services/analytics'
 
 function Shell({ title, onBack, children }) {
   return (
@@ -512,7 +509,6 @@ export function ProjectsPage({ session, navigate, notify }) {
 export function ProjectPage({ slug, session, navigate, notify }) {
   const [project,setProject]=useState(null)
   const [loading,setLoading]=useState(true)
-  const [message,setMessage]=useState('')
   const [updateText,setUpdateText]=useState('')
   const [activeSection,setActiveSection]=useState(()=>{
     try{return localStorage.getItem('creativezone-devhub-section-'+slug)||'overview'}catch{return 'overview'}
@@ -536,37 +532,17 @@ export function ProjectPage({ slug, session, navigate, notify }) {
   const userId=session?.user?.id
   const membership=(project.project_members||[]).find(m=>m.user_id===userId)
   const isOwner=project.owner_id===userId
-  const canManage=isOwner || (membership?.status==='active' && membership?.role==='maintainer')
-  const canUpdate=isOwner || (membership?.status==='active' && ['maintainer','contributor'].includes(membership?.role))
-  const canStudio=canUpdate
+  const memberActive=membership?.status==='active'
+  const operationalAccess=Boolean(membership?.operational_access)
+  const canManage=isOwner || (memberActive && (membership?.role==='maintainer' || operationalAccess))
+  const canUpdate=isOwner || (memberActive && (operationalAccess || ['maintainer','developer','designer','member'].includes(membership?.role)))
+  const canStudio=isOwner || memberActive
   const activeMembers=(project.project_members||[]).filter(m=>m.status==='active')
   const pending=(project.project_members||[]).filter(m=>m.status==='pending')
   const leaders=[
     {user_id:project.owner_id,profile:project.owner,role:'owner'},
     ...activeMembers.filter(member=>member.role==='maintainer')
   ].filter((item,index,self)=>item.user_id&&self.findIndex(other=>other.user_id===item.user_id)===index)
-
-  async function join(event) {
-    event.preventDefault()
-    if (!session) return navigate('/entrar')
-    try {
-      await requestProjectParticipation(project.id,userId,message)
-      trackEvent('join_project')
-      notify?.(devhubLanguage==='pt'?'Pedido para participar enviado.':'Participation request sent.')
-      setMessage('')
-      load()
-    } catch (error) { notify?.(error?.message || (devhubLanguage==='pt'?'Não foi possível solicitar participação.':'Could not request participation.')) }
-  }
-
-  async function leave() {
-    try { await leaveProject(project.id,userId); notify?.(devhubLanguage==='pt'?'Você saiu do projeto.':'You left the project.'); load() }
-    catch (error) { notify?.(error?.message || (devhubLanguage==='pt'?'Não foi possível sair do projeto.':'Could not leave the project.')) }
-  }
-
-  async function review(member,status,role='contributor') {
-    try { await reviewProjectMember(project.id,member.user_id,status,role); notify?.(devhubLanguage==='pt'?'Participação atualizada.':'Membership updated.'); load() }
-    catch (error) { notify?.(error?.message || (devhubLanguage==='pt'?'Não foi possível atualizar a participação.':'Could not update membership.')) }
-  }
 
   async function publishUpdate(event) {
     event.preventDefault()
@@ -586,26 +562,13 @@ export function ProjectPage({ slug, session, navigate, notify }) {
   }
 
   function renderMembers(){
-    return <section className="project-roadmap-content-card">
-      <header><Users/><span><strong>{devhubLanguage==='pt'?'Equipe do projeto':'Project team'}</strong><small>{devhubLanguage==='pt'?'Membros, responsáveis e solicitações de entrada.':'Members, leads and participation requests.'}</small></span></header>
-      <div className="project-members-strip roadmap-team-strip">
-        <span className="project-members-strip-label"><Users/>{devhubLanguage==='pt'?'Equipe':'Team'}</span>
-        <div className="project-members-avatars">
-          {activeMembers.map(member=>{
-            const username=member.profile?.username || ''
-            return <button type="button" key={member.user_id} className="project-member-avatar-button" data-profile-username={username || undefined} title={username ? '@'+username : 'Membro do projeto'} aria-label={member.profile?.display_name || username || 'Membro do projeto'}><MiniAvatar profile={member.profile} size={38}/></button>
-          })}
-        </div>
-        <span className="project-members-count">{activeMembers.length} {devhubLanguage==='pt'?(activeMembers.length===1?'membro':'membros'):(activeMembers.length===1?'member':'members')}</span>
-        {!isOwner && !membership && session && <form className="join-project-form compact" onSubmit={join}><input maxLength={1000} value={message} onChange={e=>setMessage(e.target.value)} placeholder={devhubLanguage==='pt'?'Como você quer contribuir? (opcional)':'How would you like to contribute? (optional)'}/><button className="action primary-action"><UserPlus/>{devhubLanguage==='pt'?'Quero participar':'Join project'}</button></form>}
-        {membership?.status==='pending' && <small className="project-members-note">{devhubLanguage==='pt'?'Seu pedido está aguardando análise.':'Your request is awaiting review.'}</small>}
-        {membership?.status==='active' && membership.role!=='owner' && <button className="action project-leave-button" onClick={leave}>{devhubLanguage==='pt'?'Sair do projeto':'Leave project'}</button>}
-      </div>
-      {canManage && pending.length>0 && <div className="project-pending-panel roadmap-pending">
-        <h3>{devhubLanguage==='pt'?'Pedidos para participar':'Participation requests'}</h3>
-        {pending.map(member=><div key={member.user_id}><MiniAvatar profile={member.profile} size={38}/><span><strong>{member.profile?.display_name || member.profile?.username}</strong><small>{member.message || (devhubLanguage==='pt'?'Sem mensagem':'No message')}</small></span><div><button className="action" onClick={()=>review(member,'active','contributor')}>{devhubLanguage==='pt'?'Aceitar':'Accept'}</button><button className="action" onClick={()=>review(member,'declined')}>{devhubLanguage==='pt'?'Recusar':'Decline'}</button></div></div>)}
-      </div>}
-    </section>
+    return <ProjectTeamPermissions
+      project={project}
+      session={session}
+      language={devhubLanguage}
+      notify={notify}
+      onChanged={load}
+    />
   }
 
   function renderUpdates(title,subtitle){
