@@ -295,6 +295,7 @@ export function ProjectStudio({ project, canManage = false, notify }) {
   const [status,setStatus]=useState(null)
   const [loading,setLoading]=useState(false)
   const [tab,setTab]=useState('code')
+  const [devhubLanguage]=useDevHubLanguage()
   const [files,setFiles]=useState([])
   const [query,setQuery]=useState('')
   const [branches,setBranches]=useState([])
@@ -1292,6 +1293,25 @@ export function ProjectStudio({ project, canManage = false, notify }) {
     }
   }
 
+  useEffect(()=>{
+    const handler=(event)=>{
+      const key=event?.detail
+      const map={
+        code:'code',
+        issues:'issues',
+        prs:'prs',
+        terminal:'terminal',
+        actions:'ci',
+        security:'security',
+        settings:'settings',
+      }
+      const next=map[key]
+      if(next) changeTab(next)
+    }
+    window.addEventListener('creativezone-devhub-open',handler)
+    return()=>window.removeEventListener('creativezone-devhub-open',handler)
+  },[status,branches.length,fixes.length,settings,selected,content])
+
   if(!canManage) return null
   if(loading) return <section className="project-studio loading"><RefreshCw className="security-spin"/> Preparando Dev Workspace...</section>
   if(!status) return error?<section className="project-studio locked"><p>{error}</p></section>:null
@@ -1307,16 +1327,16 @@ export function ProjectStudio({ project, canManage = false, notify }) {
       </header>
 
       <nav className="project-studio-tabs devhub-tabs">
-        <button className={tab==='code'?'active':''} onClick={()=>changeTab('code')}><FileCode2/>Código</button>
+        <button className={tab==='code'?'active':''} onClick={()=>changeTab('code')}><FileCode2/>{devhubLanguage==='pt'?'Código':'Code'}</button>
         <button className={tab==='issues'?'active':''} onClick={()=>changeTab('issues')}><MessageSquarePlus/>Issues</button>
         <button className={tab==='prs'?'active':''} onClick={()=>changeTab('prs')}><GitPullRequest/>Pull Requests</button>
         <button className={tab==='branches'?'active':''} onClick={()=>changeTab('branches')}><GitBranch/>Branches</button>
         <button className={tab==='commits'?'active':''} onClick={()=>changeTab('commits')}><GitCommitHorizontal/>Commits</button>
-        <button className={tab==='terminal'?'active':''} onClick={()=>changeTab('terminal')}><Terminal/>Git Terminal</button>
-        <button className={tab==='runner'?'active':''} onClick={()=>changeTab('runner')}><Code2/>Executar código</button>
+        <button className={tab==='terminal'?'active':''} onClick={()=>changeTab('terminal')}><Terminal/>{devhubLanguage==='pt'?'Terminal Git':'Git Terminal'}</button>
+        <button className={tab==='runner'?'active':''} onClick={()=>changeTab('runner')}><Code2/>{devhubLanguage==='pt'?'Executar código':'Run code'}</button>
         <button className={tab==='ci'?'active':''} onClick={()=>changeTab('ci')}><Workflow/>CI/CD</button>
-        <button className={tab==='security'?'active':''} onClick={()=>changeTab('security')}><ShieldCheck/>Segurança</button>
-        <button className={tab==='settings'?'active':''} onClick={()=>changeTab('settings')}><Wrench/>Configurações</button>
+        <button className={tab==='security'?'active':''} onClick={()=>changeTab('security')}><ShieldCheck/>{devHubLabel('security',devhubLanguage)}</button>
+        <button className={tab==='settings'?'active':''} onClick={()=>changeTab('settings')}><Wrench/>{devHubLabel('settings',devhubLanguage)}</button>
       </nav>
 
       {error&&<p className="project-studio-error"><AlertTriangle/>{error}</p>}
