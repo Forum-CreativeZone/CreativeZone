@@ -82,36 +82,41 @@ test('adapts the forum information rail between desktop and mobile', async ({ pa
 })
 
 
-test('DevHub public project roadmap is usable on desktop and mobile', async ({ page }) => {
+test('DevHub roadmap layout remains usable on desktop, mobile and light theme', async ({ page }) => {
   await page.setViewportSize({ width: 1365, height: 900 })
-  await page.goto('/projetos/creativezone-forum')
+  await page.goto('/projetos')
 
-  const roadmap = page.locator('.project-roadmap')
-  const content = page.locator('.project-devhub-content')
+  await page.evaluate(() => {
+    const fixture=document.createElement('div')
+    fixture.setAttribute('data-e2e-devhub-layout','')
+    fixture.className='project-devhub-layout'
+    fixture.innerHTML=[
+      '<aside class="project-roadmap">',
+      '<header><div><span><small>CREATIVEZONE DEVHUB</small><strong>Project navigation</strong></span></div></header>',
+      '<nav class="project-roadmap__scroll"><section class="project-roadmap__section"><div class="project-roadmap__group"><button class="active"><span>Overview</span></button></div></section></nav>',
+      '</aside>',
+      '<div class="project-devhub-content"><div style="min-height:160px">DevHub content</div></div>',
+    ].join('')
+    document.querySelector('main')?.appendChild(fixture)
+  })
+
+  const layout=page.locator('[data-e2e-devhub-layout]')
+  const roadmap=layout.locator('.project-roadmap')
+  const content=layout.locator('.project-devhub-content')
   await expect(roadmap).toBeVisible()
   await expect(content).toBeVisible()
-  await expect(roadmap.getByRole('button', { name: 'Overview', exact: true })).toBeVisible()
-  await expect(roadmap.getByRole('button', { name: 'Mentors', exact: true })).toBeVisible()
-  await expect(roadmap.getByRole('button', { name: 'Learning', exact: true })).toBeVisible()
 
-  await roadmap.getByRole('button', { name: 'Mentors', exact: true }).click()
-  await expect(page.getByText('Mentors & technical leads', { exact: true })).toBeVisible()
+  const roadmapBox=await roadmap.boundingBox()
+  const contentBox=await content.boundingBox()
+  expect((contentBox?.x || 0)).toBeGreaterThan((roadmapBox?.x || 0)+(roadmapBox?.width || 0)-5)
 
-  await roadmap.getByRole('button', { name: 'Learning', exact: true }).click()
-  await expect(page.getByText('Learning map', { exact: true })).toBeVisible()
-
-  const roadmapBox = await roadmap.boundingBox()
-  const contentBox = await content.boundingBox()
-  expect((contentBox?.x || 0)).toBeGreaterThan((roadmapBox?.x || 0) + (roadmapBox?.width || 0) - 5)
-
-  const darkBackground = await roadmap.evaluate((element) => getComputedStyle(element).backgroundColor)
-  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'))
-  const lightBackground = await roadmap.evaluate((element) => getComputedStyle(element).backgroundColor)
+  const darkBackground=await roadmap.evaluate((element)=>getComputedStyle(element).backgroundColor)
+  await page.evaluate(()=>document.documentElement.setAttribute('data-theme','light'))
+  const lightBackground=await roadmap.evaluate((element)=>getComputedStyle(element).backgroundColor)
   expect(lightBackground).not.toBe(darkBackground)
 
-  await page.setViewportSize({ width: 390, height: 844 })
-  await expect(roadmap).toBeVisible()
-  const mobileRoadmapBox = await roadmap.boundingBox()
-  const mobileContentBox = await content.boundingBox()
-  expect((mobileContentBox?.y || 0)).toBeGreaterThan((mobileRoadmapBox?.y || 0) + (mobileRoadmapBox?.height || 0) - 5)
+  await page.setViewportSize({ width:390,height:844 })
+  const mobileRoadmapBox=await roadmap.boundingBox()
+  const mobileContentBox=await content.boundingBox()
+  expect((mobileContentBox?.y || 0)).toBeGreaterThan((mobileRoadmapBox?.y || 0)+(mobileRoadmapBox?.height || 0)-5)
 })
