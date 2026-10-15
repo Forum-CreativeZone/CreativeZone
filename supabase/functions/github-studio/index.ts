@@ -315,7 +315,10 @@ async function authorizeStudioAction(req: Request, payload: Record<string, unkno
   const projectId = String(payload.project_id || "")
   if (!projectId) throw new Error("Projeto não informado.")
   const ctx = await context(req, projectId)
-  const capability = ACTION_CAPABILITIES[action]
+  let capability = ACTION_CAPABILITIES[action]
+  if (action === "review_pr" && String(payload.event || "COMMENT").toUpperCase() === "COMMENT") {
+    capability = "prs_comment"
+  }
   if (capability && !ctx.permissions?.[capability]) {
     throw new Error("Sua função no projeto não permite esta operação.")
   }
