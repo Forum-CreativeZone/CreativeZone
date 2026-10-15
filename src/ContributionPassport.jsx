@@ -41,7 +41,17 @@ function levelLabel(value){
   })[value]||value||'Explorador'
 }
 function relationLabel(value){
-  return ({owner:'Responsável',maintainer:'Maintainer',contributor:'Colaborador',interested:'Interessado'})[value]||value||'Colaborador'
+  return ({
+    owner:'Responsável',
+    maintainer:'Maintainer',
+    developer:'Developer',
+    reviewer:'Reviewer',
+    designer:'Designer',
+    member:'Membro',
+    viewer:'Visualizador',
+    contributor:'Colaborador',
+    interested:'Interessado',
+  })[value]||value||'Colaborador'
 }
 function statusLabel(value){
   return ({idea:'Ideia',planning:'Planejamento',active:'Ativo',paused:'Pausado',completed:'Concluído'})[value]||value
