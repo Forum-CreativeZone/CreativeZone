@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { ExternalLink, Link2, LoaderCircle } from 'lucide-react'
+import { ExternalLink, Link2, LoaderCircle, ShieldAlert, TriangleAlert } from 'lucide-react'
 import { normalizePreviewUrl, resolveLinkPreview } from './services/linkPreviewApi'
 
 function domainFromUrl(value) {
@@ -87,7 +87,29 @@ export function LinkPreviewCard({
   const lang = String(preview?.lang || '').trim()
   const detailed = variant !== 'compact' && variant !== 'minimal'
   const showImage = Boolean(preview?.image_url && !imageFailed && variant !== 'minimal')
-  const hasMetadata = Boolean(preview && preview.status !== 'failed')
+  const hasMetadata = Boolean(preview && preview.status !== 'failed' && preview.status !== 'blocked')
+  const safety = preview?.safety || null
+  const shielded = Boolean(safety && (safety.decision === 'warn' || safety.decision === 'block'))
+
+  if (shielded) {
+    return (
+      <div ref={root} className={'cz-link-preview is-shielded ' + (safety.decision === 'block' ? 'is-blocked' : 'is-warning')}>
+        <a href={target} target="_blank" rel="noreferrer noopener" className="cz-link-preview-anchor" title={'Abrir ' + domain}>
+          <span className="cz-link-preview-shield-warning">
+            {safety.decision === 'block' ? <ShieldAlert /> : <TriangleAlert />}
+            <span>
+              <small>CREATIVEZONE LINK SHIELD</small>
+              <strong>{safety.decision === 'block' ? 'Link potencialmente perigoso' : 'Link requer atenção'}</strong>
+              <em>{safety.verdict === 'malicious'
+                ? 'A URL foi associada à distribuição de malware por uma fonte de reputação configurada.'
+                : 'A prévia remota foi bloqueada preventivamente até você decidir se deseja abrir o endereço.'}</em>
+              <em>{domain}</em>
+            </span>
+          </span>
+        </a>
+      </div>
+    )
+  }
 
   return (
     <div
