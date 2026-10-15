@@ -185,17 +185,21 @@ Por isso ele aplica restrições antes de qualquer fetch.
 - rate limit de cache misses por instância da Edge Function;
 - cache é acessível diretamente apenas pelo backend/service role.
 
-Quando o **CreativeZone Link Shield** for implementado, a cadeia poderá ficar:
+O **CreativeZone Link Shield** agora faz parte da cadeia antes de qualquer acesso remoto:
 
 ```text
 URL
  |
  v
-Link Shield / reputação
- |
+CreativeZone Link Shield
+ |  allow
  v
 Link Preview
 ```
+
+Decisões `warn` ou `block` impedem que o Link Preview visite o endereço remoto. A reputação é verificada antes do cache de preview para que um card antigo não continue carregando um domínio que passou a ser considerado perigoso.
+
+Documentação: [CreativeZone Link Shield](../creativezone-link-shield/README.md).
 
 ---
 
