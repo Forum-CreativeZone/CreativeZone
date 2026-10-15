@@ -196,3 +196,19 @@ As proteções locais continuam ativas.
 > Segurança essencial não é benefício premium.
 
 PRO e ELITE podem oferecer inteligência, produtividade e automação adicionais, mas um membro FREE recebe a mesma barreira básica contra links reconhecidos como perigosos.
+
+
+## Homologação URLhaus
+
+Homologado em **15/10/2026** com o provider URLhaus ativo em produção.
+
+Testes realizados:
+
+- health check da Edge Function: `urlhaus.configured=true`;
+- URL legítima conhecida: `no_known_threat / allow / risk 0`;
+- URL presente no URLhaus: `malicious / block / risk 100`;
+- integração Link Shield → Link Preview: preview bloqueado antes de qualquer fetch remoto;
+- nenhuma entrada de preview foi criada para a URL maliciosa;
+- cache e evento de segurança foram persistidos corretamente.
+
+A homologação do caso malicioso usa apenas consulta de reputação ao URLhaus. O destino malicioso não é visitado pela CreativeZone.
