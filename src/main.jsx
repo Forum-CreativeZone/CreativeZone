@@ -143,6 +143,7 @@ import {
 } from './services/communityFeaturesApi'
 import './styles.css'
 import './effects-v2.css'
+import './DevHubTheme.css'
 
 function readLocal(key, fallback) {
   try {
