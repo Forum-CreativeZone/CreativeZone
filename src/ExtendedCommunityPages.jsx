@@ -23,6 +23,7 @@ import {
   getModerationReports,
   getReportTargetPath,
   getProject,
+  getProjectPermissions,
   getProjects,
   moderatePost,
   moderateTopic,
@@ -508,6 +509,7 @@ export function ProjectsPage({ session, navigate, notify }) {
 
 export function ProjectPage({ slug, session, navigate, notify }) {
   const [project,setProject]=useState(null)
+  const [projectPermissions,setProjectPermissions]=useState(null)
   const [loading,setLoading]=useState(true)
   const [updateText,setUpdateText]=useState('')
   const [activeSection,setActiveSection]=useState(()=>{
@@ -517,7 +519,15 @@ export function ProjectPage({ slug, session, navigate, notify }) {
 
   async function load() {
     setLoading(true)
-    try { setProject(await getProject(slug)) } catch (error) { notify?.(error?.message || 'Não foi possível carregar o projeto.') }
+    try {
+      const nextProject=await getProject(slug)
+      setProject(nextProject)
+      if(nextProject?.id&&session?.user){
+        try{setProjectPermissions(await getProjectPermissions(nextProject.id))}catch{setProjectPermissions(null)}
+      }else{
+        setProjectPermissions(null)
+      }
+    } catch (error) { notify?.(error?.message || 'Não foi possível carregar o projeto.') }
     finally { setLoading(false) }
   }
   useEffect(()=>{ load() },[slug])
@@ -630,7 +640,7 @@ export function ProjectPage({ slug, session, navigate, notify }) {
     <Shell title={project.title} onBack={()=>navigate('/projetos')}>
       <div className="project-detail">
         <div className="project-devhub-layout">
-          <ProjectRoadmapNav active={activeSection} onSelect={openRoadmapSection}/>
+          <ProjectRoadmapNav active={activeSection} onSelect={openRoadmapSection} permissions={projectPermissions?.capabilities||null}/>
           <div className="project-devhub-content">
 
         {activeSection==='overview'&&<section className="project-overview project-roadmap-anchor">
