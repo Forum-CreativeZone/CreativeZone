@@ -2,6 +2,8 @@
 
 > Moderação assistida própria da CreativeZone. O sistema ajuda a equipe a encontrar conteúdo que merece revisão, mas **não pune automaticamente usuários**.
 
+**Tutorial no fórum:** https://forum.creativezone.pro/topico/creativezone-moderation-assist-como-funciona--f80349c0-dd63-4157-9573-d9d75ba14066
+
 ## Objetivo
 
 A antiga ideia de depender da Perspective API foi substituída por uma camada própria e extensível.
