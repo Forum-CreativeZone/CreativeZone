@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { scheduleModerationAnalysis } from './moderationApi'
 
 function requireSupabase() {
   if (!supabase) throw new Error('Supabase não configurado.')
@@ -66,6 +67,7 @@ export async function sendChatMessage(content, replyTo = null) {
     p_reply_to: replyTo || null,
   })
   if (error) throw error
+  void scheduleModerationAnalysis('chat_message',data)
   return data
 }
 
@@ -76,6 +78,7 @@ export async function editChatMessage(messageId, content) {
     p_content: content,
   })
   if (error) throw error
+  void scheduleModerationAnalysis('chat_message',messageId)
 }
 
 export async function deleteChatMessage(messageId) {
