@@ -34,6 +34,17 @@ function normalizeRepoImage(src,owner,repo,branch,baseDir){
   if(!value) return null
   if(/^(?:data:|blob:)/i.test(value)) return {external:value}
 
+  if(value.startsWith('/')){
+    const raw=value.match(/^\/([^/]+)\/([^/]+)\/raw\/(?:refs\/heads\/)?([^/]+)\/(.+)$/)
+    if(raw){
+      const [,srcOwner,srcRepo,srcBranch,srcPath]=raw
+      if(srcOwner.toLowerCase()===owner.toLowerCase()&&srcRepo.toLowerCase()===repo.toLowerCase()){
+        return {path:decodeURIComponent(srcPath),branch:decodeURIComponent(srcBranch)}
+      }
+      return {external:'https://raw.githubusercontent.com/'+encodeURIComponent(srcOwner)+'/'+encodeURIComponent(srcRepo)+'/'+encodeURIComponent(srcBranch)+'/'+srcPath.split('/').map(encodeURIComponent).join('/')}
+    }
+  }
+
   try{
     const absolute=new URL(value,'https://creativezone.invalid/'+baseDir)
 
