@@ -1207,7 +1207,7 @@ function AccountNotifications({ data, reload, userId, navigate }) {
   return <div className="account-list"><button className="action mark-all" onClick={async()=>{await markAllNotificationsRead(userId); reload()}}>Marcar todas como lidas</button>{data.map((item) => <button className={item.read ? '' : 'unread'} key={item.id} onClick={async()=>{await markNotificationRead(item.id); if(item.data?.topic_id) navigate(`/topico/${item.data.topic_id}`); else if(item.type==='direct_message' && item.actor?.username) navigate(`/mensagens/${item.actor.username}`); reload()}}><strong>{notificationTitle(item)}</strong><span>{item.actor?.display_name || item.actor?.username || 'CreativeZone'}</span><small>{formatRelative(item.created_at)}</small></button>)}</div>
 }
 
-function notificationTitle(item) {
+export function notificationTitle(item) {
   if (item.type === 'topic_watch') {
     if (item.data?.event === 'reply') return 'Nova resposta em tópico assistido'
     if (item.data?.event === 'reply_update') return 'Resposta atualizada em tópico assistido'
@@ -1229,12 +1229,31 @@ function notificationTitle(item) {
     membership_expired: 'Seu VIP expirou',
     github_org_join_request: 'Novo pedido para entrar na organização GitHub',
     github_org_join_request_updated: 'Seu pedido da organização GitHub foi atualizado',
+    github_org_invited: 'Convite GitHub criado pela organização',
+    github_org_joined: 'Entrada confirmada na organização GitHub',
+    github_org_removed: 'Você saiu da organização GitHub',
+    github_org_external_change: 'Alteração detectada na organização GitHub',
     team_invite: 'Convite para uma equipe privada',
     team_invite_accepted: 'Convite de equipe aceito',
     team_invite_declined: 'Convite de equipe recusado',
+    team_invite_cancelled: 'Convite de equipe cancelado',
     team_role_updated: 'Sua função na equipe foi atualizada',
     team_member_removed: 'Você foi removido de uma equipe',
+    membership: 'Atualização da sua assinatura',
+    membership_request: 'Nova solicitação de assinatura',
   }[item.type] || 'Nova notificação'
+}
+
+function notificationContext(item) {
+  const data=item?.data||{}
+  if(data.message) return String(data.message)
+  if(data.team_name) return String(data.team_name)
+  if(data.github_username) return '@'+String(data.github_username)
+  if(data.organization) return String(data.organization)
+  if(data.role) return 'Função: '+String(data.role)
+  if(data.event==='reply') return 'Nova resposta em um tópico que você acompanha.'
+  if(data.event==='reply_update') return 'Uma resposta acompanhada foi atualizada.'
+  return ''
 }
 
 export function NotificationsPanel({ session, navigate, onClose, onChanged }) {
@@ -1293,7 +1312,7 @@ export function NotificationsPanel({ session, navigate, onClose, onChanged }) {
   return <div className="overlay-notifications personal-notifications">
     <div className="notification-list-toolbar">
       <strong>{items.filter(item=>!item.read).length} não lida(s)</strong>
-      <button className="mark-all-overlay" onClick={async()=>{await markAllNotificationsRead(session.user.id);await refreshNotifications()}}>Marcar todas como lidas</button>
+      <button className="mark-all-overlay" disabled={!items.some(item=>!item.read)} onClick={async()=>{await markAllNotificationsRead(session.user.id);await refreshNotifications()}}>Marcar todas como lidas</button>
     </div>
     {items.map((item)=><article className={'personal-notification-row '+(item.read?'':'unread')} key={item.id}>
       <button
@@ -1302,7 +1321,11 @@ export function NotificationsPanel({ session, navigate, onClose, onChanged }) {
         onClick={()=>openNotification(item)}
       >
         <Avatar profile={item.actor} size={40}/>
-        <span><strong>{notificationTitle(item)}</strong><small>{item.actor?.display_name || item.actor?.username || 'CreativeZone'} · {formatRelative(item.created_at)}</small></span>
+        <span>
+          <strong>{notificationTitle(item)}</strong>
+          <small>{item.actor?.display_name || item.actor?.username || 'CreativeZone'} · {formatRelative(item.created_at)}</small>
+          {notificationContext(item)&&<p>{notificationContext(item)}</p>}
+        </span>
       </button>
       {!item.read&&<button className="personal-notification-mark" title="Marcar como lida" aria-label="Marcar como lida" onClick={(event)=>markOne(event,item)}><BadgeCheck/></button>}
     </article>)}
