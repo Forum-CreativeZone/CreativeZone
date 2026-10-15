@@ -688,7 +688,11 @@ export function ProjectPage({ slug, session, navigate, notify }) {
           {canManage&&<div className="project-status-controls">{['idea','planning','active','paused','completed'].map(value=><button className="action" key={value} onClick={()=>changeStatus(value)}>{value}</button>)}</div>}
         </section>}
 
-        {studioTab&&<ProjectStudio project={project} canManage={canStudio} notify={notify} initialTab={studioTab}/>}
+        {studioTab&&canStudio&&<ProjectStudio project={project} canManage={canStudio} notify={notify} initialTab={studioTab}/>}
+        {studioTab&&!canStudio&&<section className="project-roadmap-content-card">
+          <header><Code2/><span><strong>{devhubLanguage==='pt'?'Área de desenvolvimento':'Development area'}</strong><small>{devhubLanguage==='pt'?'O Dev Workspace completo é liberado para participantes autorizados do projeto.':'The full Dev Workspace is available to authorized project participants.'}</small></span></header>
+          <GitHubRepositoryPanel project={project} canManage={false} notify={notify} onChanged={load}/>
+        </section>}
         {activeSection==='projects'&&<ProjectKanban project={project} session={session} notify={notify}/>}
         {activeSection==='team'&&renderMembers()}
         {activeSection==='discussions'&&renderUpdates(devhubLanguage==='pt'?'Discussões e atualizações':'Discussions & updates',devhubLanguage==='pt'?'Registre decisões e progresso do projeto.':'Record project decisions and progress.')}
