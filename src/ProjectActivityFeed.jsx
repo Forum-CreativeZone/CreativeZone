@@ -1,6 +1,6 @@
 import React,{useEffect,useMemo,useState} from 'react'
 import {
-  Activity,CheckCircle2,CircleDot,ExternalLink,GitCommitHorizontal,GitPullRequest,
+  Activity,CheckCircle2,ChevronDown,ChevronUp,CircleDot,ExternalLink,GitCommitHorizontal,GitPullRequest,
   GitPullRequestArrow,RefreshCw,ShieldCheck,Tag,Workflow,XCircle,
 } from 'lucide-react'
 import {getProjectActivity} from './services/extendedApi'
@@ -45,6 +45,7 @@ export function ProjectActivityFeed({projectId,notify}){
   const [items,setItems]=useState([])
   const [loading,setLoading]=useState(true)
   const [expanded,setExpanded]=useState(false)
+  const [panelOpen,setPanelOpen]=useState(false)
 
   async function load(){
     if(!projectId) return
@@ -88,33 +89,42 @@ export function ProjectActivityFeed({projectId,notify}){
     return result
   },[visible])
 
-  return <section className="project-activity-feed">
+  const latest=items[0]||null
+
+  return <section className={'project-activity-feed '+(panelOpen?'is-open':'is-collapsed')}>
     <header className="project-activity-head">
-      <div><Activity/><span><strong>Project Activity</strong><small>GitHub, Security e CreativeZone em uma única linha do tempo.</small></span></div>
-      <button type="button" className="action" onClick={load} disabled={loading}><RefreshCw className={loading?'security-spin':''}/>{loading?'Atualizando...':'Atualizar'}</button>
+      <div><Activity/><span><strong>Project Activity</strong><small>{items.length?items.length+' evento(s) registrados'+(latest?' · última atividade '+latest.title:''):'GitHub, Security e CreativeZone em uma única linha do tempo.'}</small></span></div>
+      <div className="project-activity-head-actions">
+        {panelOpen&&<button type="button" className="action" onClick={load} disabled={loading}><RefreshCw className={loading?'security-spin':''}/>{loading?'Atualizando...':'Atualizar'}</button>}
+        <button type="button" className="action" onClick={()=>setPanelOpen(value=>!value)} aria-expanded={panelOpen}>
+          {panelOpen?<><ChevronUp/>Minimizar</>:<><ChevronDown/>Expandir</>}
+        </button>
+      </div>
     </header>
 
-    {loading&&!items.length
-      ? <div className="project-activity-loading"><RefreshCw className="security-spin"/>Carregando atividade real do projeto...</div>
-      : groups.map(group=><div className="project-activity-day" key={group.label}>
-          <div className="project-activity-day-label"><span>{group.label}</span></div>
-          <div className="project-activity-timeline">
-            {group.items.map(item=><article className={'project-activity-item source-'+item.source+' status-'+(item.status||'neutral')} key={item.id}>
-              <span className="project-activity-icon">{eventIcon(item)}</span>
-              <div className="project-activity-copy">
-                <small>{sourceLabel(item)} · {timeLabel(item.occurred_at)}</small>
-                <strong>{item.title}</strong>
-                {item.summary&&<p>{item.summary}</p>}
-                {item.event_type==='commit'&&item.metadata?.sha&&<code>{String(item.metadata.sha).slice(0,7)}</code>}
-              </div>
-              <span className="project-activity-status">{statusIcon(item)}</span>
-              {item.target_url&&<a href={item.target_url} target="_blank" rel="noreferrer" className="project-activity-link" aria-label="Abrir no GitHub"><ExternalLink/></a>}
-            </article>)}
-          </div>
-        </div>)}
+    {panelOpen&&<>
+      {loading&&!items.length
+        ? <div className="project-activity-loading"><RefreshCw className="security-spin"/>Carregando atividade real do projeto...</div>
+        : groups.map(group=><div className="project-activity-day" key={group.label}>
+            <div className="project-activity-day-label"><span>{group.label}</span></div>
+            <div className="project-activity-timeline">
+              {group.items.map(item=><article className={'project-activity-item source-'+item.source+' status-'+(item.status||'neutral')} key={item.id}>
+                <span className="project-activity-icon">{eventIcon(item)}</span>
+                <div className="project-activity-copy">
+                  <small>{sourceLabel(item)} · {timeLabel(item.occurred_at)}</small>
+                  <strong>{item.title}</strong>
+                  {item.summary&&<p>{item.summary}</p>}
+                  {item.event_type==='commit'&&item.metadata?.sha&&<code>{String(item.metadata.sha).slice(0,7)}</code>}
+                </div>
+                <span className="project-activity-status">{statusIcon(item)}</span>
+                {item.target_url&&<a href={item.target_url} target="_blank" rel="noreferrer" className="project-activity-link" aria-label="Abrir no GitHub"><ExternalLink/></a>}
+              </article>)}
+            </div>
+          </div>)}
 
-    {!loading&&!items.length&&<div className="project-activity-empty"><Activity/><span><strong>A atividade aparecerá aqui</strong><small>Commits, Pull Requests, Issues, builds, releases e auditorias de segurança entram automaticamente pelo GitHub e CreativeZone.</small></span></div>}
+      {!loading&&!items.length&&<div className="project-activity-empty"><Activity/><span><strong>A atividade aparecerá aqui</strong><small>Commits, Pull Requests, Issues, builds, releases e auditorias de segurança entram automaticamente pelo GitHub e CreativeZone.</small></span></div>}
 
-    {items.length>16&&<footer><button type="button" className="action" onClick={()=>setExpanded(value=>!value)}>{expanded?'Mostrar menos':`Ver mais ${items.length-16} atividade(s)`}</button></footer>}
+      {items.length>16&&<footer><button type="button" className="action" onClick={()=>setExpanded(value=>!value)}>{expanded?'Mostrar menos':`Ver mais ${items.length-16} atividade(s)`}</button></footer>}
+    </>}
   </section>
 }
