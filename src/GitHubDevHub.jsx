@@ -145,6 +145,10 @@ async function prepareReadmeHtml(readmeDoc,projectId){
   }
 }
 
+function repositoryReadmeAvailable(readme) {
+  return Boolean(readme?.path || readme?.source)
+}
+
 function topLanguages(languages = {}) {
   const rows = Object.entries(languages || {}).sort((a,b)=>Number(b[1])-Number(a[1])).slice(0,6)
   const total = rows.reduce((sum,[,bytes])=>sum+Number(bytes || 0),0)
@@ -167,6 +171,7 @@ export function GitHubRepositoryPanel({ project, canManage = false, notify, onCh
 
   async function load() {
     if (!project?.id || !project?.repo_url) return
+    setReadmeExpanded(false)
     setLoading(true)
     setError('')
     try {
@@ -192,6 +197,10 @@ export function GitHubRepositoryPanel({ project, canManage = false, notify, onCh
     setReadmeExpanded(false)
     load()
   },[project?.id,project?.repo_url])
+
+  useEffect(()=>{
+    if(readme?.html || repositoryReadmeAvailable(readme)) setReadmeExpanded(false)
+  },[readme?.html,readme?.path])
 
   async function sync() {
     setBusy(true)
