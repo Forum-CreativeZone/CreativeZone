@@ -3572,7 +3572,7 @@ function App() {
           aria-label={unreadNotificationCount ? `Notificações: ${unreadNotificationCount} não lida(s)` : 'Notificações'}
           onClick={() => {setLoginNotificationPopup(false);setOverlay('notifications')}}
         >
-          <Icon name="feed" />
+          <Icon name="bell" />
           {unreadNotificationCount>0&&<span className="notification-count-badge">{unreadNotificationCount>99?'99+':unreadNotificationCount}</span>}
         </button>
       </nav>
