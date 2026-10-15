@@ -27,7 +27,6 @@ import {
 import {
   getGitHubRepositoryCard,
   getGitHubRenderedReadme,
-  getGitHubReadmeAsset,
   syncGitHubProject,
   getGitHubCommunityOrganization,
   syncGitHubCommunityOrganization,
@@ -35,6 +34,7 @@ import {
   reviewGitHubOrganizationMembership,
   sendGitHubOrganizationInvitation,
 } from './services/githubApi'
+import { prepareReadmeHtml } from './services/readmeHtml'
 
 function formatRelative(value) {
   if (!value) return '—'
@@ -46,103 +46,6 @@ function formatRelative(value) {
   if (hours < 24) return `há ${hours} h`
   const days = Math.floor(hours / 24)
   return `há ${days} dia${days === 1 ? '' : 's'}`
-}
-
-function sanitizeReadmeHtml(html='') {
-  if (typeof window === 'undefined' || !html) return ''
-  try {
-    const parser=new DOMParser()
-    const doc=parser.parseFromString('<div id="cz-readme-root">'+html+'</div>','text/html')
-    const root=doc.getElementById('cz-readme-root')
-    if(!root) return ''
-    root.querySelectorAll('script,style,iframe,object,embed,form,input,button,textarea,select,link,meta').forEach(node=>node.remove())
-    root.querySelectorAll('*').forEach(node=>{
-      ;[...node.attributes].forEach(attr=>{
-        const name=attr.name.toLowerCase()
-        const value=String(attr.value||'').trim()
-        if(name.startsWith('on')) node.removeAttribute(attr.name)
-        if(['href','src','xlink:href'].includes(name) && /^(?:javascript|data:text\/html)/i.test(value)) node.removeAttribute(attr.name)
-        if(name==='style') node.removeAttribute(attr.name)
-      })
-      if(node.tagName==='A'){
-        node.setAttribute('target','_blank')
-        node.setAttribute('rel','noreferrer noopener')
-      }
-      if(node.tagName==='IMG'){
-        node.setAttribute('loading','lazy')
-        node.setAttribute('decoding','async')
-      }
-    })
-    return root.innerHTML
-  } catch {
-    return ''
-  }
-}
-
-async function prepareReadmeHtml(readmeDoc,projectId){
-  if(typeof window==='undefined'||!readmeDoc?.html) return ''
-  try{
-    const parser=new DOMParser()
-    const doc=parser.parseFromString('<div id="cz-readme-hydrate">'+readmeDoc.html+'</div>','text/html')
-    const root=doc.getElementById('cz-readme-hydrate')
-    if(!root) return sanitizeReadmeHtml(readmeDoc.html)
-
-    const owner=String(readmeDoc.owner||'')
-    const repo=String(readmeDoc.repo||'')
-    const branch=String(readmeDoc.branch||'main')
-    const readmePath=String(readmeDoc.path||'README.md')
-    const baseDir=readmePath.includes('/')?readmePath.slice(0,readmePath.lastIndexOf('/')+1):''
-
-    const normalizePath=(value)=>{
-      try{
-        const url=new URL(String(value||''),'https://creativezone.invalid/'+baseDir)
-        return decodeURIComponent(url.pathname.replace(/^\//,''))
-      }catch{return String(value||'').replace(/^\.\//,'')}
-    }
-
-    const images=[...root.querySelectorAll('img')].slice(0,20)
-    await Promise.all(images.map(async(img)=>{
-      const src=String(img.getAttribute('src')||'').trim()
-      if(!src||/^(?:https?:|data:|blob:)/i.test(src)) return
-      if(src.startsWith('/')){
-        const rawMatch=src.match(/^\/([^/]+)\/([^/]+)\/raw\/([^/]+)\/(.+)$/)
-        if(rawMatch){
-          const [,srcOwner,srcRepo,srcBranch,srcPath]=rawMatch
-          if(srcOwner.toLowerCase()===owner.toLowerCase()&&srcRepo.toLowerCase()===repo.toLowerCase()){
-            try{
-              const asset=await getGitHubReadmeAsset(projectId,decodeURIComponent(srcPath))
-              if(asset?.data_url){ img.setAttribute('src',asset.data_url); return }
-            }catch{}
-          }
-          img.setAttribute('src',`https://raw.githubusercontent.com/${encodeURIComponent(srcOwner)}/${encodeURIComponent(srcRepo)}/${encodeURIComponent(srcBranch)}/${srcPath.split('/').map(encodeURIComponent).join('/')}`)
-          return
-        }
-        img.setAttribute('src','https://github.com'+src)
-        return
-      }
-      const path=normalizePath(src)
-      if(!path) return
-      try{
-        const asset=await getGitHubReadmeAsset(projectId,path)
-        if(asset?.data_url) img.setAttribute('src',asset.data_url)
-      }catch{}
-    }))
-
-    root.querySelectorAll('a[href]').forEach(link=>{
-      const href=String(link.getAttribute('href')||'').trim()
-      if(!href||href.startsWith('#')||/^(?:https?:|mailto:)/i.test(href)) return
-      if(href.startsWith('/')){
-        link.setAttribute('href','https://github.com'+href)
-        return
-      }
-      const path=normalizePath(href)
-      if(path&&owner&&repo) link.setAttribute('href',`https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/blob/${encodeURIComponent(branch)}/${path.split('/').map(encodeURIComponent).join('/')}`)
-    })
-
-    return sanitizeReadmeHtml(root.innerHTML)
-  }catch{
-    return sanitizeReadmeHtml(readmeDoc?.html||'')
-  }
 }
 
 function repositoryReadmeAvailable(readme) {
