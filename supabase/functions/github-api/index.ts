@@ -573,6 +573,115 @@ async function syncProject(projectId: string, actorId: string | null, internal =
   return { row, plan, installed: Boolean(installationId) }
 }
 
+async function repositoryBrowser(req: Request, payload: Record<string, unknown>) {
+  const user = await authenticatedUser(req)
+  const projectId = String(payload.project_id || "")
+  if (!projectId) throw new Error("Projeto não informado.")
+  const context = await projectContext(projectId, user?.id || null)
+  if (!context.canView) throw new Error("Você não possui acesso a este projeto.")
+
+  const { data: row } = await admin
+    .from("project_repositories")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!row) return { repository:null, path:"", branch:"", items:[], breadcrumbs:[] }
+  if (row.is_private && !context.participant) throw new Error("Repositório privado disponível apenas para participantes do projeto.")
+
+  const owner = String(row.repo_owner || "")
+  const repo = String(row.repo_name || "")
+  const branch = String(payload.branch || row.default_branch || "main").trim() || "main"
+  let path = String(payload.path || "").trim().replace(/^\/+|\/+$/g, "")
+  if (path.includes("..") || path.includes("\\") || path.length > 600) throw new Error("Caminho inválido.")
+
+  const installationId = Number(row.installation_id || 0)
+  let token = installationId ? await installationToken(installationId) : ""
+  if (row.is_private && !token) throw new Error("GitHub App necessário para navegar neste repositório privado.")
+
+  const encodedPath = path
+    ? "/" + path.split("/").filter(Boolean).map(encodeURIComponent).join("/")
+    : ""
+  const contents = await githubRest(
+    `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents${encodedPath}?ref=${encodeURIComponent(branch)}`,
+    token,
+  )
+  if (!Array.isArray(contents)) throw new Error("Este caminho não é uma pasta do repositório.")
+
+  const items = contents
+    .map((item: Record<string, unknown>) => ({
+      name: String(item.name || ""),
+      path: String(item.path || ""),
+      type: String(item.type || "file"),
+      size: Number(item.size || 0),
+      sha: String(item.sha || ""),
+      html_url: String(item.html_url || ""),
+      download_url: item.download_url ? String(item.download_url) : null,
+    }))
+    .sort((a, b) => {
+      const ar = a.type === "dir" ? 0 : 1
+      const br = b.type === "dir" ? 0 : 1
+      return ar - br || a.name.localeCompare(b.name)
+    })
+    .slice(0, 160)
+
+  let latestCommit: Record<string, unknown> = row.last_commit || {}
+  if (!latestCommit || !Object.keys(latestCommit).length) {
+    const commits = await optionalRest(
+      `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/commits?sha=${encodeURIComponent(branch)}&per_page=1`,
+      token,
+    )
+    const first = Array.isArray(commits) ? commits[0] : null
+    if (first) {
+      latestCommit = {
+        oid:first.sha,
+        messageHeadline:first.commit?.message ? String(first.commit.message).split("\n")[0] : "",
+        committedDate:first.commit?.author?.date || null,
+        url:first.html_url || null,
+        author_login:first.author?.login || null,
+        author_avatar_url:first.author?.avatar_url || null,
+      }
+    }
+  }
+
+  const breadcrumbs = path
+    ? path.split("/").filter(Boolean).map((segment, index, all) => ({
+        label:segment,
+        path:all.slice(0, index + 1).join("/"),
+      }))
+    : []
+
+  return {
+    repository:{
+      id:row.id,
+      full_name:owner + "/" + repo,
+      owner,
+      name:repo,
+      repo_url:row.repo_url,
+      description:row.description,
+      homepage_url:row.homepage_url,
+      private:Boolean(row.is_private),
+      default_branch:String(row.default_branch || "main"),
+      primary_language:row.primary_language,
+      languages:row.languages || {},
+      stars:Number(row.stargazers_count || 0),
+      forks:Number(row.forks_count || 0),
+      watchers:Number(row.watchers_count || 0),
+      open_issues:Number(row.open_issues_count || 0),
+      topics:row.topics || [],
+      license:row.license_spdx,
+      last_sync_at:row.last_sync_at,
+    },
+    branch,
+    path,
+    breadcrumbs,
+    items,
+    latest_commit:latestCommit || {},
+  }
+}
+
 async function repoCard(req: Request, projectId: string) {
   const user = await authenticatedUser(req)
   const context = await projectContext(projectId, user?.id || null)
@@ -681,6 +790,10 @@ Deno.serve(async (req: Request) => {
     if (action === "repo_card") {
       if (!projectId) return reply({ error: "project_id_required" }, 400)
       return reply({ ok: true, ...(await repoCard(req, projectId)) })
+    }
+    if (action === "repo_browser") {
+      if (!projectId) return reply({ error: "project_id_required" }, 400)
+      return reply({ ok:true, ...(await repositoryBrowser(req, payload)) })
     }
     if (action === "sync_project") {
       const user = await authenticatedUser(req)
