@@ -45,7 +45,9 @@ export function ProjectActivityFeed({projectId,notify}){
   const [items,setItems]=useState([])
   const [loading,setLoading]=useState(true)
   const [expanded,setExpanded]=useState(false)
-  const [panelOpen,setPanelOpen]=useState(false)
+  const [panelOpen,setPanelOpen]=useState(()=>{
+    try{return localStorage.getItem('creativezone-project-activity-open-'+projectId)==='1'}catch{return false}
+  })
 
   async function load(){
     if(!projectId) return
@@ -59,7 +61,15 @@ export function ProjectActivityFeed({projectId,notify}){
     }
   }
 
-  useEffect(()=>{setLoading(true);load()},[projectId])
+  useEffect(()=>{
+    setLoading(true)
+    try{setPanelOpen(localStorage.getItem('creativezone-project-activity-open-'+projectId)==='1')}catch{setPanelOpen(false)}
+    load()
+  },[projectId])
+
+  useEffect(()=>{
+    try{localStorage.setItem('creativezone-project-activity-open-'+projectId,panelOpen?'1':'0')}catch{}
+  },[projectId,panelOpen])
 
   useEffect(()=>{
     if(!supabase||!projectId) return undefined
@@ -96,7 +106,7 @@ export function ProjectActivityFeed({projectId,notify}){
       <div><Activity/><span><strong>Project Activity</strong><small>{items.length?items.length+' evento(s) registrados'+(latest?' · última atividade '+latest.title:''):'GitHub, Security e CreativeZone em uma única linha do tempo.'}</small></span></div>
       <div className="project-activity-head-actions">
         {panelOpen&&<button type="button" className="action" onClick={load} disabled={loading}><RefreshCw className={loading?'security-spin':''}/>{loading?'Atualizando...':'Atualizar'}</button>}
-        <button type="button" className="action" onClick={()=>setPanelOpen(value=>!value)} aria-expanded={panelOpen}>
+        <button type="button" className="action project-activity-toggle" onClick={()=>setPanelOpen(value=>!value)} aria-expanded={panelOpen} title={panelOpen?'Minimizar Project Activity':'Expandir Project Activity'}>
           {panelOpen?<><ChevronUp/>Minimizar</>:<><ChevronDown/>Expandir</>}
         </button>
       </div>
