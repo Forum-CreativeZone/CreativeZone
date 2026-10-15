@@ -1239,6 +1239,8 @@ export function notificationTitle(item) {
     github_org_join_request_updated: 'Seu pedido da organização GitHub foi atualizado',
     project_recruiting_application: 'Nova candidatura para um projeto',
     project_recruiting_status: 'Sua candidatura no DevHub foi atualizada',
+    project_member_invite: 'Convite para um projeto DevHub',
+    project_role_updated: 'Sua função no projeto foi atualizada',
     github_org_invited: 'Convite GitHub criado pela organização',
     github_org_joined: 'Entrada confirmada na organização GitHub',
     github_org_removed: 'Você saiu da organização GitHub',
