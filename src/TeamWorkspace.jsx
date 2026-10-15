@@ -290,6 +290,11 @@ export function TeamPage({slug,session,navigate,notify}){
       </section>
     </section>}
 
+    {perms.view_private&&<section className="team-role-matrix">
+      <header><ShieldCheck/><div><strong>Permissões da equipe</strong><small>As ações são validadas no backend; não são apenas controles visuais.</small></div></header>
+      <div>{ROLE_SUMMARIES.map(([role,title,summary])=><article key={role} className={perms.role===role?'active':''}><strong>{title}</strong><p>{summary}</p>{perms.role===role&&<em>Sua função</em>}</article>)}</div>
+    </section>}
+
     <section className="team-topics-section">
       <header>
         <div><MessageSquare/><span><strong>Tópicos da equipe</strong><small>Privados ou com vitrine pública e conteúdo protegido.</small></span></div>
@@ -298,10 +303,12 @@ export function TeamPage({slug,session,navigate,notify}){
 
       {topicOpen&&<form className="team-topic-create" onSubmit={createTopic}>
         <label>Título<input required minLength={3} maxLength={160} value={topic.title} onChange={e=>setTopic({...topic,title:e.target.value})}/></label>
-        <fieldset><legend>Visibilidade</legend>
-          <label><input type="radio" checked={topic.visibility==='team_only'} onChange={()=>setTopic({...topic,visibility:'team_only'})}/><LockKeyhole/><span><strong>Somente equipe</strong><small>Só membros da equipe e o Arquiteto CreativeZone podem encontrar e ler.</small></span></label>
-          <label><input type="radio" checked={topic.visibility==='public_preview'} onChange={()=>setTopic({...topic,visibility:'public_preview'})}/><Eye/><span><strong>Vitrine pública</strong><small>Visitantes veem título e resumo; conteúdo importante e interação ficam restritos à equipe.</small></span></label>
-        </fieldset>
+        {perms.publish_topics
+          ? <fieldset><legend>Visibilidade</legend>
+              <label><input type="radio" checked={topic.visibility==='team_only'} onChange={()=>setTopic({...topic,visibility:'team_only'})}/><LockKeyhole/><span><strong>Somente equipe</strong><small>Só membros da equipe e o Arquiteto CreativeZone podem encontrar e ler.</small></span></label>
+              <label><input type="radio" checked={topic.visibility==='public_preview'} onChange={()=>setTopic({...topic,visibility:'public_preview'})}/><Eye/><span><strong>Vitrine pública</strong><small>Visitantes veem título e resumo; conteúdo importante e interação ficam restritos à equipe.</small></span></label>
+            </fieldset>
+          : <div className="team-private-only-note"><LockKeyhole/><span><strong>Seu tópico será privado</strong><small>Somente Owner, Administrador e Maintainer podem publicar uma vitrine pública.</small></span></div>}
         {topic.visibility==='public_preview'&&<label>Resumo público<textarea required maxLength={3000} value={topic.public_summary} onChange={e=>setTopic({...topic,public_summary:e.target.value})} placeholder="O que a comunidade pode ver sobre este trabalho?"/></label>}
         <label>Conteúdo da equipe<textarea required maxLength={50000} value={topic.content} onChange={e=>setTopic({...topic,content:e.target.value})} placeholder="Planejamento, código, documentos, decisões e conteúdo restrito..."/></label>
         <button className="action primary-action" disabled={busy}>Criar tópico</button>
