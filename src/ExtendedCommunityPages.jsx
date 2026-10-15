@@ -43,7 +43,7 @@ import { ProjectPassport } from './ProjectPassport'
 import { ProjectKanban } from './ProjectKanban'
 import { ProjectRecruiting } from './ProjectRecruiting'
 import { ProjectRoadmapNav, useDevHubLanguage } from './ProjectRoadmap'
-import { ProjectOverviewDashboard } from './ProjectOverviewDashboard'
+import { ProjectRepositoryOverview } from './ProjectRepositoryOverview'
 import { GitHubAccountConnect } from './GitHubAccountConnect'
 import { connectExistingGitHubRepository, createGitHubRepositoryForProject, getGitHubAccountStatus } from './services/githubAuthApi'
 import { requestGitHubOrganizationMembership, syncGitHubProject } from './services/githubApi'
@@ -686,9 +686,8 @@ export function ProjectPage({ slug, session, navigate, notify }) {
             <button type="button" className="action" onClick={()=>openRoadmapSection('team')}>{devhubLanguage==='pt'?'Ver equipe':'View team'}</button>
           </div>
           {project.website_url&&<div className="project-website-preview"><LinkPreviewCard url={project.website_url} variant="project" eager/></div>}
-          <ProjectOverviewDashboard
+          <ProjectRepositoryOverview
             project={project}
-            session={session}
             language={devhubLanguage}
             onNavigate={openRoadmapSection}
             notify={notify}
