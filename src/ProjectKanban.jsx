@@ -140,6 +140,19 @@ export function ProjectKanban({project,session,notify}){
     return()=>{supabase.removeChannel(channel)}
   },[project?.id,session?.user?.id,accessDenied])
 
+  useEffect(()=>{
+    const cardId=detail?.card?.id
+    if(!supabase||!cardId) return undefined
+    const refreshDetail=()=>openCard(cardId)
+    const channel=supabase
+      .channel('creativezone-project-kanban-card-'+cardId)
+      .on('postgres_changes',{event:'*',schema:'public',table:'project_kanban_cards',filter:`id=eq.${cardId}`},refreshDetail)
+      .on('postgres_changes',{event:'*',schema:'public',table:'project_kanban_comments',filter:`card_id=eq.${cardId}`},refreshDetail)
+      .on('postgres_changes',{event:'*',schema:'public',table:'project_kanban_history',filter:`card_id=eq.${cardId}`},refreshDetail)
+      .subscribe()
+    return()=>{supabase.removeChannel(channel)}
+  },[detail?.card?.id])
+
   const columns=board?.columns||[]
   const cards=board?.cards||[]
   const permissions=board?.permissions||{}
