@@ -15,22 +15,36 @@
 .project-roadmap__divider{height:1px;background:#272a2f;margin:1px 4px}
 .project-roadmap-anchor{scroll-margin-top:100px}
 
-@media(max-width:980px){
-  .project-roadmap{position:sticky;top:66px;max-height:none}
-  .project-roadmap>header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px}
-  .project-roadmap__language{grid-template-columns:auto auto;flex:none}
-  .project-roadmap__scroll{display:flex;align-items:center;gap:7px;max-height:none;padding:7px;overflow-x:auto;overflow-y:hidden}
-  .project-roadmap__section{display:block}.project-roadmap__section>small{display:none}
-  .project-roadmap__group{display:flex;align-items:center;gap:4px}
-  .project-roadmap__group button{display:flex;width:auto;grid-template-columns:none;flex:none;gap:5px;padding:6px 8px;white-space:nowrap}
-  .project-roadmap__group button span{overflow:visible}
-  .project-roadmap__divider{width:1px;height:24px;flex:none;margin:0}
+@media(max-width:860px){
+  .project-devhub-layout{grid-template-columns:190px minmax(0,1fr);gap:10px}
+  .project-roadmap{top:66px}
 }
-@media(max-width:620px){
-  .project-roadmap>header>div:first-child span strong{display:none}
-  .project-roadmap>header>div:first-child span small{font-size:6px}
+@media(max-width:680px){
+  .project-devhub-layout{grid-template-columns:1fr}
+  .project-roadmap{position:relative;top:auto;max-height:none}
+  .project-roadmap__scroll{max-height:300px}
 }
 :root[data-theme="light"] .project-roadmap{background:rgba(255,255,255,.97);border-color:rgba(190,35,27,.22)}
 :root[data-theme="light"] .project-roadmap>header{background:linear-gradient(145deg,rgba(232,48,37,.055),transparent 70%);border-color:rgba(190,35,27,.15)}
 :root[data-theme="light"] .project-roadmap__group button{color:#626a73}
 :root[data-theme="light"] .project-roadmap__group button:hover{color:#222}
+
+.project-devhub-layout{
+  display:grid;
+  grid-template-columns:228px minmax(0,1fr);
+  gap:16px;
+  align-items:start;
+  width:100%;
+  max-width:none;
+  min-width:0;
+}
+.project-devhub-content{
+  width:100%;
+  max-width:none;
+  min-width:0;
+}
+.project-devhub-content>*{
+  width:100%;
+  max-width:none;
+  min-width:0;
+}
