@@ -1,138 +1,239 @@
 # CreativeZone DevHub — Guia Completo
 
-> Estado validado em 15/10/2026 no repositório `Forum-CreativeZone/CreativeZone` e no projeto Supabase `forum`.
+> **Status:** homologado em 15/10/2026 no repositório `Forum-CreativeZone/CreativeZone` e no Supabase do fórum.
 
-## 1. Visão geral
+## 1. Objetivo
 
-O CreativeZone DevHub transforma a área de Projetos do fórum em um workspace integrado ao GitHub. A camada atual combina:
+O CreativeZone DevHub transforma **Projetos** em um workspace integrado ao GitHub. O GitHub permanece como fonte real do repositório; a CreativeZone adiciona comunidade, permissões, colaboração, segurança e ferramentas de desenvolvimento.
 
-- leitura do repositório real e metadados do GitHub;
-- README renderizado;
-- Issues e Pull Requests;
-- histórico de commits e releases;
-- GitHub Actions;
-- Security/OSV;
-- Project Studio;
-- Kanban;
-- Recruiting;
+A regra central é simples: **a interface nunca é a única barreira de segurança**. Plano, função e acesso ao projeto são validados no backend.
+
+## 2. Recursos homologados
+
+### Repositório e README
+
+- estrutura real de arquivos e pastas;
+- branches e commits;
+- README renderizado em GitHub Flavored Markdown;
+- imagens e links relativos;
+- assets de repositórios privados via proxy autenticado;
+- releases, linguagens e metadados reais.
+
+### Project Studio — ELITE
+
+- Code Studio com **Monaco Editor**;
+- árvore de arquivos;
+- edição, criação, upload e exclusão de arquivos;
+- commits individuais e em lote;
+- criação de branches;
+- Issues;
+- Pull Requests, reviews e merge conforme permissão;
+- CI Cockpit;
+- configurações suportadas do repositório;
+- preview de arquivos.
+
+### Terminal e execução
+
+O terminal visual usa **xterm.js** e segue a experiência do VS Code. Ele não é um shell irrestrito: comandos Git são mapeados para operações seguras sobre o repositório real.
+
+Comandos suportados incluem:
+
+- `git status`;
+- `git branch`;
+- `git log`;
+- `git pull`;
+- `git diff`;
+- `git checkout -b <branch>`;
+- `git switch -c <branch>`;
+- `pwd`;
+- `ls`.
+
+A execução de código é separada e usa **Judge0 CE** em sandbox.
+
+### Colaboração
+
+- Project Activity Feed em tempo real;
+- Project Passport;
 - Contribution Passport;
-- atividade do projeto;
-- equipes, convites, funções e permissões;
-- integrações por Edge Functions e Webhooks.
+- Kanban integrado;
+- Recruiting / “Preciso de ajuda”;
+- Mentors;
+- Reputation;
+- Team Chat;
+- Learning;
+- notificações com badge numérico e popup em tempo real.
 
-As permissões críticas são validadas no backend. A interface não deve ser tratada como barreira de segurança.
+### GitHub Organization
 
-## 2. Planos e benefícios do DevHub
+A integração sincroniza a verdade do GitHub para:
+
+- membros;
+- convites;
+- solicitações;
+- estado da organização;
+- GitHub App installations;
+- webhooks.
+
+Estado local não deve ser exibido como solicitação real quando o GitHub não possui essa solicitação.
+
+## 3. Planos
 
 ### FREE
 
-Limite: **1 repositório**.
+**Limite:** 1 repositório.
 
-Inclui:
+Inclui reconhecimento do repositório, dados básicos, README, última release, OSV básico e status público de segurança.
 
-- reconhecimento de repositório;
-- dados básicos do repositório;
-- card GitHub;
-- resumo/visualização do README;
-- release mais recente;
-- verificação OSV básica;
-- status público de segurança.
-
-Não inclui repositório privado, Issues avançadas, Pull Requests, Actions, histórico completo, grafo de dependências, scan agendado ou Project Studio.
+Não inclui repositório privado, Project Studio, PRs avançados, Actions completas, grafo de dependências ou scans avançados.
 
 ### PRO
 
-Limite: **5 repositórios**.
+**Limite:** 5 repositórios.
 
-Inclui tudo do FREE e também:
+Inclui tudo do FREE e:
 
 - Issues;
 - Pull Requests;
-- commits recentes;
-- histórico;
-- histórico de releases;
-- Actions status;
+- commits e histórico;
+- releases;
+- Actions;
 - linguagens detalhadas;
 - SBOM;
-- dependências de desenvolvimento;
-- grafo de dependências;
+- dependências;
+- Dependency Graph;
 - OSV completo;
 - scan ao conectar;
 - rescan agendado;
 - Project Health.
 
-Não inclui Project Studio, commits feitos pelo fórum, CI Cockpit, Security Gate, scan de Pull Request, alertas em tempo real, automação branch/PR, auto-fix nem repositório privado.
+Não inclui Project Studio, repositório privado, commits pelo fórum, Security Gate, push/PR scan, alertas em tempo real ou AutoFix.
 
 ### ELITE
 
-Limite: **ilimitado**.
+**Limite:** ilimitado.
 
-Inclui tudo do PRO e também:
+Inclui tudo do PRO e:
 
 - repositórios privados;
 - Project Studio;
 - commits pelo fórum;
-- workflow branch + Pull Request;
+- branch → PR workflow;
 - CI Cockpit;
 - Security Gate;
-- scan em Pull Requests;
 - push scan;
+- Pull Request scan;
 - alertas em tempo real;
-- auto-fix;
+- AutoFix;
 - equipes privadas;
-- tópicos privados de equipe;
-- preview público controlado de tópicos;
-- gerenciamento de funções de equipe.
+- tópicos privados;
+- funções avançadas da equipe.
 
-## 3. Matriz de funções do projeto
+Os gates são auditados no CI com `npm run check:devhub-plans`.
 
-### Owner
+## 4. Funções do projeto
 
-Controle total do projeto, inclusive ações destrutivas. Pode administrar código, Issues, PRs, Kanban, equipe, configurações, segurança, Recruiting e funções.
+| Função | Resumo |
+|---|---|
+| **Owner** | controle total, inclusive ações destrutivas |
+| **Maintainer** | administração operacional ampla, sem poderes destrutivos de propriedade |
+| **Developer** | código, terminal, execução, Issues, PRs e Kanban; sem merge/admin |
+| **Reviewer** | leitura, comentários e review de PR; sem escrita de código |
+| **Designer** | escrita apenas em caminhos autorizados; sem terminal |
+| **Member** | colaboração comunitária e Kanban permitido/atribuído |
+| **Viewer** | somente leitura |
 
-### Maintainer
+O Owner pode conceder **acesso operacional** sem transferir propriedade. Isso não libera exclusão do projeto, transferência de propriedade ou privilégios destrutivos equivalentes.
 
-Administração operacional ampla. Pode editar código, gerenciar Issues, revisar/mesclar PRs, administrar Kanban, convidar membros, operar Actions, segurança, configurações e Recruiting.
+## 5. Fluxos principais
 
-**Não pode** executar ações destrutivas de propriedade nem alterar funções da equipe como Owner.
+### Conectar um repositório
 
-### Developer
+1. Abra **Projetos**.
+2. Crie um projeto ou abra um existente.
+3. Conecte sua conta GitHub quando solicitado.
+4. Escolha criar repositório pessoal, criar na organização ou conectar um existente.
+5. O backend valida plano, acesso e GitHub App.
+6. O repositório é sincronizado e o README real passa a aparecer.
 
-Pode ler e editar código, criar Issues e PRs, comentar, trabalhar no Kanban, usar terminal e executar código.
+### Trabalhar no código — ELITE
 
-Não pode mesclar PRs, administrar equipe, segurança ou configurações.
+1. Abra **Código**.
+2. Escolha o arquivo na árvore.
+3. Edite no Monaco Editor.
+4. Use uma branch de trabalho.
+5. Revise as alterações.
+6. Faça commit.
+7. Abra um Pull Request.
+8. Aguarde CI/review.
+9. Faça merge somente se sua função permitir.
 
-### Reviewer
+### Terminal — ELITE
 
-Acesso de leitura com comentários em Issues e revisão de Pull Requests. Sem escrita de código, terminal, administração ou ações destrutivas.
+1. Abra **Terminal**.
+2. Digite `help` para ver comandos aceitos.
+3. Use comandos Git seguros.
+4. Para executar código, use a área de execução/sandbox, não o terminal.
 
-### Designer
+### Kanban
 
-Pode editar apenas caminhos de repositório autorizados, criar/comentar Issues, comentar PRs e participar de cards atribuídos no Kanban.
+1. Abra **Projects / Quadro / Kanban**.
+2. Crie ou mova cards conforme sua função.
+3. Defina responsável, prioridade, labels e prazo.
+4. Use comentários/checklist quando permitido.
+5. Mudanças ficam registradas no histórico e realtime.
 
-### Member
+### Recruiting
 
-Colaborador da comunidade com leitura, criação/comentários em Issues e participação em cards atribuídos.
+1. Abra **Recruiting** ou clique em **Preciso de ajuda**.
+2. Owner/Maintainer autorizado cria a vaga.
+3. Define área, habilidades, vagas, visibilidade e descrição.
+4. Membros elegíveis se candidatam.
+5. Gestores revisam candidaturas.
+6. Notificações e e-mails acompanham o fluxo.
 
-### Viewer
+### Security / OSV
 
-Somente leitura nas áreas de desenvolvimento.
+1. Conecte um repositório.
+2. O sistema detecta manifests/lockfiles.
+3. Dependências são identificadas por SBOM ou fallback de manifests.
+4. OSV verifica vulnerabilidades.
+5. O DevHub registra Security Score, severidades e histórico.
+6. PRO recebe análise avançada/agendada.
+7. ELITE pode receber scans em push/PR, Security Gate, alertas e AutoFix.
 
-## 4. Poder total operacional
+## 6. Roadmap/áreas da interface
 
-O Owner pode conceder acesso operacional amplo a outra pessoa sem transferir a propriedade.
+O menu lateral do projeto contém áreas de desenvolvimento e áreas CreativeZone.
 
-Esse acesso não deve liberar ações destrutivas reservadas ao Owner, como:
+### Desenvolvimento
 
-- excluir projeto;
-- transferir propriedade;
-- desvincular infraestrutura crítica;
-- apagar dados importantes;
-- conceder privilégios destrutivos equivalentes ao proprietário.
+- **Overview:** resumo modular do projeto e repositório real.
+- **Code:** arquivos e Code Studio.
+- **Issues:** tarefas do GitHub.
+- **Pull Requests:** alterações, reviews e merge conforme função.
+- **Projects:** Kanban.
+- **Team:** membros, convites e permissões.
+- **Discussions:** discussões ligadas ao projeto.
+- **Releases:** versões reais.
+- **Actions:** CI.
+- **Security:** postura de segurança.
+- **Terminal:** terminal Git seguro.
+- **Settings:** configurações permitidas.
 
-## 5. Componentes de backend validados
+### CreativeZone
 
-Tabelas centrais do DevHub:
+- **Community:** Recruiting + Activity Feed.
+- **Mentors:** Owner/Maintainers que orientam contribuições.
+- **Recruiting:** vagas e candidaturas.
+- **Reputation:** Project Passport.
+- **Team Chat:** acesso às conversas da equipe.
+- **Security Score:** estado resumido de segurança.
+- **OSV:** análise de vulnerabilidades.
+- **Learning:** mapa de tecnologias e habilidades do projeto.
+
+## 7. Backend
+
+### Tabelas centrais
 
 - `github_connections`;
 - `github_installations`;
@@ -157,11 +258,9 @@ Tabelas centrais do DevHub:
 - `github_org_membership_requests`;
 - `github_org_sync_state`.
 
-Todas as tabelas acima estão sob RLS.
+As tabelas centrais estão sob RLS.
 
-## 6. Edge Functions do DevHub
-
-Funções validadas como ativas:
+### Edge Functions
 
 - `github-api`;
 - `github-auth`;
@@ -172,127 +271,59 @@ Funções validadas como ativas:
 - `security-audit`;
 - `teams-api`.
 
-O envio de notificações/e-mails usa também a função `send-community-email`.
+Notificações por e-mail usam também `send-community-email`.
 
-## 7. Segurança e autorização
+## 8. Segurança
 
-A matriz de permissões é persistida em `project_role_permissions`.
+As RPCs administrativas de permissões, equipes, Kanban e Recruiting não são executáveis por `anon`.
 
-As RPCs de permissões, equipe, Kanban e Recruiting foram endurecidas para:
+RPCs de escrita que exigem conta autenticada também tiveram `EXECUTE` público revogado. RPCs deliberadamente públicas de leitura — por exemplo Project Passport público e Recruiting público — permanecem públicas apenas quando a função aplica as regras de visibilidade.
 
-- remover execução por `anon`;
-- exigir usuário autenticado;
-- aplicar validação de papel/capacidade no backend;
-- evitar depender apenas de botões ocultos na interface;
-- proteger dados de projetos privados por RLS.
+Ações destrutivas continuam exclusivas do Owner.
 
-As ações destrutivas permanecem exclusivas do Owner.
+## 9. Homologação final
 
-## 8. GitHub como fonte real
+A homologação final confirmou:
 
-O DevHub deve apresentar dados reais do repositório conectado. Isso inclui, conforme o plano e a permissão do usuário:
+- 7 funções e respectivas capabilities;
+- gates FREE / PRO / ELITE;
+- RLS nas tabelas centrais;
+- RPCs críticas bloqueadas para `anon`;
+- Edge Functions implantadas e sincronizadas com a `main`;
+- GitHub webhook e scans de segurança;
+- desktop/mobile;
+- tema escuro/claro;
+- lint;
+- testes unitários;
+- migrations;
+- build Vite;
+- Playwright.
 
-- estrutura de arquivos e pastas;
-- README;
-- branches;
-- commits;
-- Issues;
-- Pull Requests;
-- Actions;
-- releases;
-- linguagens;
-- dependências;
-- estado de segurança.
+**Workflow final:** GitHub Actions run `38797590085`.
 
-Dados simulados, placeholders e solicitações locais que não existam no GitHub não devem ser apresentados como estado real.
+**Commit homologado:** `653d56cdda652df88cdf0ae1bc0d106759882681`.
 
-## 9. Kanban
+O `github-security-scan` foi reforçado com diagnóstico estruturado e retry de persistência. Após o ajuste, os scans de homologação concluíram com **Security Score 100** e **0 vulnerabilidades** no repositório principal.
 
-O Kanban possui permissões por função no backend.
+## 10. Checklist de regressão
 
-- Owner/Maintainer: administração completa.
-- Developer: criação e edição operacional.
-- Designer/Member: participação limitada a cards permitidos/atribuídos.
-- Reviewer/Viewer: leitura conforme a função.
+Antes de publicar mudanças no DevHub:
 
-As regras de UI devem refletir as capacidades retornadas pelo backend.
+1. validar `npm run check:devhub-plans`;
+2. validar Owner, Maintainer e uma função restrita;
+3. confirmar que `anon` não executa RPCs administrativas;
+4. confirmar que projeto/repositório privado não vaza dados;
+5. testar desktop e mobile;
+6. testar tema claro e escuro;
+7. executar lint, testes, migrations, build e Playwright;
+8. atualizar este guia quando planos, funções ou integrações mudarem.
 
-## 10. Recruiting
+## 11. Tutorial para membros
 
-A área de Recruiting usa vagas e candidaturas ligadas ao projeto.
+O tutorial público, com linguagem não técnica e uso passo a passo, fica no fórum:
 
-A revisão de candidaturas exige permissão administrativa apropriada. As notificações e e-mails do fluxo estão integrados ao sistema da comunidade.
-
-## 11. Contribution Passport
-
-O Contribution Passport consolida contribuição e participação do usuário no projeto, respeitando privacidade e atribuição.
-
-Ele não substitui a autorização do projeto; é uma camada de histórico/reputação.
-
-## 12. Equipes e convites
-
-Convites de projeto usam `project_member_invites` e seguem a função escolhida pelo Owner/Maintainer autorizado.
-
-O sistema suporta funções avançadas:
-
-- owner;
-- maintainer;
-- developer;
-- reviewer;
-- designer;
-- member;
-- viewer.
-
-O histórico/visibilidade dos convites segue RLS e as capacidades da função.
-
-## 13. Auditoria funcional concluída
-
-Foram conferidos:
-
-- existência dos três planos;
-- entitlements DevHub por FREE, PRO e ELITE;
-- limites de repositórios: 1 / 5 / ilimitado;
-- matriz de sete funções do projeto;
-- bloqueio de execução anônima das RPCs críticas;
-- RLS das tabelas centrais;
-- Edge Functions essenciais ativas;
-- integrações de Kanban, Recruiting, Contribution Passport, atividade e permissões;
-- commits mais recentes de endurecimento de autorização.
-
-### Resultado
-
-A arquitetura de benefícios e permissões está consistente com a divisão FREE / PRO / ELITE e com a matriz Owner / Maintainer / Developer / Reviewer / Designer / Member / Viewer.
-
-## 14. Regras para novas funcionalidades
-
-Ao adicionar um recurso novo ao DevHub:
-
-1. definir o entitlement do plano;
-2. definir a capability da função;
-3. aplicar a validação no backend;
-4. aplicar RLS/RPC quando houver dado sensível;
-5. refletir a permissão na interface;
-6. testar Owner, Maintainer e pelo menos uma função restrita;
-7. testar acesso anônimo;
-8. documentar o comportamento neste guia.
-
-## 15. Checklist de regressão
-
-Antes de publicar mudanças no DevHub, verificar:
-
-- FREE não ultrapassa 1 repositório;
-- PRO não ultrapassa 5 repositórios;
-- ELITE aceita repositórios privados;
-- Project Studio é exclusivo ELITE;
-- Owner mantém ações destrutivas exclusivas;
-- Maintainer não recebe `destructive`;
-- Developer não recebe merge/admin;
-- Reviewer não recebe escrita de código;
-- Viewer permanece somente leitura;
-- usuário anônimo não executa RPCs administrativas;
-- projeto privado não vaza dados por SELECT/RPC;
-- interface acompanha exatamente as capacidades do backend.
+https://forum.creativezone.pro/topico/creativezone-github-devhub-organizacao-oficial-projetos-colaborativos--669c591f-a72d-469d-86bf-17d4cc8d06d3
 
 ---
 
-Este documento deve ser atualizado sempre que a matriz de planos, funções, RPCs ou integrações do DevHub mudar.
+Este documento é a referência técnica/funcional do DevHub. O README deve permanecer resumido e apontar para este guia e para o tutorial do fórum.

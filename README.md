@@ -5,377 +5,164 @@
 <h1 align="center">CreativeZone</h1>
 
 <p align="center">
-  <strong>Um fórum comunitário para conversar, aprender, compartilhar conhecimento e construir projetos juntos.</strong>
+  <strong>Comunidade, fórum e workspace colaborativo para transformar ideias em projetos reais.</strong>
 </p>
 
 <p align="center">
   <a href="https://forum.creativezone.pro/">🌐 Fórum</a>
   ·
-  <a href="https://github.com/Creatiive-Lab">🧪 Creative Lab no GitHub</a>
-</p>
-
-<p align="center">
-  <img alt="React" src="https://img.shields.io/badge/React-Frontend-20232a?logo=react&logoColor=61dafb" />
-  <img alt="Supabase" src="https://img.shields.io/badge/Supabase-Backend-1c1c1c?logo=supabase&logoColor=3ecf8e" />
-  <img alt="Cloudflare" src="https://img.shields.io/badge/Cloudflare-Deploy-f38020?logo=cloudflare&logoColor=white" />
-  <img alt="Resend" src="https://img.shields.io/badge/Resend-Email-000000?logo=resend&logoColor=white" />
+  <a href="https://github.com/Creatiive-Zone">🐙 Organização GitHub</a>
+  ·
+  <a href="./docs/CREATIVEZONE_DEVHUB_GUIA_COMPLETO.md">📘 Guia do DevHub</a>
 </p>
 
 ---
 
-## Sobre a CreativeZone
+## Sobre
 
-A **CreativeZone** é uma comunidade voltada a tecnologia, desenvolvimento de software, automação, inteligência artificial, infraestrutura, hardware, games, negócios digitais e troca de conhecimento.
+A **CreativeZone** reúne comunidade, colaboração e desenvolvimento em uma única plataforma. Além do fórum tradicional, membros podem criar projetos, formar equipes, conectar repositórios GitHub e trabalhar com ferramentas de desenvolvimento sem sair do site.
 
-O projeto foi pensado para ir além de um fórum tradicional: uma discussão pode virar uma ideia, uma ideia pode virar um projeto e um projeto pode reunir membros de diferentes áreas para construir algo em conjunto.
+### Principais áreas
 
-Todos os membros da CreativeZone são bem-vindos para:
-
-- criar e apresentar novos projetos;
-- participar de projetos existentes;
-- formar equipes e colaborar com outros membros;
-- contribuir com código, documentação, design, testes, pesquisa e organização;
-- compartilhar experiências, dúvidas e soluções;
-- aprender construindo em comunidade.
-
-Os projetos da comunidade também podem ganhar vida na organização **[Creatiive-Lab](https://github.com/Creatiive-Lab)** no GitHub.
+- **Fórum e comunidade:** categorias, tópicos, respostas, reações, perfis, reputação, mensagens e chat em tempo real.
+- **CreativeZone DevHub:** repositório real, README estilo GitHub, Code Studio com Monaco Editor, terminal com xterm.js, Issues, Pull Requests, Actions, Kanban e equipes.
+- **CreativeZone Security:** análise de dependências, OSV, Security Score, histórico de auditorias e automações por plano.
+- **Projetos colaborativos:** Activity Feed, Project Passport, Contribution Passport, Recruiting, Mentors, Team Chat e Learning.
+- **Contas e notificações:** login por e-mail, Google e GitHub, notificações em tempo real, e-mail e Web Push.
 
 ---
 
-## ✨ Principais recursos
+## 🚀 CreativeZone DevHub
 
-### Fórum e comunidade
+O DevHub usa o **GitHub como fonte real**. Arquivos, branches, commits, Issues, Pull Requests, releases e Actions exibidos no projeto vêm do repositório conectado.
 
-- categorias, tópicos e respostas persistidos no Supabase;
-- perfis públicos com avatar, nome, bio, ocupação, localização opcional, interesses e links sociais;
-- reações em tópicos e respostas;
-- reputação e badges;
-- sequência diária de acesso;
-- favoritos salvos na conta;
-- seguidores e seguindo;
-- usuários ignorados;
-- assinatura de fórum;
-- citações com notificação específica;
-- menções com `@usuario`;
-- busca no fórum;
-- tema claro e escuro;
-- interface responsiva para desktop e mobile.
+Entre os recursos disponíveis:
 
-### Mensagens e notificações
+- README renderizado como no GitHub;
+- navegação real de arquivos e pastas;
+- **Monaco Editor** no Code Studio;
+- **xterm.js** com terminal Git seguro;
+- execução isolada de código via **Judge0 CE**;
+- branch → commit → Pull Request → review → merge;
+- CI Cockpit com GitHub Actions;
+- Kanban em tempo real;
+- Activity Feed;
+- Project Passport e Contribution Passport;
+- Recruiting / “Preciso de ajuda”;
+- funções Owner, Maintainer, Developer, Reviewer, Designer, Member e Viewer;
+- equipes privadas ELITE;
+- OSV, Security Score, Security Gate e AutoFix conforme o plano.
 
-- mensagens diretas entre membros;
-- busca no histórico completo das conversas;
-- notificações em tempo real;
-- preferências individuais por evento;
-- notificações no fórum;
-- notificações por e-mail;
-- Web Push para navegadores compatíveis;
-- suporte a notificações em desktop e dispositivos móveis.
+### Planos
 
-### Chat da Comunidade
+| Plano | DevHub |
+|---|---|
+| **FREE** | 1 repositório, dados básicos, README e OSV básico |
+| **PRO** | até 5 repositórios, Issues, PRs, Actions, histórico, SBOM, dependências e OSV completo |
+| **ELITE** | repositórios ilimitados e privados, Project Studio, commits pelo fórum, CI Cockpit, Security Gate, scans push/PR e AutoFix |
 
-- chat em tempo real com Supabase Realtime;
-- presença online dos membros com Realtime Presence;
-- perfis, avatares e badges de função integrados;
-- respostas a mensagens, emojis e menções com `@usuario`;
-- edição da própria mensagem por até 10 minutos;
-- exclusão da própria mensagem e moderação pela equipe;
-- denúncias integradas à Central de moderação;
-- silenciamento e banimento específicos do chat;
-- anti-flood e cooldown aplicados no servidor;
-- bloqueio de protocolos suspeitos e limite de links;
-- usuários ignorados ocultados do chat;
-- fallback por REST quando o WebSocket estiver reconectando;
-- histórico rotativo de 30 dias;
-- opção de transformar uma conversa em rascunho de tópico.
+A validação de plano e função acontece no **backend**, não apenas na interface.
 
-### Conta e segurança
+📘 [Documentação técnica e funcional completa](./docs/CREATIVEZONE_DEVHUB_GUIA_COMPLETO.md)
 
-- login por e-mail e senha;
-- login com GitHub;
-- login com Google;
-- vinculação de identidades;
-- alteração de e-mail;
-- alteração de senha com reautenticação;
-- gerenciamento de sessões e dispositivos;
-- histórico de eventos da conta;
-- desativação de conta;
-- exclusão permanente de conta;
-- privacidade de perfil;
-- controle de mensagens diretas e seguidores;
-- proteção de dados com Row Level Security;
-- verificação gratuita de senhas comprometidas usando Have I Been Pwned.
+🧭 [Tutorial passo a passo no fórum](https://forum.creativezone.pro/topico/creativezone-github-devhub-organizacao-oficial-projetos-colaborativos--669c591f-a72d-469d-86bf-17d4cc8d06d3)
 
 ---
 
 ## 🛡 CreativeZone Security
 
-A CreativeZone possui auditoria de dependências integrada ao fórum e aos projetos.
+Projetos GitHub podem ser auditados automaticamente. O scanner detecta manifests/lockfiles, identifica dependências e consulta vulnerabilidades conhecidas no **OSV**.
 
-O sistema permite analisar pacote + versão diretamente em tópicos/respostas pelo Editor Profissional, auditar automaticamente repositórios GitHub vinculados a projetos, detectar manifests/lockfiles, acompanhar um **Security Score** e exibir projetos auditados no perfil técnico dos membros.
+O sistema mantém:
 
-Projetos elegíveis são reavaliados periodicamente e mantêm histórico de auditorias. A navegação do fórum não depende do serviço de auditoria: em caso de indisponibilidade, o conteúdo continua funcionando normalmente.
+- Security Score;
+- dependências detectadas;
+- vulnerabilidades e severidades;
+- histórico de auditorias;
+- scans automáticos conforme o plano;
+- proteção por RLS e permissões de projeto.
 
-Documentação completa: [CreativeZone Security](./docs/creativezone-security/README.md).
-
----
-
-## 🔗 CreativeZone Link Preview
-
-A CreativeZone possui um motor próprio de previews de links, sem dependência obrigatória da Microlink Cloud.
-
-URLs externas publicadas em tópicos, respostas, chat e websites de projetos podem ser transformadas em cards ricos usando metadata pública (Open Graph, Twitter Cards, JSON-LD e HTML), com cache no Supabase e proteções SSRF. YouTube, CodePen, imagens diretas e integrações especializadas continuam com renderização própria.
-
-A arquitetura foi inspirada no ecossistema open source da Microlink HQ e já está preparada para, futuramente, usar `metascraper`, `browserless`, Puppeteer/Chromium e uma VPS própria para páginas que dependem de JavaScript e redes sociais.
-
-Documentação completa: [CreativeZone Link Preview](./docs/creativezone-link-preview/README.md).
+Documentação específica: [CreativeZone Security](./docs/creativezone-security/README.md).
 
 ---
 
-## ✉️ E-mails com Resend
-
-Os e-mails transacionais da CreativeZone são enviados pelo **Resend** através de Supabase Edge Functions.
-
-Os templates seguem a identidade visual do fórum — preto, vermelho e a marca CreativeZone — e incluem HTML responsivo, versão em texto simples e botões de ação.
-
-São personalizados e usados em fluxos como:
-
-- recuperação de senha;
-- Magic Link e códigos de segurança;
-- alteração de e-mail;
-- notificações de segurança;
-- novas respostas;
-- menções;
-- citações;
-- reações;
-- novos seguidores;
-- mensagens diretas;
-- avisos da moderação.
-
-> **Domínio oficial:** o fórum está publicado em `https://forum.creativezone.pro`. O domínio de envio `creativezone.pro` está sendo autenticado no Resend para substituir remetentes temporários por endereços profissionais.
-
----
-
-## 🔔 Web Push / PWA
-
-A aplicação possui:
-
-- Service Worker;
-- Web App Manifest;
-- registro de dispositivos;
-- subscriptions via Push API;
-- notificações acionadas por eventos do fórum;
-- abertura direta da rota relevante ao clicar na notificação.
-
-Em iOS/Safari, Web Push depende da instalação do site na Tela de Início e da permissão concedida pelo usuário.
-
----
-
-## 🧱 Stack
+## Stack
 
 | Camada | Tecnologia |
 |---|---|
-| Interface | React + Vite |
-| Ícones | Lucide React |
-| Tipografia | DM Sans |
+| Frontend | React + Vite |
 | Backend | Supabase |
 | Banco | PostgreSQL |
-| Autenticação | Supabase Auth |
-| Realtime | Supabase Realtime |
-| Segurança | RLS + policies + RPCs |
-| E-mail | Resend + Supabase Edge Functions |
-| Push | Service Worker + Web Push |
+| Auth / Realtime | Supabase Auth + Realtime |
+| DevHub | GitHub REST/GraphQL + GitHub App |
+| Editor | Monaco Editor |
+| Terminal | xterm.js |
+| Code Runner | Judge0 CE |
+| Segurança | OSV + RLS + RPCs |
+| E-mail | Resend |
 | Hospedagem | Cloudflare Workers Static Assets |
-| CI | GitHub Actions |
+| CI | GitHub Actions + Playwright |
 
 ---
 
-## 🏗️ Arquitetura
-
-```mermaid
-flowchart LR
-    U[Usuário] --> UI[React / Vite]
-    UI --> AUTH[Supabase Auth]
-    UI --> DB[Supabase Postgres]
-    UI --> RT[Supabase Realtime]
-
-    DB --> EF[Supabase Edge Functions]
-    EF --> R[Resend]
-    EF --> PUSH[Web Push]
-
-    UI --> CF[Cloudflare Workers]
-```
-
----
-
-## 🚀 Executar localmente
-
-### 1. Clone o repositório
+## Executar localmente
 
 ```bash
-git clone https://github.com/Inosuke-Company/CreativeZone.git
+git clone https://github.com/Forum-CreativeZone/CreativeZone.git
 cd CreativeZone
-```
-
-### 2. Instale as dependências
-
-```bash
-npm install
-```
-
-ou, para uma instalação reproduzível usando o lockfile:
-
-```bash
 npm ci
+npm run dev
 ```
 
-### 3. Configure as variáveis do frontend
-
-Crie um arquivo `.env.local`:
+Crie `.env.local`:
 
 ```env
 VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxxxx
 ```
 
-Por compatibilidade, o projeto também aceita:
+Nunca exponha `service_role`, chaves privadas do GitHub App, Resend ou outros segredos em variáveis `VITE_*`.
 
-```env
-VITE_SUPABASE_ANON_KEY=eyJ...
-```
-
-> Nunca coloque `service_role`, chaves secretas do Supabase, API keys do Resend, VAPID private key ou qualquer outro segredo em variáveis `VITE_*`. Tudo que começa com `VITE_` pode ser enviado ao navegador.
-
-### 4. Inicie o ambiente de desenvolvimento
+### Verificações
 
 ```bash
-npm run dev
-```
-
----
-
-## 🔐 Secrets do backend
-
-Credenciais privadas usadas pelas Edge Functions devem ser configuradas em **Supabase → Edge Functions → Secrets**.
-
-Exemplos usados pelo projeto:
-
-```text
-RESEND_API_KEY
-RESEND_FROM
-SEND_EMAIL_HOOK_SECRET
-```
-
-Outros segredos internos, como credenciais de Web Push, devem permanecer exclusivamente no backend/Vault.
-
----
-
-## ⚡ Supabase
-
-As migrations ficam em:
-
-```text
-supabase/migrations/
-```
-
-As Edge Functions ficam em:
-
-```text
-supabase/functions/
-├── delete-account/
-├── send-auth-email/
-├── send-community-email/
-└── send-push/
-```
-
-A aplicação depende de políticas RLS e funções/RPCs do banco para aplicar permissões e regras de segurança.
-
----
-
-## 📁 Estrutura principal
-
-```text
-CreativeZone/
-├── assets/                    # banners, logo e imagens
-├── public/
-│   ├── manifest.webmanifest  # PWA
-│   └── sw.js                 # Service Worker / Web Push
-├── src/
-│   ├── hooks/
-│   ├── services/
-│   ├── AdvancedAccountSections.jsx
-│   ├── CommunityChat.jsx
-│   ├── CommunityPages.jsx
-│   ├── main.jsx
-│   └── styles.css
-├── supabase/
-│   ├── functions/
-│   └── migrations/
-├── package.json
-├── vite.config.js
-└── wrangler.jsonc
-```
-
----
-
-## 🛠️ Build
-
-```bash
+npm run lint
+npm run test:unit
+npm run test:e2e
+npm run check:migrations
+npm run check:devhub-plans
 npm run build
 ```
 
-O Vite gera a versão de produção em:
+O workflow **Quality & Build** executa lint, testes, migrations, auditoria de gates FREE/PRO/ELITE, build e smoke tests Playwright.
+
+---
+
+## Estrutura
 
 ```text
-dist/
+CreativeZone/
+├── assets/
+├── docs/
+│   └── CREATIVEZONE_DEVHUB_GUIA_COMPLETO.md
+├── public/
+├── src/
+├── supabase/
+│   ├── functions/
+│   └── migrations/
+├── tests/e2e/
+└── package.json
 ```
 
-O Cloudflare Workers Static Assets serve esse diretório e utiliza comportamento SPA para rotas internas.
-
 ---
 
-## ☁️ Deploy
+## Produção
 
-O fluxo atual é:
+**Fórum:** https://forum.creativezone.pro/
 
-```text
-push no main
-   ↓
-GitHub Actions
-   ↓
-build do Vite
-   ↓
-Cloudflare Workers Static Assets
-```
+**Organização GitHub:** https://github.com/Creatiive-Zone
 
-A aplicação pública está disponível em:
-
-**https://forum.creativezone.pro/**
-
----
-
-## 🤝 Projetos e colaboração
-
-A CreativeZone foi criada para ser uma comunidade de participação ativa.
-
-Você não precisa ser especialista para contribuir. Se tiver uma ideia, proponha. Se encontrar um projeto interessante, participe. Se souber programar, programe. Se souber desenhar, documentar, testar, pesquisar ou organizar, sua contribuição também é valiosa.
-
-Projetos comunitários podem ser desenvolvidos na organização:
-
-### **[github.com/Creatiive-Lab](https://github.com/Creatiive-Lab)**
-
-A proposta é simples:
-
-> **compartilhar conhecimento, criar juntos e transformar boas ideias em projetos reais.**
-
----
-
-## 🗺️ Próximos passos
-
-- concluir a verificação DNS do domínio de envio `creativezone.pro` no Resend;
-- ativar remetentes profissionais para autenticação e notificações;
-- evolução contínua das ferramentas comunitárias;
-- novos projetos colaborativos na Creative Lab.
+O projeto usa migrations versionadas, Edge Functions e políticas RLS. Mudanças de permissões, planos ou integrações do DevHub devem atualizar também o guia técnico e os testes de regressão.
 
 ---
 
