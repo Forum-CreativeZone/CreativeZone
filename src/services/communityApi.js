@@ -701,6 +701,13 @@ export async function getNotifications(userId, limit = 50) {
   return (data ?? []).filter((item) => pref[item.type] ?? true)
 }
 
+export async function getUnreadNotificationCount() {
+  const client=requireSupabase()
+  const {data,error}=await client.rpc('get_unread_notification_count')
+  if(error) throw error
+  return Number(data||0)
+}
+
 export async function markNotificationRead(notificationId) {
   const client = requireSupabase()
   const { error } = await client.from('notifications')
