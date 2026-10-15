@@ -156,6 +156,19 @@ export async function getProjects() {
   return data ?? []
 }
 
+export async function getProjectActivity(projectId, limit = 50) {
+  const client=requireSupabase()
+  const safeLimit=Math.max(1,Math.min(Number(limit)||50,100))
+  const {data,error}=await client
+    .from('project_activity_feed')
+    .select('*')
+    .eq('project_id',projectId)
+    .order('occurred_at',{ascending:false})
+    .limit(safeLimit)
+  if(error) throw error
+  return data ?? []
+}
+
 export async function getProject(slug) {
   const client = requireSupabase()
   const { data, error } = await client
