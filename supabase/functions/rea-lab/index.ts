@@ -111,7 +111,7 @@ function normalizeUrl(value:unknown){
   if(!raw||raw.length>4096) throw new Error("URL inválida.")
   let url:URL
   try{url=new URL(raw)}catch{throw new Error("URL inválida.")}
-  if(!["http:","https:"].includes(url.protocol)) throw new Error("Apenas URLs HTTP/HTTPS são aceitas.")
+  if(url.protocol!=="https:") throw new Error("Apenas URLs HTTPS são aceitas pelo REA Lab.")
   url.username=""
   url.password=""
   url.hash=""
@@ -247,7 +247,7 @@ async function createJob(req:Request,body:Record<string,unknown>){
   }else if(sourceType==="github"){
     reference=normalizeUrl(reference)
     const host=new URL(reference).hostname.toLowerCase()
-    if(host!=="github.com"&&!host.endsWith(".github.com")){
+    if(host!=="github.com"){
       return json({error:"github_source_required"},400)
     }
   }else{
