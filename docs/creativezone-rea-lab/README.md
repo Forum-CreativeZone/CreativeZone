@@ -4,7 +4,7 @@
 
 **Upstream:** https://github.com/morluto/rea  
 **Licença upstream:** MIT  
-**Status:** fundação + workspace + orquestração implementados; execução profunda aguarda worker isolado.
+**Status:** worker Railway implantado e saudável; a conexão final com a Edge Function aguarda os dois secrets do Supabase.
 **Tutorial no fórum:** https://forum.creativezone.pro/topico/creativezone-rea-lab-engenharia-reversa-assistida--8dc7a209-8f23-48b2-91d2-29b2f04c9a3e
 
 ## Objetivo
@@ -318,7 +318,7 @@ Acesso equivalente ao ELITE sem limite mensal operacional.
 
 ## Privacidade
 
-Jobs são privados por padrão.
+Jobs são privados por padrão. O worker está em `https://rea-worker-production.up.railway.app` e, nesta primeira fase, aceita somente páginas HTTPS públicas e repositórios GitHub públicos para análise estática de JavaScript/Electron. O serviço usa 1 vCPU/1 GB RAM, fila curta e diretórios temporários; o código do alvo não é executado.
 
 Privacidade não é benefício premium.
 
@@ -370,17 +370,25 @@ Upload será habilitado quando o worker e o storage privado estiverem conectados
 - [x] documentação;
 - [x] tópico oficial.
 
-### Próxima subetapa
+### Worker implantado
 
-- [ ] infraestrutura REA Worker;
-- [ ] Node.js 22+;
-- [ ] instalação `rea-agents`;
-- [ ] container sandbox;
-- [ ] health/readiness do REA;
-- [ ] website worker;
-- [ ] JavaScript/Electron worker;
+- [x] serviço Railway `CreativeZone REA Worker / rea-worker`;
+- [x] Node.js 24 + `rea-agents 6.5.0`;
+- [x] Dockerfile e usuário não-root;
+- [x] endpoint `/health` validado com HTTP 200;
+- [x] endpoint `/jobs` exige bearer token (HTTP 401 sem token);
+- [x] Website via HTTPS público + extração estática de scripts;
+- [x] JavaScript/Electron via repositório GitHub público;
+- [x] limite de fila, tamanho de resposta/arquivo e timeout;
+- [x] diretório temporário apagado ao terminar;
+- [x] verificação DNS/SSRF para URLs externas;
+- [ ] configurar `REA_WORKER_URL` e `REA_WORKER_TOKEN` como secrets da Edge Function no Supabase;
+- [ ] teste ponta a ponta iniciado pela interface.
+
+### Próximas capacidades
+
 - [ ] upload privado;
-- [ ] APK/.NET/WASM;
+- [ ] APK/.NET/WASM e targets adicionais;
 - [ ] Ghidra/JADX/etc.;
 - [ ] Behavior Specification real;
 - [ ] pipeline Rebuild → DevHub.
