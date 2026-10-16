@@ -1351,7 +1351,7 @@ export function NotificationsPanel({ session, navigate, onClose, onChanged }) {
       >
         {item.type==='github_security_alert'
           ? <span className="personal-notification-icon security-alert"><ShieldCheck/></span>
-          : <Avatar profile={item.actor} size={40}/>} 
+          : <Avatar profile={item.actor} size={40}/>}
         <span>
           <strong>{notificationTitle(item)}</strong>
           <small>{item.actor?.display_name || item.actor?.username || 'CreativeZone'} · {formatRelative(item.created_at)}</small>
