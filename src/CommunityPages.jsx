@@ -1347,8 +1347,11 @@ export function NotificationsPanel({ session, navigate, onClose, onChanged }) {
         className="personal-notification-open"
         data-profile-username={item.actor?.username || undefined}
         onClick={()=>openNotification(item)}
+        title={item.type==='github_security_alert'?'Abrir auditoria de segurança no DevHub':undefined}
       >
-        <Avatar profile={item.actor} size={40}/>
+        {item.type==='github_security_alert'
+          ? <span className="personal-notification-icon security-alert"><ShieldCheck/></span>
+          : <Avatar profile={item.actor} size={40}/>} 
         <span>
           <strong>{notificationTitle(item)}</strong>
           <small>{item.actor?.display_name || item.actor?.username || 'CreativeZone'} · {formatRelative(item.created_at)}</small>
