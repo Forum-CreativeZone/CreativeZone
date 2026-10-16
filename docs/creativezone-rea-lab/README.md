@@ -4,7 +4,7 @@
 
 **Upstream:** https://github.com/morluto/rea  
 **Licença upstream:** MIT  
-**Status:** worker Railway implantado e saudável; a conexão final com a Edge Function aguarda os dois secrets do Supabase.
+**Status:** worker Railway ativo, secrets conectados e teste ponta a ponta de análise JavaScript concluído com sucesso.
 **Tutorial no fórum:** https://forum.creativezone.pro/topico/creativezone-rea-lab-engenharia-reversa-assistida--8dc7a209-8f23-48b2-91d2-29b2f04c9a3e
 
 ## Objetivo
@@ -377,20 +377,25 @@ Upload será habilitado quando o worker e o storage privado estiverem conectados
 - [x] Dockerfile e usuário não-root;
 - [x] endpoint `/health` validado com HTTP 200;
 - [x] endpoint `/jobs` exige bearer token (HTTP 401 sem token);
-- [x] Website via HTTPS público + extração estática de scripts;
+- [x] secrets `REA_WORKER_URL` e `REA_WORKER_TOKEN` configurados no Supabase;
+- [x] callback autenticado do worker para a Edge Function;
+- [x] teste ponta a ponta: repositório público JavaScript analisado, job concluído e evidências persistidas;
+- [x] Node.js 24, `rea-agents 6.5.0` e dependência de sistema `procps`;
+- [x] Website via HTTPS público + extração estática de scripts (não é navegador completo);
 - [x] JavaScript/Electron via repositório GitHub público;
 - [x] limite de fila, tamanho de resposta/arquivo e timeout;
 - [x] diretório temporário apagado ao terminar;
-- [x] verificação DNS/SSRF para URLs externas;
-- [ ] configurar `REA_WORKER_URL` e `REA_WORKER_TOKEN` como secrets da Edge Function no Supabase;
-- [ ] teste ponta a ponta iniciado pela interface.
+- [x] verificação DNS/SSRF para URLs externas.
+
+O smoke test usou `https://github.com/sindresorhus/is`: o job terminou em `completed`, retornou uma evidência e três limitações explícitas. O primeiro teste revelou a ausência de `ps`; a imagem foi corrigida com `procps` e o teste seguinte passou.
 
 ### Próximas capacidades
 
+- [ ] fluxo de criação de job validado pelo formulário no navegador;
 - [ ] upload privado;
 - [ ] APK/.NET/WASM e targets adicionais;
 - [ ] Ghidra/JADX/etc.;
-- [ ] Behavior Specification real;
+- [ ] geração real de Behavior Specification;
 - [ ] pipeline Rebuild → DevHub.
 
 ## Arquivos
