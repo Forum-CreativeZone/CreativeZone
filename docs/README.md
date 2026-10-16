@@ -70,13 +70,13 @@ O README principal deve continuar resumido. A documentação completa fica neste
 
 - GitHub: [creativezone-rea-lab/README.md](./creativezone-rea-lab/README.md)
 - Fórum: https://forum.creativezone.pro/topico/creativezone-rea-lab-engenharia-reversa-assistida--8dc7a209-8f23-48b2-91d2-29b2f04c9a3e
-- Estado: worker Railway implantado; ligação dos secrets Supabase e teste ponta a ponta pendentes
+- Estado: worker Railway ativo; secrets conectados; smoke test JavaScript concluído
 
 ---
 
 ## Próximos sistemas
 
-A próxima subetapa do REA Lab é conectar a infraestrutura de worker isolado para executar o upstream `morluto/rea` fora do processo web do fórum.
+A próxima subetapa do REA Lab é habilitar upload privado e ampliar os targets suportados, mantendo a execução fora do processo web do fórum.
 
 ---
 
