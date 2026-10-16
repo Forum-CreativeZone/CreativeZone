@@ -1376,20 +1376,46 @@ async function auditProject(projectId: string, options: {
     await admin.from("project_security_state").upsert(state, { onConflict: "project_id" })
 
     if (caps.real_time_alerts && ["push", "pull_request"].includes(options.triggerType) && analysis.vulnerabilityCount > 0) {
-      await admin.from("notifications").insert({
-        user_id: project.owner_id,
-        type: "github_security_alert",
-        data: {
+      const alertData = {
+        project_id: projectId,
+        project_slug: project.slug,
+        project_title: project.title,
+        repository: ref.url,
+        trigger_type: options.triggerType,
+        vulnerability_count: analysis.vulnerabilityCount,
+        critical_count: analysis.critical,
+        high_count: analysis.high,
+        highest_severity: analysis.highest,
+        path: `/projetos/${project.slug}?section=security`,
+      }
+      const since = new Date(Date.now() - 30 * 60 * 1000).toISOString()
+      const { data: recentAlert } = await admin
+        .from("notifications")
+        .select("id")
+        .eq("user_id", project.owner_id)
+        .eq("type", "github_security_alert")
+        .contains("data", {
           project_id: projectId,
-          project_title: project.title,
-          repository: ref.url,
           trigger_type: options.triggerType,
           vulnerability_count: analysis.vulnerabilityCount,
           critical_count: analysis.critical,
           high_count: analysis.high,
           highest_severity: analysis.highest,
-        },
-      }).then(()=>null).catch(()=>null)
+        })
+        .gte("created_at", since)
+        .limit(1)
+        .maybeSingle()
+
+      if (!recentAlert) {
+        await admin.from("notifications").insert({
+          user_id: project.owner_id,
+          type: "github_security_alert",
+          data: {
+            ...alertData,
+            message: `${analysis.vulnerabilityCount} vulnerabilidade(s) detectada(s); ${analysis.critical} crítica(s), ${analysis.high} alta(s).`,
+          },
+        }).then(()=>null).catch(()=>null)
+      }
     }
 
     return { skipped: false, state, findings: fullFindings, plan_id: plan.plan_id, security_gate: securityGate }
