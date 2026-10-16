@@ -139,6 +139,10 @@ export function ReaLabPage({ session, navigate, notify }) {
     if(allowedTargets.length && !allowedTargets.includes(targetType)) setTargetType(allowedTargets[0])
   },[allowedTargets.join('|')])
 
+  useEffect(()=>{
+    setSourceType(targetType==='website'?'url':'github')
+  },[targetType])
+
   const selectedTarget=useMemo(
     ()=>TARGETS.find(([id])=>id===targetType),
     [targetType]
@@ -275,7 +279,7 @@ export function ReaLabPage({ session, navigate, notify }) {
               </header>
               <div className="rea-lab-target-grid">
                 {TARGETS.map(([id,label,Icon,description])=>{
-                  const enabled=allowedTargets.includes(id)
+                  const enabled=allowedTargets.includes(id) && ['website','javascript','electron'].includes(id)
                   return (
                     <button
                       type="button"
@@ -303,10 +307,10 @@ export function ReaLabPage({ session, navigate, notify }) {
 
               <form onSubmit={submit}>
                 <div className="rea-lab-source-tabs">
-                  <button type="button" className={sourceType==='url'?'active':''} onClick={()=>setSourceType('url')}>
+                  <button type="button" className={sourceType==='url'?'active':''} onClick={()=>setSourceType('url')} disabled={targetType!=='website'}>
                     <Globe2/> URL
                   </button>
-                  <button type="button" className={sourceType==='github'?'active':''} onClick={()=>setSourceType('github')}>
+                  <button type="button" className={sourceType==='github'?'active':''} onClick={()=>setSourceType('github')} disabled={!['javascript','electron'].includes(targetType)}>
                     <GitBranch/> GitHub
                   </button>
                   <button type="button" className={sourceType==='upload'?'active':''} onClick={()=>setSourceType('upload')} disabled>
