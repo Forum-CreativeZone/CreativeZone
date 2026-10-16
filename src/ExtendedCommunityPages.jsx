@@ -670,7 +670,10 @@ export function ProjectPage({ slug, session, navigate, notify }) {
   const [loading,setLoading]=useState(true)
   const [updateText,setUpdateText]=useState('')
   const [activeSection,setActiveSection]=useState(()=>{
-    try{return localStorage.getItem('creativezone-devhub-section-'+slug)||'overview'}catch{return 'overview'}
+    try{
+      const requested=new URLSearchParams(window.location.search).get('section')
+      return requested || localStorage.getItem('creativezone-devhub-section-'+slug) || 'overview'
+    }catch{return 'overview'}
   })
   const [devhubLanguage]=useDevHubLanguage()
 
