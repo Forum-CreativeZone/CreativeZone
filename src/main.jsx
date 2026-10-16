@@ -17,7 +17,6 @@ import {
   Edit3,
   Trash2,
   Briefcase,
-  BrainCircuit,
   Bell,
   BellOff,
   CheckCircle2,
@@ -3376,7 +3375,7 @@ function App() {
             DevHub
           </button>
           <button className={isReaLab ? 'active' : ''} onClick={() => navigate('/rea-lab')}>
-            <BrainCircuit />
+            <Icon name="feed" />
             REA Lab
           </button>
           <button className={isTeams ? 'active' : ''} onClick={() => navigate('/equipes')}>
