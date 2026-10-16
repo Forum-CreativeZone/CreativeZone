@@ -211,6 +211,15 @@ async function createJob(req:Request,body:Record<string,unknown>){
   if(!Array.isArray(caps.target_types)||!caps.target_types.includes(targetType)){
     return json({error:"target_type_not_in_plan",plan:plan.plan_id},403)
   }
+  if(targetType==="website" && sourceType!=="url"){
+    return json({error:"website_requires_url_source"},400)
+  }
+  if(["javascript","electron"].includes(targetType) && sourceType!=="github"){
+    return json({error:"javascript_targets_require_github_source"},400)
+  }
+  if(!["website","javascript","electron"].includes(targetType)){
+    return json({error:"target_not_enabled_on_worker_yet",supported_targets:["website","javascript","electron"]},409)
+  }
   if(body.acknowledge_lawful_use!==true){
     return json({error:"lawful_use_acknowledgement_required"},400)
   }
