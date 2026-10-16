@@ -201,6 +201,20 @@ O Owner pode conceder **acesso operacional** sem transferir propriedade. Isso n�
 6. PRO recebe análise avançada/agendada.
 7. ELITE pode receber scans em push/PR, Security Gate, alertas e AutoFix.
 
+### Alertas de segurança acionáveis
+
+A Edge Function `github-security-scan` cria notificações para o Owner quando um scan push/PR encontra vulnerabilidades e o plano permite alertas em tempo real.
+
+Cada alerta inclui:
+
+- título explícito de alerta de segurança;
+- projeto e repositório;
+- contagem total, críticas e altas;
+- destino `/projetos/{slug}?section=security`;
+- deduplicação de alertas idênticos por 30 minutos.
+
+A central de notificações encaminha o clique diretamente para a aba **Security** do projeto. Alertas repetidos antigos foram marcados como lidos, mantendo um alerta não lido para a ocorrência idêntica mais recente.
+
 ## 6. Roadmap/áreas da interface
 
 O menu lateral do projeto contém áreas de desenvolvimento e áreas CreativeZone.
