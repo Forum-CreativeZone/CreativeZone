@@ -1235,6 +1235,7 @@ export function notificationTitle(item) {
     membership_granted: 'Seu VIP foi ativado',
     membership_expiring: 'Seu VIP está perto de vencer',
     membership_expired: 'Seu VIP expirou',
+    github_security_alert: 'Alerta de segurança do projeto',
     github_org_join_request: 'Novo pedido para entrar na organização GitHub',
     github_org_join_request_updated: 'Seu pedido da organização GitHub foi atualizado',
     project_recruiting_application: 'Nova candidatura para um projeto',
@@ -1258,6 +1259,16 @@ export function notificationTitle(item) {
 
 function notificationContext(item) {
   const data=item?.data||{}
+  if(item?.type==='github_security_alert'){
+    const project=String(data.project_title||data.repository||'Projeto DevHub')
+    const total=Number(data.vulnerability_count||0)
+    const critical=Number(data.critical_count||0)
+    const high=Number(data.high_count||0)
+    const parts=[`${total} vulnerabilidade(s)`]
+    if(critical) parts.push(`${critical} crítica(s)`)
+    if(high) parts.push(`${high} alta(s)`)
+    return `${project} — ${parts.join(', ')}. Clique para abrir a auditoria de segurança.`
+  }
   if(data.message) return String(data.message)
   if(data.team_name) return String(data.team_name)
   if(data.github_username) return '@'+String(data.github_username)
@@ -1311,6 +1322,11 @@ export function NotificationsPanel({ session, navigate, onClose, onChanged }) {
     await refreshNotifications()
     onClose()
     if(item.data?.path) navigate(item.data.path)
+    else if(item.type==='github_security_alert' && item.data?.project_slug) navigate(`/projetos/${item.data.project_slug}?section=security`)
+    else if(item.type==='github_security_alert' && item.data?.project_id) {
+      const {data:project}=await supabase.from('projects').select('slug').eq('id',item.data.project_id).maybeSingle()
+      navigate(project?.slug ? `/projetos/${project.slug}?section=security` : '/projetos')
+    }
     else if(item.data?.topic_id) navigate(`/topico/${item.data.topic_id}`)
     else if(item.type==='direct_message' && item.actor?.username) navigate(`/mensagens/${item.actor.username}`)
   }
